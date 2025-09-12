@@ -3,126 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bond Sales Activity Tracker</title>
+    <title>Bond Sales Activity Tracker (Updated)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: #1a202c;
-            color: #e2e8f0;
-        }
-        .container {
-            max-width: 1200px;
-        }
-        .form-input, .form-select, .form-textarea {
-            width: 100%;
-            padding: 12px;
-            background-color: #2d3748;
-            border: 1px solid #4a5568;
-            border-radius: 8px;
-            color: #e2e8f0;
-            transition: border-color 0.2s;
-        }
-        .form-input:focus, .form-select:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #63b3ed;
-        }
-        .form-input:disabled, .form-select:disabled, .form-textarea:disabled {
-            background-color: #4a5568;
-            cursor: not-allowed;
-        }
-        .btn-primary {
-            background-color: #4c51bf;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: background-color 0.2s;
-        }
-        .btn-primary:hover {
-            background-color: #667eea;
-        }
-        .btn-primary:disabled {
-            background-color: #3b4252;
-            cursor: not-allowed;
-            color: #a0aec0;
-        }
-        .btn-danger {
-            background-color: #e53e3e;
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-        .btn-danger:hover {
-            background-color: #fc8181;
-        }
-        .tab-btn.active {
-            background-color: #4c51bf;
-            color: white;
-            font-weight: 600;
-        }
-        .tab-btn:hover {
-             background-color: #4a5568;
-        }
-        .tab-btn {
-            transition: background-color 0.2s;
-        }
-        .table-header {
-            background-color: #2d3748;
-            color: #a0aec0;
-        }
-        .table-row:nth-child(odd) {
-            background-color: #2d3748;
-        }
-        .table-row:nth-child(even) {
-            background-color: #1a202c;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 100;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.6);
-            backdrop-filter: blur(5px);
-            -webkit-backdrop-filter: blur(5px);
-            justify-content: center;
-            align-items: center;
-        }
-        .modal-content {
-            background-color: #2d3748;
-            margin: auto;
-            padding: 24px;
-            border: 1px solid #4a5568;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            text-align: center;
-        }
+        body { font-family: 'Inter', sans-serif; background-color: #1a202c; color: #e2e8f0; }
+        .container { max-width: 1200px; }
+        .form-input, .form-select, .form-textarea { width: 100%; padding: 12px; background-color: #2d3748; border: 1px solid #4a5568; border-radius: 8px; color: #e2e8f0; transition: border-color 0.2s; }
+        .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: #63b3ed; }
+        .form-input:disabled, .form-select:disabled, .form-textarea:disabled { background-color: #4a5568; cursor: not-allowed; }
+        .btn-primary { background-color: #4c51bf; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; transition: background-color 0.2s; }
+        .btn-primary:hover { background-color: #667eea; }
+        .btn-primary:disabled { background-color: #3b4252; cursor: not-allowed; color: #a0aec0; }
+        .btn-danger { background-color: #e53e3e; color: white; padding: 8px 16px; border-radius: 8px; transition: background-color 0.2s; }
+        .btn-danger:hover { background-color: #fc8181; }
+        .tab-btn.active { background-color: #4c51bf; color: white; font-weight: 600; }
+        .tab-btn:hover { background-color: #4a5568; }
+        .tab-btn { transition: background-color 0.2s; }
+        .table-header { background-color: #2d3748; color: #a0aec0; }
+        .table-row:nth-child(odd) { background-color: #2d3748; }
+        .table-row:nth-child(even) { background-color: #1a202c; }
+        .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); justify-content: center; align-items: center; }
+        .modal-content { background-color: #2d3748; margin: auto; padding: 24px; border: 1px solid #4a5568; width: 90%; max-width: 400px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); text-align: center; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
 
     <div id="loadingIndicator" class="fixed inset-0 bg-gray-900 bg-opacity-75 z-50 flex items-center justify-center hidden">
         <div class="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-purple-500"></div>
-        <div class="ml-4 text-white">Calculating currency...</div>
+        <div class="ml-4 text-white">Fetching rates...</div>
     </div>
 
-    <div id="successMessage" class="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded-full shadow-lg z-50 transition-transform transform translate-x-full hidden">
-        Activity Logged!
-    </div>
+    <div id="successMessage" class="fixed top-4 right-4 bg-green-500 text-white py-2 px-4 rounded-full shadow-lg z-50 transition-transform transform translate-x-full hidden">Activity Logged!</div>
+    <div id="errorMessage" class="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded-full shadow-lg z-50 transition-transform transform hidden">Failed to log activity. Please try again.</div>
 
-    <div id="errorMessage" class="fixed top-4 right-4 bg-red-500 text-white py-2 px-4 rounded-full shadow-lg z-50 transition-transform transform hidden">
-        Failed to log activity. Please try again.
-    </div>
-
-    <!-- Confirmation Modal -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
             <h3 class="text-xl font-bold mb-4">Confirm Deletion</h3>
@@ -137,10 +51,31 @@
     <div class="container mx-auto p-8 lg:p-12">
         <h1 class="text-4xl lg:text-5xl font-extrabold text-center mb-6 text-indigo-400">Bond Sales Activity Tracker</h1>
         <div id="userIdDisplay" class="text-sm text-center mb-6 text-gray-500">User ID: <span id="userIdSpan" class="text-gray-200 font-mono text-xs md:text-sm">Loading...</span></div>
+
+        <div class="bg-gray-800 rounded-xl shadow-2xl p-6 lg:p-10 mb-10">
+            <h2 class="text-3xl font-bold mb-6 text-white">Client Database</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <input id="newClientName" class="form-input" placeholder="Client Name (uppercased will be stored)" />
+                <select id="newClientType" class="form-select">
+                    <option value="Treasury">Treasury</option>
+                    <option value="Asset Manager">Asset Manager</option>
+                    <option value="Hedge Fund">Hedge Fund</option>
+                    <option value="SWF">SWF</option>
+                    <option value="Central Bank">Central Bank</option>
+                    <option value="Prop">Prop</option>
+                    <option value="WM">WM</option>
+                </select>
+                <div class="flex items-center">
+                    <button id="addClientBtn" class="btn-primary px-4 py-2">Add Client</button>
+                </div>
+            </div>
+            <div id="clientsList" class="text-sm text-gray-300">Clients will appear in the dropdown when added.</div>
+        </div>
+
         <div class="bg-gray-800 rounded-xl shadow-2xl p-6 lg:p-10 mb-10">
             <h2 class="text-3xl font-bold mb-6 text-white">Log New Activity</h2>
             <div id="activity-hint" class="text-sm text-center mb-4 text-gray-400">Please select an activity type below to enable the form.</div>
-            
+
             <div class="flex flex-wrap gap-2 mb-6 justify-center lg:justify-start">
                 <button id="tab-enquiry" class="tab-btn px-4 py-2 rounded-full border border-gray-600">Enquiry</button>
                 <button id="tab-trade" class="tab-btn px-4 py-2 rounded-full border border-gray-600">Trade</button>
@@ -150,23 +85,17 @@
 
             <form id="activityForm">
                 <input type="hidden" id="activityType" value="" required>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
                     <div class="form-group">
                         <label for="clientName" class="block mb-2 text-sm font-medium">Client Name</label>
-                        <input type="text" id="clientName" class="form-input" disabled required>
+                        <select id="clientName" class="form-select" disabled required>
+                            <option value="">(Select client from Client Database)</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="clientType" class="block mb-2 text-sm font-medium">Client Type</label>
-                        <select id="clientType" class="form-select" disabled>
-                            <option value="Treasury">Treasury</option>
-                            <option value="Asset Manager">Asset Manager</option>
-                            <option value="Hedge Fund">Hedge Fund</option>
-                            <option value="Prop">Prop</option>
-                            <option value="WM">WM</option>
-                            <option value="Insurance">Insurance</option>
-                            <option value="SWF">SWF</option>
-                        </select>
+                        <input type="text" id="clientType" class="form-input" disabled placeholder="Auto-filled from client database" />
                     </div>
                     <div class="form-group">
                         <label for="securities" class="block mb-2 text-sm font-medium">Securities</label>
@@ -257,7 +186,7 @@
 
         <div class="bg-gray-800 rounded-xl shadow-2xl p-6 lg:p-10">
             <h2 class="text-3xl font-bold mb-6 text-white">Activity Log</h2>
-            
+
             <div class="flex flex-wrap gap-2 mb-6">
                 <button id="log-general-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600 active">General Activities</button>
                 <button id="log-new-issues-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600">New Issues</button>
@@ -281,9 +210,7 @@
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="generalLogTable">
-                        <!-- Data will be populated here -->
-                    </tbody>
+                    <tbody id="generalLogTable"></tbody>
                 </table>
             </div>
 
@@ -305,24 +232,28 @@
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="newIssuesLogTable">
-                        <!-- Data will be populated here -->
-                    </tbody>
+                    <tbody id="newIssuesLogTable"></tbody>
                 </table>
             </div>
 
         </div>
     </div>
+
     <script type="module">
+        // Global appId correctly scoped
+        let appId = "default-app-id";
+
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, query, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
-        import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
-
-        setLogLevel('debug');
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
         const allFormFields = document.querySelectorAll('#activityForm input, #activityForm select, #activityForm textarea');
-        const clientNameInput = document.getElementById('clientName');
+        const clientNameSelect = document.getElementById('clientName');
+        const clientNameInputForDb = document.getElementById('newClientName');
+        const newClientTypeSelect = document.getElementById('newClientType');
+        const addClientBtn = document.getElementById('addClientBtn');
+        const clientsListDiv = document.getElementById('clientsList');
+        const clientTypeInput = document.getElementById('clientType');
         const securitiesInput = document.getElementById('securities');
         const cptyTradedAwayInput = document.getElementById('cptyTradedAway');
         const activityTypeInput = document.getElementById('activityType');
@@ -341,96 +272,70 @@
         const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
         const activityHint = document.getElementById('activity-hint');
-        
-        // Specific New Issues fields
+
+        // New Issues specific
         const ioiInput = document.getElementById('ioi');
         const orderSizeInput = document.getElementById('orderSize');
         const realInterestInput = document.getElementById('realInterest');
         const niCurrencySelect = document.getElementById('niCurrency');
         const niUsdEquivalentInput = document.getElementById('niUsdEquivalent');
 
-        // Gemini API constants
-        const API_KEY = "";
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
+        let db; let auth; let userId = null; let isAuthReady = false;
 
         const showMessage = (element, message, duration = 2500) => {
-            if (element.id === 'errorMessage') {
-                element.textContent = message;
-            } else if (element.id === 'successMessage') {
-                element.textContent = message;
-            }
+            element.textContent = message;
             element.classList.remove('hidden');
             element.classList.add('translate-y-0');
-            setTimeout(() => {
-                element.classList.remove('translate-y-0');
-                element.classList.add('-translate-y-full');
-            }, duration);
-            setTimeout(() => {
-                element.classList.add('hidden');
-                element.classList.remove('-translate-y-full');
-            }, duration + 500);
+            setTimeout(() => { element.classList.remove('translate-y-0'); element.classList.add('-translate-y-full'); }, duration);
+            setTimeout(() => { element.classList.add('hidden'); element.classList.remove('-translate-y-full'); }, duration + 500);
         };
 
         const updateSubmitButtonState = () => {
-            const isActivitySelected = activityTypeInput.value !== '';
+            const isActivitySelected = activityTypeInput.value.trim() !== '';
             submitBtn.disabled = !(isAuthReady && isActivitySelected);
-            if (isActivitySelected) {
-                activityHint.classList.add('hidden');
-            } else {
-                activityHint.classList.remove('hidden');
-            }
+            if (isActivitySelected) activityHint.classList.add('hidden'); else activityHint.classList.remove('hidden');
         };
 
+        // Realtime listeners for activities and clients
         const setupRealtimeListeners = () => {
             if (!isAuthReady || !userId) return;
-
             const generalActivitiesPath = `artifacts/${appId}/users/${userId}/general_activities`;
             const newIssuesPath = `artifacts/${appId}/users/${userId}/new_issues`;
+            const clientsPath = `artifacts/${appId}/clients`;
 
-            // Listen to General Activities
             onSnapshot(collection(db, generalActivitiesPath), (snapshot) => {
                 const activities = [];
-                snapshot.forEach(doc => {
-                    activities.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => activities.push({ id: doc.id, ...doc.data() }));
                 renderGeneralActivities(activities);
-            }, (error) => {
-                console.error("Error fetching general activities:", error);
-                showMessage(errorMessage, `Failed to load activities: ${error.message}.`);
-            });
+            }, (error) => { console.error('Error fetching general activities:', error); showMessage(errorMessage, `Failed to load activities: ${error.message}`); });
 
-            // Listen to New Issues
             onSnapshot(collection(db, newIssuesPath), (snapshot) => {
                 const newIssues = [];
-                snapshot.forEach(doc => {
-                    newIssues.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => newIssues.push({ id: doc.id, ...doc.data() }));
                 renderNewIssues(newIssues);
-            }, (error) => {
-                console.error("Error fetching new issues:", error);
-                showMessage(errorMessage, `Failed to load new issues: ${error.message}.`);
-            });
+            }, (error) => { console.error('Error fetching new issues:', error); showMessage(errorMessage, `Failed to load new issues: ${error.message}`); });
+
+            // Clients listener
+            onSnapshot(collection(db, clientsPath), (snapshot) => {
+                const clients = [];
+                snapshot.forEach(doc => clients.push({ id: doc.id, ...doc.data() }));
+                populateClientDropdown(clients);
+            }, (error) => { console.error('Error fetching clients:', error); showMessage(errorMessage, `Failed to load clients: ${error.message}`); });
         };
 
         // UI Logic
-        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabButtons = document.querySelectorAll('#tab-enquiry, #tab-trade, #tab-missed-trades, #tab-new-issues');
         const generalTabs = document.querySelectorAll('#log-general-tab, #log-new-issues-tab');
 
         const showFormFields = (type) => {
             const commonFields = document.getElementById('commonFields');
             const missedTradeFields = document.getElementById('missedTradeFields');
             const newIssueFields = document.getElementById('newIssueFields');
-            const priceTargetInput = document.getElementById('priceTarget');
 
             // Enable all common fields first
             allFormFields.forEach(field => field.disabled = false);
-            
-            // Hide all specific fields and their requirements
+
+            // Reset visibilities
             commonFields.classList.remove('hidden');
             missedTradeFields.classList.add('hidden');
             newIssueFields.classList.add('hidden');
@@ -441,11 +346,10 @@
             niCurrencySelect.disabled = true;
             niUsdEquivalentInput.disabled = true;
             document.getElementById('remarks').disabled = true;
-            
+
             priceLabel.textContent = 'Price Target';
-            
-            // Set required and visible fields based on activity type
-            switch(type) {
+
+            switch(type.trim()) {
                 case 'Enquiry':
                 case 'Trade':
                     break;
@@ -457,6 +361,7 @@
                 case 'New Issues':
                     commonFields.classList.add('hidden');
                     newIssueFields.classList.remove('hidden');
+                    // Enable new issue inputs
                     ioiInput.disabled = false;
                     orderSizeInput.disabled = false;
                     realInterestInput.disabled = false;
@@ -465,7 +370,6 @@
                     document.getElementById('remarks').disabled = false;
                     break;
                 default:
-                    // Disable all fields if no tab is selected
                     allFormFields.forEach(field => field.disabled = true);
                     break;
             }
@@ -475,7 +379,7 @@
             btn.addEventListener('click', () => {
                 tabButtons.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                activityTypeInput.value = btn.textContent;
+                activityTypeInput.value = btn.textContent.trim();
                 showFormFields(btn.textContent);
                 updateSubmitButtonState();
             });
@@ -487,64 +391,39 @@
                 btn.classList.add('active');
                 document.getElementById('generalLog').classList.add('hidden');
                 document.getElementById('newIssuesLog').classList.add('hidden');
-                if (btn.id === 'log-general-tab') {
-                    document.getElementById('generalLog').classList.remove('hidden');
-                } else {
-                    document.getElementById('newIssuesLog').classList.remove('hidden');
-                }
+                if (btn.id === 'log-general-tab') document.getElementById('generalLog').classList.remove('hidden'); else document.getElementById('newIssuesLog').classList.remove('hidden');
             });
         });
 
-        // Convert input to uppercase
-        clientNameInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
+        // Convert inputs to uppercase where applicable
+        clientNameSelect.addEventListener('input', (e) => {}); // select
         securitiesInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
         cptyTradedAwayInput.addEventListener('input', (e) => e.target.value = e.target.value.toUpperCase());
 
-        // USD Equivalent Calculation
+        // Currency conversion: using exchangerate.host as a reliable free endpoint.
+        // NOTE: Google does not provide a free public currency conversion REST endpoint. If you specifically want a Google product, you would need to use a paid Google Cloud service or a Google Sheet with the GOOGLEFINANCE formula.
         const getUSDConversionRate = async (fromCurrency) => {
-            if (fromCurrency.toUpperCase() === 'USD') return 1;
-
-            const prompt = `How many ${fromCurrency} are equal to 1 USD? Provide only the numerical value without any other text or symbols.`;
-            const payload = {
-                contents: [{ parts: [{ text: prompt }] }],
-                tools: [{ "google_search": {} }],
-                systemInstruction: { parts: [{ text: "Act as a world-class financial analyst. Provide a single numerical value without any other text or symbols." }] },
-            };
-
-            let retryCount = 0;
-            const maxRetries = 3;
-            let response;
-            while (retryCount < maxRetries) {
-                try {
-                    response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-                    if (response.ok) break;
-                } catch (error) {
-                    console.error("Fetch error, retrying:", error);
-                }
-                retryCount++;
-                await new Promise(res => setTimeout(res, Math.pow(2, retryCount) * 1000));
-            }
-
-            if (!response || !response.ok) {
-                console.error("Failed to fetch conversion rate after multiple retries.");
+            // Returns: how many <fromCurrency> = 1 USD (i.e., units per USD). If fromCurrency is USD returns 1.
+            const c = (fromCurrency || '').toUpperCase();
+            if (c === 'USD' || c === '') return 1;
+            try {
+                // Using exchangerate.host (free, no-key) - base USD
+                const res = await fetch(`https://api.exchangerate.host/latest?base=USD&symbols=${encodeURIComponent(c)}`);
+                if (!res.ok) return null;
+                const data = await res.json();
+                const rate = data?.rates?.[c];
+                if (!rate) return null;
+                // rate is units of c per 1 USD => that's exactly what we asked for
+                return rate;
+            } catch (err) {
+                console.error('Rate fetch error', err);
                 return null;
             }
-
-            const result = await response.json();
-            const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
-            const rate = parseFloat(text);
-            return isNaN(rate) ? null : rate;
         };
-        
+
         const updateUSDEquivalent = async () => {
-            const activeTab = activityTypeInput.value;
-            let effectiveSize;
-            let effectiveCurrencySelect;
-            let effectiveUsdEquivalentInput;
+            const activeTab = activityTypeInput.value.trim();
+            let effectiveSize, effectiveCurrencySelect, effectiveUsdEquivalentInput;
 
             if (activeTab === 'New Issues') {
                 effectiveSize = parseFloat(orderSizeInput.value);
@@ -555,19 +434,15 @@
                 effectiveCurrencySelect = currencySelect;
                 effectiveUsdEquivalentInput = usdEquivalentInput;
             }
-            
-            const currency = effectiveCurrencySelect.value.trim().toUpperCase();
 
-            if (isNaN(effectiveSize) || !currency) {
-                effectiveUsdEquivalentInput.value = '';
-                return;
-            }
+            const currency = (effectiveCurrencySelect?.value || '').trim().toUpperCase();
+            if (isNaN(effectiveSize) || !currency) { if (effectiveUsdEquivalentInput) effectiveUsdEquivalentInput.value = ''; return; }
 
             loadingIndicator.classList.remove('hidden');
             const rate = await getUSDConversionRate(currency);
             loadingIndicator.classList.add('hidden');
-
             if (rate !== null) {
+                // rate = units of currency per 1 USD. USD equivalent = size / rate
                 effectiveUsdEquivalentInput.value = (effectiveSize / rate).toFixed(2);
             } else {
                 effectiveUsdEquivalentInput.value = 'N/A';
@@ -576,8 +451,6 @@
 
         sizeInput.addEventListener('input', updateUSDEquivalent);
         currencySelect.addEventListener('change', updateUSDEquivalent);
-
-        // Event listeners for New Issues fields
         orderSizeInput.addEventListener('input', updateUSDEquivalent);
         niCurrencySelect.addEventListener('change', updateUSDEquivalent);
 
@@ -587,40 +460,22 @@
             niUsdEquivalentInput.value = '';
             tabButtons.forEach(b => b.classList.remove('active'));
             activityTypeInput.value = '';
-            showFormFields(''); // Hide the fields
+            showFormFields('');
             updateSubmitButtonState();
+            clientTypeInput.value = '';
         };
-        
+
         activityForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+            const activityType = activityTypeInput.value.trim();
+            if (!activityType) { showMessage(errorMessage, 'Please choose an activity type.'); return; }
+            if (!isAuthReady || !userId) { showMessage(errorMessage, 'App not ready. Please wait a moment.'); return; }
 
-            const activityType = activityTypeInput.value;
-            if (!activityType) {
-                showMessage(errorMessage, "Please choose an activity type.");
-                return;
-            }
-            
-            if (!isAuthReady || !userId) {
-                console.error("App not ready. Authentication not complete.");
-                showMessage(errorMessage, "App not ready. Please wait a moment.");
-                return;
-            }
-            
-            const clientName = clientNameInput.value.trim();
+            const clientName = (clientNameSelect.value || '').trim();
             const securities = securitiesInput.value.trim();
+            if (!clientName || !securities) { showMessage(errorMessage, 'Client Name and Securities are required.'); return; }
 
-            if (!clientName || !securities) {
-                showMessage(errorMessage, "Client Name and Securities are required.");
-                return;
-            }
-
-            let docData = {
-                clientName: clientName,
-                clientType: document.getElementById('clientType').value,
-                securities: securities,
-                timestamp: serverTimestamp(),
-            };
-            
+            let docData = { clientName: clientName, clientType: clientTypeInput.value || '', securities: securities, timestamp: serverTimestamp() };
             let collectionPath = '';
 
             if (activityType === 'New Issues') {
@@ -630,49 +485,22 @@
                 const currency = niCurrencySelect.value.trim();
                 const usdEquivalent = niUsdEquivalentInput.value.trim();
 
-                if (!ioi || isNaN(orderSize) || isNaN(realInterest) || !currency) {
-                    showMessage(errorMessage, "IOI, Order Size, Real Interest, and Currency are required for New Issues.");
-                    return;
-                }
+                if (!ioi || isNaN(orderSize) || isNaN(realInterest) || !currency) { showMessage(errorMessage, 'IOI, Order Size, Real Interest, and Currency are required for New Issues.'); return; }
 
-                docData = {
-                    ...docData,
-                    ioi: ioi,
-                    orderSize: orderSize,
-                    realInterest: realInterest,
-                    priceTarget: document.getElementById('priceTarget').value,
-                    currency: currency,
-                    usdEquivalent: usdEquivalent,
-                    remarks: document.getElementById('remarks').value,
-                };
+                docData = { ...docData, ioi, orderSize, realInterest, priceTarget: document.getElementById('priceTarget').value, currency, usdEquivalent, remarks: document.getElementById('remarks').value };
                 collectionPath = `artifacts/${appId}/users/${userId}/new_issues`;
             } else {
                 const size = parseFloat(sizeInput.value);
                 const priceTarget = document.getElementById('priceTarget').value.trim();
                 const currency = currencySelect.value.trim();
                 const usdEquivalent = usdEquivalentInput.value.trim();
+                if (isNaN(size) || !priceTarget || !currency) { showMessage(errorMessage, 'Size, Price Target, and Currency are required.'); return; }
 
-                if (isNaN(size) || !priceTarget || !currency) {
-                    showMessage(errorMessage, "Size, Price Target, and Currency are required.");
-                    return;
-                }
-
-                docData = {
-                    ...docData,
-                    type: activityType,
-                    buySell: document.getElementById('buySell').value,
-                    size: size,
-                    priceTarget: priceTarget,
-                    currency: currency,
-                    usdEquivalent: usdEquivalent,
-                };
+                docData = { ...docData, type: activityType, buySell: document.getElementById('buySell').value, size, priceTarget, currency, usdEquivalent };
 
                 if (activityType === 'Missed Trades') {
                     const cptyTradedAway = document.getElementById('cptyTradedAway').value.trim();
-                    if (!cptyTradedAway) {
-                        showMessage(errorMessage, "CPTY Traded Away is required for Missed Trades.");
-                        return;
-                    }
+                    if (!cptyTradedAway) { showMessage(errorMessage, 'CPTY Traded Away is required for Missed Trades.'); return; }
                     docData.tradedAwayLevel = priceTarget;
                     docData.cptyTradedAway = cptyTradedAway;
                     delete docData.priceTarget;
@@ -683,60 +511,37 @@
             try {
                 await addDoc(collection(db, collectionPath), docData);
                 resetFormState();
-                showMessage(successMessage, "Activity Logged!");
+                showMessage(successMessage, 'Activity Logged!');
             } catch (error) {
-                console.error("Error adding document: ", error);
-                showMessage(errorMessage, `Failed to log activity: ${error.message}.`);
+                console.error('Error adding document: ', error);
+                showMessage(errorMessage, `Failed to log activity: ${error.message}`);
             }
         });
 
-        let docToDelete = null;
-        let collectionToDelete = null;
-
-        const showDeleteModal = (collectionName, docId) => {
-            docToDelete = docId;
-            collectionToDelete = collectionName;
-            deleteModal.style.display = 'flex';
-        };
-
-        const hideDeleteModal = () => {
-            docToDelete = null;
-            collectionToDelete = null;
-            deleteModal.style.display = 'none';
-        };
-
+        // Delete modal handling
+        let docToDelete = null; let collectionToDelete = null;
+        const showDeleteModal = (collectionName, docId) => { docToDelete = docId; collectionToDelete = collectionName; deleteModal.style.display = 'flex'; };
+        const hideDeleteModal = () => { docToDelete = null; collectionToDelete = null; deleteModal.style.display = 'none'; };
         const handleDelete = async () => {
             if (docToDelete && collectionToDelete) {
                 const docRef = doc(db, `artifacts/${appId}/users/${userId}/${collectionToDelete}`, docToDelete);
-                try {
-                    await deleteDoc(docRef);
-                    hideDeleteModal();
-                } catch (error) {
-                    console.error("Error removing document: ", error);
-                    showMessage(errorMessage, "Failed to delete entry.");
-                }
+                try { await deleteDoc(docRef); hideDeleteModal(); } catch (error) { console.error('Error removing document:', error); showMessage(errorMessage, 'Failed to delete entry.'); }
             }
         };
-
         confirmDeleteBtn.addEventListener('click', handleDelete);
         cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+        window.showDeleteModal = showDeleteModal;
 
         const renderGeneralActivities = (activities) => {
             generalLogTable.innerHTML = '';
-            activities.sort((a, b) => {
-                const tsA = a.timestamp?.toMillis() || 0;
-                const tsB = b.timestamp?.toMillis() || 0;
-                return tsB - tsA;
-            });
-            activities.forEach(activity => {
-                const row = document.createElement('tr');
-                row.className = 'table-row text-sm';
+            activities.sort((a,b)=>{ const ta=a.timestamp?.toMillis()||0; const tb=b.timestamp?.toMillis()||0; return tb-ta; });
+            activities.forEach(activity=>{
+                const row = document.createElement('tr'); row.className='table-row text-sm';
                 const priceValue = activity.type === 'Missed Trades' ? activity.tradedAwayLevel : activity.priceTarget;
                 const cptyValue = activity.type === 'Missed Trades' ? activity.cptyTradedAway : 'N/A';
-                
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${activity.timestamp ? new Date(activity.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.type}</td>
+                    <td class="p-3 whitespace-nowrap">${activity.type || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.clientName}</td>
                     <td class="p-3 whitespace-nowrap">${activity.clientType}</td>
                     <td class="p-3 whitespace-nowrap">${activity.securities}</td>
@@ -746,9 +551,7 @@
                     <td class="p-3 whitespace-nowrap">${activity.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.usdEquivalent || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${cptyValue}</td>
-                    <td class="p-3 text-right">
-                        <button class="btn-danger text-xs" onclick="showDeleteModal('general_activities', '${activity.id}')">Delete</button>
-                    </td>
+                    <td class="p-3 text-right"><button class="btn-danger text-xs" onclick="showDeleteModal('general_activities','${activity.id}')">Delete</button></td>
                 `;
                 generalLogTable.appendChild(row);
             });
@@ -756,14 +559,9 @@
 
         const renderNewIssues = (issues) => {
             newIssuesLogTable.innerHTML = '';
-            issues.sort((a, b) => {
-                const tsA = a.timestamp?.toMillis() || 0;
-                const tsB = b.timestamp?.toMillis() || 0;
-                return tsB - tsA;
-            });
-            issues.forEach(issue => {
-                const row = document.createElement('tr');
-                row.className = 'table-row text-sm';
+            issues.sort((a,b)=>{ const ta=a.timestamp?.toMillis()||0; const tb=b.timestamp?.toMillis()||0; return tb-ta; });
+            issues.forEach(issue=>{
+                const row = document.createElement('tr'); row.className='table-row text-sm';
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${issue.timestamp ? new Date(issue.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.clientName}</td>
@@ -776,79 +574,68 @@
                     <td class="p-3 whitespace-nowrap">${issue.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.usdEquivalent || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap max-w-xs overflow-hidden truncate" title="${issue.remarks || ''}">${issue.remarks || 'N/A'}</td>
-                    <td class="p-3 text-right">
-                        <button class="btn-danger text-xs" onclick="showDeleteModal('new_issues', '${issue.id}')">Delete</button>
-                    </td>
+                    <td class="p-3 text-right"><button class="btn-danger text-xs" onclick="showDeleteModal('new_issues','${issue.id}')">Delete</button></td>
                 `;
                 newIssuesLogTable.appendChild(row);
             });
         };
 
-        window.showDeleteModal = showDeleteModal;
+        // Clients management
+        const populateClientDropdown = (clients) => {
+            // clients is array of {id, name, type}
+            clientNameSelect.innerHTML = '<option value="">(Select client from Client Database)</option>';
+            clients.sort((a,b)=> (a.clientName || '').localeCompare(b.clientName || ''));
+            clients.forEach(c=>{
+                const opt = document.createElement('option'); opt.value = c.clientName; opt.textContent = c.clientName; opt.dataset.type = c.clientType || '';
+                clientNameSelect.appendChild(opt);
+            });
+            clientsListDiv.textContent = `${clients.length} client(s) available.`;
+            clientNameSelect.disabled = false;
+        };
 
-        // New, consolidated initialization function
+        addClientBtn.addEventListener('click', async () => {
+            const nameRaw = (clientNameInputForDb.value || '').trim();
+            const name = nameRaw.toUpperCase();
+            const type = newClientTypeSelect.value;
+            if (!name) { showMessage(errorMessage, 'Please enter a client name.'); return; }
+            try {
+                await addDoc(collection(db, `artifacts/${appId}/clients`), { clientName: name, clientType: type, createdAt: serverTimestamp() });
+                clientNameInputForDb.value = '';
+                showMessage(successMessage, 'Client added.');
+            } catch (err) { console.error('Add client error', err); showMessage(errorMessage, 'Failed to add client.'); }
+        });
+
+        clientNameSelect.addEventListener('change', (e)=>{
+            const selected = e.target.selectedOptions[0];
+            const type = selected?.dataset?.type || '';
+            clientTypeInput.value = type;
+        });
+
+        // Initialization
         const initApp = async () => {
             const firebaseConfig = {
-                 apiKey: "AIzaSyBkQnlYdOsIki_VuEpMBsIFACLN-u2FYFo",
-                 authDomain: "bond-sales-tracker.firebaseapp.com",
-                 projectId: "bond-sales-tracker",
+                apiKey: "AIzaSyBkQnlYdOsIki_VuEpMBsIFACLN-u2FYFo",
+                authDomain: "bond-sales-tracker.firebaseapp.com",
+                projectId: "bond-sales-tracker",
                 storageBucket: "bond-sales-tracker.firebasestorage.app",
-  messagingSenderId: "293591418173",
-  appId: "1:293591418173:web:b0ca2b77f514dc6c9b3154",
-        };
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                messagingSenderId: "293591418173",
+                appId: "1:293591418173:web:b0ca2b77f514dc6c9b3154",
+            };
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
             const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-
-            if (!firebaseConfig.projectId) {
-                console.error("Firebase initialization failed: projectId not provided.");
-                showMessage(errorMessage, "Application setup failed. Please try again.");
-                document.getElementById('userIdSpan').textContent = "Error";
-                return;
-            }
 
             try {
                 const app = initializeApp(firebaseConfig);
                 db = getFirestore(app);
                 auth = getAuth(app);
-            } catch (e) {
-                console.error("Firebase initialization failed:", e);
-                showMessage(errorMessage, "Firebase initialization failed. Check console for details.");
-                return;
-            }
+            } catch (e) { console.error('Firebase init failed', e); showMessage(errorMessage, 'Firebase init failed'); return; }
 
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    userId = user.uid;
-                    document.getElementById('userIdSpan').textContent = userId;
-                    isAuthReady = true;
-                    setupRealtimeListeners();
-                    updateSubmitButtonState();
-                } else {
-                    signInAnonymously(auth).then(() => {
-                        console.log("Signed in anonymously.");
-                    }).catch((error) => {
-                        console.error("Anonymous sign-in failed:", error);
-                        document.getElementById('userIdSpan').textContent = "Auth Error";
-                        showMessage(errorMessage, "Authentication failed. Please refresh.");
-                    });
-                }
+            onAuthStateChanged(auth, (user)=>{
+                if (user) { userId = user.uid; document.getElementById('userIdSpan').textContent = userId; isAuthReady = true; setupRealtimeListeners(); updateSubmitButtonState(); }
+                else { signInAnonymously(auth).then(()=>console.log('Signed in anonymously')).catch(err=>{ console.error('Anon sign-in failed',err); document.getElementById('userIdSpan').textContent='Auth Error'; showMessage(errorMessage,'Authentication failed.'); }); }
             });
 
-            if (initialAuthToken) {
-                try {
-                    await signInWithCustomToken(auth, initialAuthToken);
-                } catch (error) {
-                    console.error("Custom token sign-in failed:", error);
-                    // Fall back to anonymous sign-in if custom token fails
-                    signInAnonymously(auth).then(() => {
-                        console.log("Falling back to anonymous sign-in.");
-                    });
-                }
-            } else {
-                 signInAnonymously(auth).then(() => {
-                     console.log("No custom token, signing in anonymously.");
-                 });
-            }
+            if (initialAuthToken) { try { await signInWithCustomToken(auth, initialAuthToken); } catch(err){ console.error('Custom token sign-in failed', err); signInAnonymously(auth).catch(()=>{}); } } else { signInAnonymously(auth).catch(()=>{}); }
         };
 
         document.addEventListener('DOMContentLoaded', initApp);
