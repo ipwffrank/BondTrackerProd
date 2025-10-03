@@ -15,6 +15,12 @@
         .btn-primary { background-color: #4c51bf; color: white; padding: 12px 24px; border-radius: 8px; font-weight: 600; transition: background-color 0.2s; }
         .btn-primary:hover { background-color: #667eea; }
         .btn-primary:disabled { background-color: #3b4252; cursor: not-allowed; color: #a0aec0; }
+        .btn-secondary { background-color: #2b6cb0; color: white; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: background-color 0.2s; }
+        .btn-secondary:hover { background-color: #4299e1; }
+        .btn-secondary:disabled { background-color: #2c5282; cursor: not-allowed; opacity: 0.6; }
+        .btn-muted { background-color: #4a5568; color: #e2e8f0; padding: 10px 20px; border-radius: 8px; font-weight: 600; transition: background-color 0.2s; }
+        .btn-muted:hover { background-color: #2d3748; }
+        .btn-muted:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-danger { background-color: #e53e3e; color: white; padding: 8px 16px; border-radius: 8px; transition: background-color 0.2s; }
         .btn-danger:hover { background-color: #fc8181; }
         .tab-btn.active { background-color: #4c51bf; color: white; font-weight: 600; }
@@ -28,6 +34,9 @@
         .auth-overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at top, rgba(76, 81, 191, 0.25), transparent), rgba(17, 24, 39, 0.95); z-index: 200; padding: 24px; }
         .auth-card { border: 1px solid rgba(99, 179, 237, 0.2); backdrop-filter: blur(6px); }
         .auth-card .btn-primary { width: 100%; }
+        .tooltip { position: relative; cursor: help; }
+        .tooltip::after { content: attr(data-tooltip); position: absolute; top: 50%; left: 100%; transform: translate(12px, -50%) scale(0.95); background-color: rgba(45, 55, 72, 0.95); color: #e2e8f0; padding: 6px 10px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); z-index: 50; }
+        .tooltip:hover::after { opacity: 1; transform: translate(12px, -50%) scale(1); }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -46,6 +55,11 @@
                     <label for="loginPassword" class="block text-sm font-medium mb-1">Password</label>
                     <input id="loginPassword" type="password" class="form-input" required autocomplete="current-password">
                 </div>
+                <div class="text-right">
+                    <button type="button" id="forgotPasswordBtn" class="text-indigo-400 text-sm font-semibold hover:underline">
+                        Forgot Password?
+                    </button>
+                </div>
                 <button type="submit" class="btn-primary w-full">Sign In</button>
             </form>
 
@@ -63,6 +77,32 @@
                     <input id="registerPasswordConfirm" type="password" class="form-input" required minlength="6" autocomplete="new-password">
                 </div>
                 <button type="submit" class="btn-primary w-full">Create Account</button>
+            </form>
+
+            <form id="forgotPasswordForm" class="space-y-4 hidden">
+                <p class="text-sm text-gray-300">Request a reset code and set your new password right here.</p>
+                <div>
+                    <label for="forgotPasswordEmail" class="block text-sm font-medium mb-1">Email</label>
+                    <input id="forgotPasswordEmail" type="email" class="form-input" required autocomplete="email">
+                </div>
+                <div>
+                    <button type="button" id="sendResetCodeBtn" class="btn-secondary w-full">Send Reset Code</button>
+                </div>
+                <div>
+                    <label for="forgotPasswordCode" class="block text-sm font-medium mb-1">Reset Code</label>
+                    <input id="forgotPasswordCode" type="text" class="form-input" placeholder="Paste code from reset email" required>
+                    <p class="text-xs text-gray-400 mt-1">After requesting a code, open the email, copy the code from the link, and paste it here.</p>
+                </div>
+                <div>
+                    <label for="forgotNewPassword" class="block text-sm font-medium mb-1">New Password</label>
+                    <input id="forgotNewPassword" type="password" class="form-input" minlength="6" required autocomplete="new-password">
+                </div>
+                <div>
+                    <label for="forgotConfirmPassword" class="block text-sm font-medium mb-1">Confirm New Password</label>
+                    <input id="forgotConfirmPassword" type="password" class="form-input" minlength="6" required autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary w-full">Update Password</button>
+                <button type="button" id="forgotPasswordBackBtn" class="w-full btn-muted">Back to Sign In</button>
             </form>
 
             <div class="mt-6 text-center text-sm text-gray-400">
@@ -92,11 +132,176 @@
             </div>
         </div>
 
+        <div id="accountModal" class="modal">
+            <div class="modal-content max-w-lg text-left">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-white">Account Overview</h3>
+                    <button id="closeAccountModal" type="button" class="text-gray-400 hover:text-gray-200 text-2xl leading-none">&times;</button>
+                </div>
+                <div class="space-y-6">
+                    <div>
+                        <p class="text-sm text-gray-400">Email</p>
+                        <p id="accountEmail" class="text-lg font-semibold text-white">-</p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Total Logs</p>
+                            <p id="accountLogsCount" class="text-2xl font-bold text-indigo-300 mt-1">0</p>
+                        </div>
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Last Update</p>
+                            <p id="accountLastUpdate" class="text-sm font-semibold text-white mt-1">N/A</p>
+                        </div>
+                        <div class="bg-gray-700 rounded-lg p-4">
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Total Size (MM)</p>
+                            <p id="accountTotalSize" class="text-2xl font-bold text-green-300 mt-1">0</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="editGeneralModal" class="modal">
+            <div class="modal-content max-w-2xl text-left">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-white">Modify Activity</h3>
+                    <button type="button" id="closeEditGeneralModal" class="text-gray-400 hover:text-gray-200 text-2xl leading-none">&times;</button>
+                </div>
+                <form id="editGeneralForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Client</p>
+                            <p id="editGeneralClient" class="text-lg font-semibold text-white">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Activity Type</p>
+                            <p id="editGeneralType" class="text-lg font-semibold text-white">-</p>
+                        </div>
+                    </div>
+                    <div id="editGeneralBuySellGroup">
+                        <label for="editGeneralBuySell" class="block text-sm font-medium mb-1">Buy/Sell</label>
+                        <select id="editGeneralBuySell" class="form-select">
+                            <option value="BUY">BUY</option>
+                            <option value="SELL">SELL</option>
+                        </select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="editGeneralSize" class="block text-sm font-medium mb-1">Size (MM)</label>
+                            <input id="editGeneralSize" type="number" step="any" min="0" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="editGeneralCurrency" class="block text-sm font-medium mb-1">Currency</label>
+                            <select id="editGeneralCurrency" class="form-select" required>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="JPY">JPY</option>
+                                <option value="CNH">CNH</option>
+                                <option value="HKD">HKD</option>
+                                <option value="SGD">SGD</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="editGeneralPrice" id="editGeneralPriceLabel" class="block text-sm font-medium mb-1">Price Target</label>
+                        <input id="editGeneralPrice" type="text" class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="editGeneralUsdEquivalent" class="block text-sm font-medium mb-1">USD Equivalent (MM)</label>
+                        <input id="editGeneralUsdEquivalent" type="text" class="form-input" readonly>
+                        <p class="text-xs text-gray-400 mt-1">USD equivalent recalculates automatically when size or currency changes.</p>
+                    </div>
+                    <div id="editGeneralCptyGroup" class="hidden">
+                        <label for="editGeneralCpty" class="block text-sm font-medium mb-1">CPTY Traded Away</label>
+                        <input id="editGeneralCpty" type="text" class="form-input">
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" class="btn-muted" id="cancelEditGeneral">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div id="editNewIssueModal" class="modal">
+            <div class="modal-content max-w-2xl text-left">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-2xl font-bold text-white">Modify New Issue</h3>
+                    <button type="button" id="closeEditNewIssueModal" class="text-gray-400 hover:text-gray-200 text-2xl leading-none">&times;</button>
+                </div>
+                <form id="editNewIssueForm" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Client</p>
+                            <p id="editNewIssueClient" class="text-lg font-semibold text-white">-</p>
+                        </div>
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Region</p>
+                            <p id="editNewIssueRegion" class="text-lg font-semibold text-white">-</p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="editNewIssueIoi" class="block text-sm font-medium mb-1">IOI</label>
+                        <input id="editNewIssueIoi" type="text" class="form-input" required>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="editNewIssueSize" class="block text-sm font-medium mb-1">Size (MM)</label>
+                            <input id="editNewIssueSize" type="number" step="any" min="0" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="editNewIssueOrderSize" class="block text-sm font-medium mb-1">Order Size (MM)</label>
+                            <input id="editNewIssueOrderSize" type="number" step="any" min="0" class="form-input" required>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label for="editNewIssueRealInterest" class="block text-sm font-medium mb-1">Real Interest (MM)</label>
+                            <input id="editNewIssueRealInterest" type="number" step="any" min="0" class="form-input" required>
+                        </div>
+                        <div>
+                            <label for="editNewIssueCurrency" class="block text-sm font-medium mb-1">Currency</label>
+                            <select id="editNewIssueCurrency" class="form-select" required>
+                                <option value="USD">USD</option>
+                                <option value="EUR">EUR</option>
+                                <option value="GBP">GBP</option>
+                                <option value="JPY">JPY</option>
+                                <option value="CNH">CNH</option>
+                                <option value="HKD">HKD</option>
+                                <option value="SGD">SGD</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="editNewIssuePriceTarget" class="block text-sm font-medium mb-1">Price Target</label>
+                        <input id="editNewIssuePriceTarget" type="text" class="form-input">
+                    </div>
+                    <div>
+                        <label for="editNewIssueUsdEquivalent" class="block text-sm font-medium mb-1">USD Equivalent (MM)</label>
+                        <input id="editNewIssueUsdEquivalent" type="text" class="form-input" readonly>
+                        <p class="text-xs text-gray-400 mt-1">USD equivalent is based on Order Size and currency.</p>
+                    </div>
+                    <div>
+                        <label for="editNewIssueRemarks" class="block text-sm font-medium mb-1">Remarks</label>
+                        <textarea id="editNewIssueRemarks" rows="3" class="form-textarea"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 pt-2">
+                        <button type="button" class="btn-muted" id="cancelEditNewIssue">Cancel</button>
+                        <button type="submit" class="btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <div class="container mx-auto p-8 lg:p-12">
         <h1 class="text-4xl lg:text-5xl font-extrabold text-center mb-6 text-indigo-400">Bond Sales Activity Tracker</h1>
-        <div id="userIdDisplay" class="flex flex-col md:flex-row items-center justify-center md:justify-between gap-3 text-sm mb-6 text-gray-500">
-            <div>User ID: <span id="userIdSpan" class="text-gray-200 font-mono text-xs md:text-sm">Loading...</span></div>
-            <button id="signOutBtn" type="button" class="btn-primary py-2 px-4 md:px-6 text-xs md:text-sm">Sign Out</button>
+        <div id="userControls" class="flex flex-col md:flex-row items-center justify-center md:justify-between gap-3 text-sm mb-6 text-gray-500">
+            <div id="userGreeting" class="text-center md:text-left">Signed in as <span id="userEmailSpan" class="text-gray-200 font-medium">Loading...</span></div>
+            <div class="flex gap-2">
+                <button id="accountBtn" type="button" class="btn-secondary py-2 px-4 md:px-6 text-xs md:text-sm" disabled>Account</button>
+                <button id="signOutBtn" type="button" class="btn-primary py-2 px-4 md:px-6 text-xs md:text-sm">Sign Out</button>
+            </div>
         </div>
 
         <div class="bg-gray-800 rounded-xl shadow-2xl p-6 lg:p-10 mb-10">
@@ -243,9 +448,12 @@
         <div class="bg-gray-800 rounded-xl shadow-2xl p-6 lg:p-10">
             <h2 class="text-3xl font-bold mb-6 text-white">Activity Log</h2>
 
-            <div class="flex flex-wrap gap-2 mb-6">
-                <button id="log-general-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600 active">General Activities</button>
-                <button id="log-new-issues-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600">New Issues</button>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-6">
+                <div class="flex flex-wrap gap-2">
+                    <button id="log-general-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600 active">General Activities</button>
+                    <button id="log-new-issues-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600">New Issues</button>
+                </div>
+                <button id="exportLogsBtn" type="button" class="btn-secondary px-4 py-2">Export to Excel</button>
             </div>
 
             <div id="generalLog" class="overflow-x-auto">
@@ -299,10 +507,11 @@
 
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
-        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
         // IMPORTANT: For debugging, enable Firestore logging
@@ -319,6 +528,11 @@ let appId;
 let generalUnsub = null;
 let newIssuesUnsub = null;
 let clientsUnsub = null;
+let generalActivities = [];
+let newIssueActivities = [];
+let activeGeneralDocId = null;
+let activeGeneralActivityType = '';
+let activeNewIssueDocId = null;
 
 
         const appContent = document.getElementById('appContent');
@@ -363,6 +577,56 @@ let clientsUnsub = null;
         const cancelDeleteBtn = document.getElementById('cancelDeleteBtn');
         const activityHint = document.getElementById('activity-hint');
         const signOutBtn = document.getElementById('signOutBtn');
+        const userEmailSpan = document.getElementById('userEmailSpan');
+        const accountBtn = document.getElementById('accountBtn');
+        const accountModal = document.getElementById('accountModal');
+        const closeAccountModalBtn = document.getElementById('closeAccountModal');
+        const accountEmailDisplay = document.getElementById('accountEmail');
+        const accountLogsCount = document.getElementById('accountLogsCount');
+        const accountLastUpdate = document.getElementById('accountLastUpdate');
+        const accountTotalSize = document.getElementById('accountTotalSize');
+
+        const forgotPasswordForm = document.getElementById('forgotPasswordForm');
+        const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
+        const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
+        const forgotPasswordEmailInput = document.getElementById('forgotPasswordEmail');
+        const forgotPasswordCodeInput = document.getElementById('forgotPasswordCode');
+        const forgotNewPasswordInput = document.getElementById('forgotNewPassword');
+        const forgotConfirmPasswordInput = document.getElementById('forgotConfirmPassword');
+        const sendResetCodeBtn = document.getElementById('sendResetCodeBtn');
+
+        const editGeneralModal = document.getElementById('editGeneralModal');
+        const editGeneralForm = document.getElementById('editGeneralForm');
+        const editGeneralClient = document.getElementById('editGeneralClient');
+        const editGeneralType = document.getElementById('editGeneralType');
+        const editGeneralBuySellGroup = document.getElementById('editGeneralBuySellGroup');
+        const editGeneralBuySell = document.getElementById('editGeneralBuySell');
+        const editGeneralSize = document.getElementById('editGeneralSize');
+        const editGeneralCurrency = document.getElementById('editGeneralCurrency');
+        const editGeneralPriceLabel = document.getElementById('editGeneralPriceLabel');
+        const editGeneralPrice = document.getElementById('editGeneralPrice');
+        const editGeneralUsdEquivalent = document.getElementById('editGeneralUsdEquivalent');
+        const editGeneralCptyGroup = document.getElementById('editGeneralCptyGroup');
+        const editGeneralCpty = document.getElementById('editGeneralCpty');
+        const closeEditGeneralModalBtn = document.getElementById('closeEditGeneralModal');
+        const cancelEditGeneralBtn = document.getElementById('cancelEditGeneral');
+
+        const editNewIssueModal = document.getElementById('editNewIssueModal');
+        const editNewIssueForm = document.getElementById('editNewIssueForm');
+        const editNewIssueClient = document.getElementById('editNewIssueClient');
+        const editNewIssueRegion = document.getElementById('editNewIssueRegion');
+        const editNewIssueIoi = document.getElementById('editNewIssueIoi');
+        const editNewIssueSize = document.getElementById('editNewIssueSize');
+        const editNewIssueOrderSize = document.getElementById('editNewIssueOrderSize');
+        const editNewIssueRealInterest = document.getElementById('editNewIssueRealInterest');
+        const editNewIssueCurrency = document.getElementById('editNewIssueCurrency');
+        const editNewIssuePriceTarget = document.getElementById('editNewIssuePriceTarget');
+        const editNewIssueUsdEquivalent = document.getElementById('editNewIssueUsdEquivalent');
+        const editNewIssueRemarks = document.getElementById('editNewIssueRemarks');
+        const closeEditNewIssueModalBtn = document.getElementById('closeEditNewIssueModal');
+        const cancelEditNewIssueBtn = document.getElementById('cancelEditNewIssue');
+
+        const exportLogsBtn = document.getElementById('exportLogsBtn');
 
         // New Issues specific
         const ioiInput = document.getElementById('ioi');
@@ -383,19 +647,70 @@ let clientsUnsub = null;
             authMessage.classList.add(type === 'success' ? 'text-green-400' : 'text-red-400');
         };
 
+        const openModal = (modal) => { if (modal) modal.style.display = 'flex'; };
+        const closeModal = (modal) => { if (modal) modal.style.display = 'none'; };
+
+        const updateAccountOverview = () => {
+            if (!accountLogsCount || !accountLastUpdate || !accountTotalSize) return;
+            const totalLogs = generalActivities.length + newIssueActivities.length;
+            accountLogsCount.textContent = totalLogs.toString();
+
+            const timestamps = [];
+            generalActivities.forEach(activity => {
+                const ts = activity.lastModifiedAt?.toMillis?.() || activity.timestamp?.toMillis?.();
+                if (ts) timestamps.push(ts);
+            });
+            newIssueActivities.forEach(issue => {
+                const ts = issue.lastModifiedAt?.toMillis?.() || issue.timestamp?.toMillis?.();
+                if (ts) timestamps.push(ts);
+            });
+
+            const lastTimestamp = timestamps.length ? Math.max(...timestamps) : null;
+            accountLastUpdate.textContent = lastTimestamp ? new Date(lastTimestamp).toLocaleString() : 'N/A';
+
+            const totalGeneralSize = generalActivities.reduce((sum, act) => sum + (parseFloat(act.size) || 0), 0);
+            const totalNewIssueSize = newIssueActivities.reduce((sum, issue) => sum + (parseFloat(issue.orderSize) || 0), 0);
+            const totalSize = totalGeneralSize + totalNewIssueSize;
+            accountTotalSize.textContent = totalSize ? totalSize.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0';
+        };
+
+        const formatActivityTimestamp = (entry) => {
+            if (!entry) return 'N/A';
+            const ts = entry.timestamp?.toMillis?.() || entry.lastModifiedAt?.toMillis?.();
+            return ts ? new Date(ts).toLocaleString() : 'N/A';
+        };
+
+        const authToggleContainer = toggleAuthText ? toggleAuthText.parentElement : null;
+
         const switchAuthView = (view = 'login') => {
+            if (loginForm) loginForm.classList.toggle('hidden', view !== 'login');
+            if (registerForm) registerForm.classList.toggle('hidden', view !== 'register');
+            if (forgotPasswordForm) forgotPasswordForm.classList.toggle('hidden', view !== 'forgot');
+
             if (view === 'register') {
-                loginForm.classList.add('hidden');
-                registerForm.classList.remove('hidden');
                 authTitle.textContent = 'Create Account';
                 toggleAuthText.textContent = 'Already have an account?';
                 toggleAuthBtn.textContent = 'Sign In';
+                if (authToggleContainer) authToggleContainer.classList.remove('hidden');
+            } else if (view === 'forgot') {
+                authTitle.textContent = 'Reset Password';
+                if (authToggleContainer) authToggleContainer.classList.add('hidden');
             } else {
-                registerForm.classList.add('hidden');
-                loginForm.classList.remove('hidden');
                 authTitle.textContent = 'Sign In';
                 toggleAuthText.textContent = "Don't have an account?";
                 toggleAuthBtn.textContent = 'Register';
+                if (authToggleContainer) authToggleContainer.classList.remove('hidden');
+            }
+
+            if (view !== 'forgot') {
+                if (forgotPasswordEmailInput) forgotPasswordEmailInput.value = '';
+                if (forgotPasswordCodeInput) forgotPasswordCodeInput.value = '';
+                if (forgotNewPasswordInput) forgotNewPasswordInput.value = '';
+                if (forgotConfirmPasswordInput) forgotConfirmPasswordInput.value = '';
+                if (sendResetCodeBtn) {
+                    sendResetCodeBtn.disabled = false;
+                    sendResetCodeBtn.textContent = 'Send Reset Code';
+                }
             }
             setAuthMessage('');
         };
@@ -470,6 +785,20 @@ let clientsUnsub = null;
             showFormFields('');
             activityHint.classList.remove('hidden');
             submitBtn.disabled = true;
+            if (userEmailSpan) userEmailSpan.textContent = 'Guest';
+            if (accountBtn) accountBtn.disabled = true;
+            if (accountEmailDisplay) accountEmailDisplay.textContent = '-';
+            if (accountLogsCount) accountLogsCount.textContent = '0';
+            if (accountLastUpdate) accountLastUpdate.textContent = 'N/A';
+            if (accountTotalSize) accountTotalSize.textContent = '0';
+            closeModal(accountModal);
+            closeModal(editGeneralModal);
+            closeModal(editNewIssueModal);
+            generalActivities = [];
+            newIssueActivities = [];
+            activeGeneralDocId = null;
+            activeNewIssueDocId = null;
+            updateAccountOverview();
         };
 
         switchAuthView('login');
@@ -478,6 +807,14 @@ let clientsUnsub = null;
             const isShowingLogin = !loginForm.classList.contains('hidden');
             switchAuthView(isShowingLogin ? 'register' : 'login');
         });
+
+        if (forgotPasswordBtn) {
+            forgotPasswordBtn.addEventListener('click', () => switchAuthView('forgot'));
+        }
+
+        if (forgotPasswordBackBtn) {
+            forgotPasswordBackBtn.addEventListener('click', () => switchAuthView('login'));
+        }
 
         if (loginForm) {
             loginForm.addEventListener('submit', async (e) => {
@@ -546,6 +883,78 @@ let clientsUnsub = null;
             });
         }
 
+        if (sendResetCodeBtn) {
+            sendResetCodeBtn.addEventListener('click', async () => {
+                if (!auth) return;
+                const email = (forgotPasswordEmailInput.value || '').trim();
+                if (!email) {
+                    setAuthMessage('Please enter your email to receive a reset code.');
+                    return;
+                }
+
+                const originalText = sendResetCodeBtn.textContent;
+                sendResetCodeBtn.disabled = true;
+                sendResetCodeBtn.textContent = 'Sending...';
+                setAuthMessage('Sending reset email...', 'success');
+
+                try {
+                    await sendPasswordResetEmail(auth, email);
+                    setAuthMessage('Reset email sent. Copy the code from the link to continue.', 'success');
+                } catch (err) {
+                    console.error('Password reset email failed', err);
+                    setAuthMessage(err.message || 'Failed to send reset email.');
+                } finally {
+                    sendResetCodeBtn.disabled = false;
+                    sendResetCodeBtn.textContent = originalText;
+                }
+            });
+        }
+
+        if (forgotPasswordForm) {
+            forgotPasswordForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!auth) return;
+                const email = (forgotPasswordEmailInput.value || '').trim();
+                const code = (forgotPasswordCodeInput.value || '').trim();
+                const newPassword = forgotNewPasswordInput.value || '';
+                const confirmPassword = forgotConfirmPasswordInput.value || '';
+
+                if (!email || !code || !newPassword || !confirmPassword) {
+                    setAuthMessage('Please complete all fields to reset your password.');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    setAuthMessage('New passwords do not match.');
+                    return;
+                }
+
+                const submitButton = forgotPasswordForm.querySelector('button[type="submit"]');
+                const originalText = submitButton.textContent;
+                submitButton.disabled = true;
+                submitButton.textContent = 'Updating...';
+                setAuthMessage('Applying new password...', 'success');
+
+                try {
+                    const codeEmail = await verifyPasswordResetCode(auth, code);
+                    if (codeEmail && email && codeEmail.toLowerCase() !== email.toLowerCase()) {
+                        setAuthMessage('Reset code does not match the provided email.');
+                        return;
+                    }
+                    await confirmPasswordReset(auth, code, newPassword);
+                    switchAuthView('login');
+                    if (loginEmailInput) loginEmailInput.value = email;
+                    setAuthMessage('Password updated successfully! Please sign in with your new password.', 'success');
+                } catch (err) {
+                    console.error('Password reset failed', err);
+                    setAuthMessage(err.message || 'Failed to update password.');
+                } finally {
+                    submitButton.disabled = false;
+                    submitButton.textContent = originalText;
+                }
+            });
+        }
+
         if (signOutBtn) {
             signOutBtn.addEventListener('click', async () => {
                 if (!auth) return;
@@ -557,6 +966,99 @@ let clientsUnsub = null;
                 }
             });
         }
+
+        if (exportLogsBtn) {
+            exportLogsBtn.addEventListener('click', () => {
+                const excel = window.XLSX;
+                if (!excel) {
+                    showMessage(errorMessage, 'Unable to export because the Excel library is unavailable.');
+                    return;
+                }
+
+                if (!generalActivities.length && !newIssueActivities.length) {
+                    showMessage(errorMessage, 'No activity available to export yet.');
+                    return;
+                }
+
+                const workbook = excel.utils.book_new();
+
+                const generalRows = [['Timestamp', 'Activity Type', 'Client', 'Client Type', 'Region', 'Securities', 'Buy/Sell', 'Size (MM)', 'Price/Level', 'Currency', 'USD Equivalent', 'CPTY Traded Away']];
+                generalActivities.forEach((activity) => {
+                    const priceValue = activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
+                    const cptyValue = activity.type === 'MISSED TRADES' ? activity.cptyTradedAway : 'N/A';
+                    generalRows.push([
+                        formatActivityTimestamp(activity),
+                        activity.type || 'N/A',
+                        activity.clientName || 'N/A',
+                        activity.clientType || 'N/A',
+                        activity.clientRegion || 'N/A',
+                        activity.securities || 'N/A',
+                        activity.buySell || 'N/A',
+                        activity.size ?? 'N/A',
+                        priceValue || 'N/A',
+                        activity.currency || 'N/A',
+                        activity.usdEquivalent || 'N/A',
+                        cptyValue || 'N/A',
+                    ]);
+                });
+                const generalSheet = excel.utils.aoa_to_sheet(generalRows);
+                excel.utils.book_append_sheet(workbook, generalSheet, 'General Activities');
+
+                const newIssueRows = [['Timestamp', 'Client', 'Client Type', 'Region', 'Securities', 'IOI', 'Size (MM)', 'Order Size (MM)', 'Real Interest (MM)', 'Price Target', 'Currency', 'USD Equivalent', 'Remarks']];
+                newIssueActivities.forEach((issue) => {
+                    newIssueRows.push([
+                        formatActivityTimestamp(issue),
+                        issue.clientName || 'N/A',
+                        issue.clientType || 'N/A',
+                        issue.clientRegion || 'N/A',
+                        issue.securities || 'N/A',
+                        issue.ioi || 'N/A',
+                        issue.size ?? 'N/A',
+                        issue.orderSize ?? 'N/A',
+                        issue.realInterest ?? 'N/A',
+                        issue.priceTarget || 'N/A',
+                        issue.currency || 'N/A',
+                        issue.usdEquivalent || 'N/A',
+                        issue.remarks || 'N/A',
+                    ]);
+                });
+                const newIssueSheet = excel.utils.aoa_to_sheet(newIssueRows);
+                excel.utils.book_append_sheet(workbook, newIssueSheet, 'New Issues');
+
+                const fileName = `activity-log-${new Date().toISOString().split('T')[0]}.xlsx`;
+                excel.writeFile(workbook, fileName);
+                showMessage(successMessage, 'Exported activity log to Excel.');
+            });
+        }
+
+        const hideAccountModal = () => {
+            closeModal(accountModal);
+        };
+
+        if (accountBtn) {
+            accountBtn.addEventListener('click', () => {
+                if (!auth || !auth.currentUser) {
+                    showMessage(errorMessage, 'You must be signed in to view account details.');
+                    return;
+                }
+                accountEmailDisplay.textContent = auth.currentUser.email || '-';
+                updateAccountOverview();
+                openModal(accountModal);
+            });
+        }
+
+        if (closeAccountModalBtn) {
+            closeAccountModalBtn.addEventListener('click', hideAccountModal);
+        }
+
+        if (accountModal) {
+            accountModal.addEventListener('click', (event) => {
+                if (event.target === accountModal) {
+                    hideAccountModal();
+                }
+            });
+        }
+
 
         const tabButtons = document.querySelectorAll('#tab-enquiry, #tab-trade, #tab-missed-trades, #tab-new-issues');
         const generalTabs = document.querySelectorAll('#log-general-tab, #log-new-issues-tab');
@@ -777,6 +1279,35 @@ if (clientNameSelect.options.length > 1) {
         orderSizeInput.addEventListener('input', updateUSDEquivalent);
         niCurrencySelect.addEventListener('change', updateUSDEquivalent);
 
+        const recalcEditGeneralUsdEquivalent = async () => {
+            if (!editGeneralSize || !editGeneralCurrency || !editGeneralUsdEquivalent) return;
+            const size = parseFloat(editGeneralSize.value);
+            const currency = (editGeneralCurrency.value || '').trim().toUpperCase();
+            if (Number.isNaN(size) || !currency) {
+                editGeneralUsdEquivalent.value = '';
+                return;
+            }
+            const rate = await getUSDConversionRate(currency);
+            editGeneralUsdEquivalent.value = rate !== null ? (size * rate).toFixed(2) : 'N/A';
+        };
+
+        const recalcEditNewIssueUsdEquivalent = async () => {
+            if (!editNewIssueOrderSize || !editNewIssueCurrency || !editNewIssueUsdEquivalent) return;
+            const orderSize = parseFloat(editNewIssueOrderSize.value);
+            const currency = (editNewIssueCurrency.value || '').trim().toUpperCase();
+            if (Number.isNaN(orderSize) || !currency) {
+                editNewIssueUsdEquivalent.value = '';
+                return;
+            }
+            const rate = await getUSDConversionRate(currency);
+            editNewIssueUsdEquivalent.value = rate !== null ? (orderSize * rate).toFixed(2) : 'N/A';
+        };
+
+        if (editGeneralSize) editGeneralSize.addEventListener('input', recalcEditGeneralUsdEquivalent);
+        if (editGeneralCurrency) editGeneralCurrency.addEventListener('change', recalcEditGeneralUsdEquivalent);
+        if (editNewIssueOrderSize) editNewIssueOrderSize.addEventListener('input', recalcEditNewIssueUsdEquivalent);
+        if (editNewIssueCurrency) editNewIssueCurrency.addEventListener('change', recalcEditNewIssueUsdEquivalent);
+
 const resetFormState = () => {
     activityForm.reset();
     usdEquivalentInput.value = '';
@@ -896,16 +1427,17 @@ activityForm.addEventListener('submit', async (e) => {
         window.showDeleteModal = showDeleteModal;
 
         const renderGeneralActivities = (activities) => {
+            generalActivities = [...activities];
             generalLogTable.innerHTML = '';
-            activities.sort((a,b)=>{ const ta=a.timestamp?.toMillis()||0; const tb=b.timestamp?.toMillis()||0; return tb-ta; });
-            activities.forEach(activity=>{
+            generalActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
+            generalActivities.forEach(activity=>{
                 const row = document.createElement('tr'); row.className='table-row text-sm';
                 const priceValue = activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
                 const cptyValue = activity.type === 'MISSED TRADES' ? activity.cptyTradedAway : 'N/A';
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${activity.timestamp ? new Date(activity.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.type || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.clientName}</td>
+                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${activity.clientType || 'N/A'}">${activity.clientName}</span></td>
                     <td class="p-3 whitespace-nowrap">${activity.clientType}</td>
                     <td class="p-3 whitespace-nowrap">${activity.clientRegion || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.securities}</td>
@@ -915,20 +1447,25 @@ activityForm.addEventListener('submit', async (e) => {
                     <td class="p-3 whitespace-nowrap">${activity.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.usdEquivalent || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${cptyValue}</td>
-                    <td class="p-3 text-right"><button class="btn-danger text-xs" onclick="showDeleteModal('general_activities','${activity.id}')">Delete</button></td>
+                    <td class="p-3 text-right space-x-2">
+                        <button class="btn-secondary text-xs px-3 py-1" onclick="window.showEditGeneralModal('${activity.id}')">Modify</button>
+                        <button class="btn-danger text-xs px-3 py-1" onclick="showDeleteModal('general_activities','${activity.id}')">Delete</button>
+                    </td>
                 `;
                 generalLogTable.appendChild(row);
             });
+            updateAccountOverview();
         };
 
         const renderNewIssues = (issues) => {
+            newIssueActivities = [...issues];
             newIssuesLogTable.innerHTML = '';
-            issues.sort((a,b)=>{ const ta=a.timestamp?.toMillis()||0; const tb=b.timestamp?.toMillis()||0; return tb-ta; });
-            issues.forEach(issue=>{
+            newIssueActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
+            newIssueActivities.forEach(issue=>{
                 const row = document.createElement('tr'); row.className='table-row text-sm';
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${issue.timestamp ? new Date(issue.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.clientName}</td>
+                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${issue.clientType || 'N/A'}">${issue.clientName}</span></td>
                     <td class="p-3 whitespace-nowrap">${issue.clientType}</td>
                     <td class="p-3 whitespace-nowrap">${issue.clientRegion || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.securities}</td>
@@ -939,11 +1476,194 @@ activityForm.addEventListener('submit', async (e) => {
                     <td class="p-3 whitespace-nowrap">${issue.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.usdEquivalent || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap max-w-xs overflow-hidden truncate" title="${issue.remarks || ''}">${issue.remarks || 'N/A'}</td>
-                    <td class="p-3 text-right"><button class="btn-danger text-xs" onclick="showDeleteModal('new_issues','${issue.id}')">Delete</button></td>
+                    <td class="p-3 text-right space-x-2">
+                        <button class="btn-secondary text-xs px-3 py-1" onclick="window.showEditNewIssueModal('${issue.id}')">Modify</button>
+                        <button class="btn-danger text-xs px-3 py-1" onclick="showDeleteModal('new_issues','${issue.id}')">Delete</button>
+                    </td>
                 `;
-                newIssuesLogTable.appendChild(row);
-            });
+            newIssuesLogTable.appendChild(row);
+        });
+        updateAccountOverview();
+    };
+
+        const closeEditGeneralModal = () => {
+            activeGeneralDocId = null;
+            activeGeneralActivityType = '';
+            if (editGeneralForm) editGeneralForm.reset();
+            if (editGeneralClient) editGeneralClient.textContent = '-';
+            if (editGeneralType) editGeneralType.textContent = '-';
+            if (editGeneralCptyGroup) editGeneralCptyGroup.classList.add('hidden');
+            if (editGeneralBuySellGroup) editGeneralBuySellGroup.classList.remove('hidden');
+            closeModal(editGeneralModal);
         };
+
+        const closeEditNewIssueModal = () => {
+            activeNewIssueDocId = null;
+            if (editNewIssueForm) editNewIssueForm.reset();
+            if (editNewIssueClient) editNewIssueClient.textContent = '-';
+            if (editNewIssueRegion) editNewIssueRegion.textContent = '-';
+            closeModal(editNewIssueModal);
+        };
+
+        const openEditGeneralModal = (docId) => {
+            const activity = generalActivities.find(item => item.id === docId);
+            if (!activity) return;
+            activeGeneralDocId = docId;
+            activeGeneralActivityType = activity.type || '';
+            if (editGeneralClient) editGeneralClient.textContent = activity.clientName || '-';
+            if (editGeneralType) editGeneralType.textContent = activity.type || 'N/A';
+            if (editGeneralSize) editGeneralSize.value = activity.size ?? '';
+            if (editGeneralCurrency) editGeneralCurrency.value = (activity.currency || 'USD').toUpperCase();
+            const priceValue = activity.type === 'MISSED TRADES' ? (activity.tradedAwayLevel || '') : (activity.priceTarget || '');
+            if (editGeneralPrice) editGeneralPrice.value = priceValue;
+            if (editGeneralUsdEquivalent) editGeneralUsdEquivalent.value = activity.usdEquivalent || '';
+
+            if (activity.type === 'MISSED TRADES') {
+                if (editGeneralPriceLabel) editGeneralPriceLabel.textContent = 'Traded Away Level';
+                if (editGeneralCptyGroup) {
+                    editGeneralCptyGroup.classList.remove('hidden');
+                    if (editGeneralCpty) editGeneralCpty.value = activity.cptyTradedAway || '';
+                }
+                if (editGeneralBuySellGroup) editGeneralBuySellGroup.classList.add('hidden');
+            } else {
+                if (editGeneralPriceLabel) editGeneralPriceLabel.textContent = 'Price Target';
+                if (editGeneralCptyGroup) editGeneralCptyGroup.classList.add('hidden');
+                if (editGeneralCpty) editGeneralCpty.value = '';
+                if (editGeneralBuySellGroup) editGeneralBuySellGroup.classList.remove('hidden');
+                if (editGeneralBuySell) editGeneralBuySell.value = (activity.buySell || 'BUY').toUpperCase();
+            }
+
+            openModal(editGeneralModal);
+            recalcEditGeneralUsdEquivalent();
+        };
+
+        const openEditNewIssueModal = (docId) => {
+            const issue = newIssueActivities.find(item => item.id === docId);
+            if (!issue) return;
+            activeNewIssueDocId = docId;
+            if (editNewIssueClient) editNewIssueClient.textContent = issue.clientName || '-';
+            if (editNewIssueRegion) editNewIssueRegion.textContent = issue.clientRegion || 'N/A';
+            if (editNewIssueIoi) editNewIssueIoi.value = issue.ioi || '';
+            if (editNewIssueSize) editNewIssueSize.value = issue.size ?? '';
+            if (editNewIssueOrderSize) editNewIssueOrderSize.value = issue.orderSize ?? '';
+            if (editNewIssueRealInterest) editNewIssueRealInterest.value = issue.realInterest ?? '';
+            if (editNewIssueCurrency) editNewIssueCurrency.value = (issue.currency || 'USD').toUpperCase();
+            if (editNewIssueUsdEquivalent) editNewIssueUsdEquivalent.value = issue.usdEquivalent || '';
+            if (editNewIssueRemarks) editNewIssueRemarks.value = issue.remarks || '';
+            if (editNewIssuePriceTarget) editNewIssuePriceTarget.value = issue.priceTarget || '';
+
+            openModal(editNewIssueModal);
+            recalcEditNewIssueUsdEquivalent();
+        };
+
+        window.showEditGeneralModal = openEditGeneralModal;
+        window.showEditNewIssueModal = openEditNewIssueModal;
+
+        if (closeEditGeneralModalBtn) closeEditGeneralModalBtn.addEventListener('click', closeEditGeneralModal);
+        if (cancelEditGeneralBtn) cancelEditGeneralBtn.addEventListener('click', (event) => { event.preventDefault(); closeEditGeneralModal(); });
+        if (editGeneralModal) {
+            editGeneralModal.addEventListener('click', (event) => {
+                if (event.target === editGeneralModal) closeEditGeneralModal();
+            });
+        }
+
+        if (closeEditNewIssueModalBtn) closeEditNewIssueModalBtn.addEventListener('click', closeEditNewIssueModal);
+        if (cancelEditNewIssueBtn) cancelEditNewIssueBtn.addEventListener('click', (event) => { event.preventDefault(); closeEditNewIssueModal(); });
+        if (editNewIssueModal) {
+            editNewIssueModal.addEventListener('click', (event) => {
+                if (event.target === editNewIssueModal) closeEditNewIssueModal();
+            });
+        }
+
+        if (editGeneralForm) {
+            editGeneralForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!auth || !auth.currentUser || !appId || !userId || !activeGeneralDocId) {
+                    showMessage(errorMessage, 'Unable to update this activity right now.');
+                    return;
+                }
+
+                const size = parseFloat(editGeneralSize.value);
+                const currency = (editGeneralCurrency.value || '').trim().toUpperCase();
+                let priceValue = (editGeneralPrice.value || '').trim().toUpperCase();
+                if (Number.isNaN(size)) { showMessage(errorMessage, 'Please provide a valid size.'); return; }
+                if (!currency) { showMessage(errorMessage, 'Currency is required.'); return; }
+                if (!priceValue) { showMessage(errorMessage, 'Price information is required.'); return; }
+
+                const updates = {
+                    size,
+                    currency,
+                    usdEquivalent: (editGeneralUsdEquivalent.value || '').trim(),
+                    lastModifiedAt: serverTimestamp()
+                };
+
+                if (activeGeneralActivityType === 'MISSED TRADES') {
+                    const cpty = (editGeneralCpty.value || '').trim().toUpperCase();
+                    if (!cpty) { showMessage(errorMessage, 'CPTY Traded Away is required.'); return; }
+                    updates.tradedAwayLevel = priceValue;
+                    updates.cptyTradedAway = cpty;
+                } else {
+                    updates.priceTarget = priceValue;
+                    updates.buySell = (editGeneralBuySell.value || 'BUY').toUpperCase();
+                }
+
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/general_activities`, activeGeneralDocId);
+                try {
+                    await updateDoc(docRef, updates);
+                    showMessage(successMessage, 'Activity updated.');
+                    closeEditGeneralModal();
+                } catch (err) {
+                    console.error('Error updating activity', err);
+                    showMessage(errorMessage, `Failed to update activity: ${err.message}`);
+                }
+            });
+        }
+
+        if (editNewIssueForm) {
+            editNewIssueForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!auth || !auth.currentUser || !appId || !userId || !activeNewIssueDocId) {
+                    showMessage(errorMessage, 'Unable to update this new issue right now.');
+                    return;
+                }
+
+                const size = parseFloat(editNewIssueSize.value);
+                const orderSize = parseFloat(editNewIssueOrderSize.value);
+                const realInterest = parseFloat(editNewIssueRealInterest.value);
+                const currency = (editNewIssueCurrency.value || '').trim().toUpperCase();
+                const ioiValue = (editNewIssueIoi.value || '').trim().toUpperCase();
+                const priceTargetValue = (editNewIssuePriceTarget?.value || '').trim().toUpperCase();
+                if (Number.isNaN(size) || Number.isNaN(orderSize) || Number.isNaN(realInterest)) {
+                    showMessage(errorMessage, 'Size, Order Size, and Real Interest must be valid numbers.');
+                    return;
+                }
+                if (!ioiValue) { showMessage(errorMessage, 'IOI is required.'); return; }
+                if (!currency) { showMessage(errorMessage, 'Currency is required.'); return; }
+
+                const updates = {
+                    size,
+                    orderSize,
+                    realInterest,
+                    currency,
+                    usdEquivalent: (editNewIssueUsdEquivalent.value || '').trim(),
+                    ioi: ioiValue,
+                    remarks: (editNewIssueRemarks.value || '').trim(),
+                    lastModifiedAt: serverTimestamp()
+                };
+
+                if (editNewIssuePriceTarget) updates.priceTarget = priceTargetValue;
+
+                const docRef = doc(db, `artifacts/${appId}/users/${userId}/new_issues`, activeNewIssueDocId);
+                try {
+                    await updateDoc(docRef, updates);
+                    showMessage(successMessage, 'New issue updated.');
+                    closeEditNewIssueModal();
+                } catch (err) {
+                    console.error('Error updating new issue', err);
+                    showMessage(errorMessage, `Failed to update new issue: ${err.message}`);
+                }
+            });
+        }
 
 const populateClientDropdown = (clients) => {
     clientNameSelect.innerHTML = '<option value="">(Select client from Client Database)</option>';
@@ -1032,13 +1752,14 @@ try {
 resetAppState();
 appContent.classList.add('hidden');
 authOverlay.classList.remove('hidden');
-document.getElementById('userIdSpan').textContent = 'Not signed in';
 
             onAuthStateChanged(auth, (user) => {
                 clearRealtimeListeners();
                 if (user) {
                     userId = user.uid;
-                    document.getElementById('userIdSpan').textContent = userId;
+                    if (userEmailSpan) userEmailSpan.textContent = user.email || user.uid;
+                    if (accountEmailDisplay) accountEmailDisplay.textContent = user.email || user.uid;
+                    if (accountBtn) accountBtn.disabled = false;
                     isAuthReady = true;
                     appContent.classList.remove('hidden');
                     authOverlay.classList.add('hidden');
@@ -1046,12 +1767,15 @@ document.getElementById('userIdSpan').textContent = 'Not signed in';
                     setAuthMessage('');
                     if (loginForm) loginForm.reset();
                     if (registerForm) registerForm.reset();
+                    if (forgotPasswordForm) forgotPasswordForm.reset();
                     setupRealtimeListeners();
                     updateSubmitButtonState();
                 } else {
                     userId = null;
                     isAuthReady = false;
-                    document.getElementById('userIdSpan').textContent = 'Not signed in';
+                    if (userEmailSpan) userEmailSpan.textContent = 'Guest';
+                    if (accountBtn) accountBtn.disabled = true;
+                    if (accountEmailDisplay) accountEmailDisplay.textContent = '-';
                     resetAppState();
                     appContent.classList.add('hidden');
                     authOverlay.classList.remove('hidden');
