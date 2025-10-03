@@ -80,19 +80,8 @@
             </form>
 
             <form id="forgotPasswordForm" class="space-y-4 hidden">
-                <p class="text-sm text-gray-300">Request a reset code and set your new password right here.</p>
-                <div>
-                    <label for="forgotPasswordEmail" class="block text-sm font-medium mb-1">Email</label>
-                    <input id="forgotPasswordEmail" type="email" class="form-input" required autocomplete="email">
-                </div>
-                <div>
-                    <button type="button" id="sendResetCodeBtn" class="btn-secondary w-full">Send Reset Code</button>
-                </div>
-                <div>
-                    <label for="forgotPasswordCode" class="block text-sm font-medium mb-1">Reset Code</label>
-                    <input id="forgotPasswordCode" type="text" class="form-input" placeholder="Paste code from reset email" required>
-                    <p class="text-xs text-gray-400 mt-1">After requesting a code, open the email, copy the code from the link, and paste it here.</p>
-                </div>
+                <p id="forgotPasswordInfo" class="text-sm text-gray-300">Enter your new password below to complete the reset.</p>
+                <p id="forgotPasswordEmailDisplay" class="text-xs text-indigo-300 hidden"></p>
                 <div>
                     <label for="forgotNewPassword" class="block text-sm font-medium mb-1">New Password</label>
                     <input id="forgotNewPassword" type="password" class="form-input" minlength="6" required autocomplete="new-password">
@@ -101,7 +90,7 @@
                     <label for="forgotConfirmPassword" class="block text-sm font-medium mb-1">Confirm New Password</label>
                     <input id="forgotConfirmPassword" type="password" class="form-input" minlength="6" required autocomplete="new-password">
                 </div>
-                <button type="submit" class="btn-primary w-full">Update Password</button>
+                <button id="forgotPasswordSubmitBtn" type="submit" class="btn-primary w-full">Update Password</button>
                 <button type="button" id="forgotPasswordBackBtn" class="w-full btn-muted">Back to Sign In</button>
             </form>
 
@@ -153,7 +142,7 @@
                             <p id="accountLastUpdate" class="text-sm font-semibold text-white mt-1">N/A</p>
                         </div>
                         <div class="bg-gray-700 rounded-lg p-4">
-                            <p class="text-xs uppercase tracking-wider text-gray-400">Total Size (MM)</p>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Total Traded Size (MM)</p>
                             <p id="accountTotalSize" class="text-2xl font-bold text-green-300 mt-1">0</p>
                         </div>
                     </div>
@@ -510,7 +499,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
@@ -589,11 +578,10 @@ let activeNewIssueDocId = null;
         const forgotPasswordForm = document.getElementById('forgotPasswordForm');
         const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
-        const forgotPasswordEmailInput = document.getElementById('forgotPasswordEmail');
-        const forgotPasswordCodeInput = document.getElementById('forgotPasswordCode');
         const forgotNewPasswordInput = document.getElementById('forgotNewPassword');
         const forgotConfirmPasswordInput = document.getElementById('forgotConfirmPassword');
-        const sendResetCodeBtn = document.getElementById('sendResetCodeBtn');
+        const forgotPasswordEmailDisplay = document.getElementById('forgotPasswordEmailDisplay');
+        const forgotPasswordSubmitBtn = document.getElementById('forgotPasswordSubmitBtn');
 
         const editGeneralModal = document.getElementById('editGeneralModal');
         const editGeneralForm = document.getElementById('editGeneralForm');
@@ -680,6 +668,52 @@ let activeNewIssueDocId = null;
             return ts ? new Date(ts).toLocaleString() : 'N/A';
         };
 
+        let pendingResetCode = null;
+        let pendingResetEmail = '';
+
+        const updateForgotPasswordEmailDisplay = (email = '') => {
+            if (!forgotPasswordEmailDisplay) return;
+            if (email) {
+                forgotPasswordEmailDisplay.textContent = `Resetting password for ${email}`;
+                forgotPasswordEmailDisplay.classList.remove('hidden');
+            } else {
+                forgotPasswordEmailDisplay.textContent = '';
+                forgotPasswordEmailDisplay.classList.add('hidden');
+            }
+        };
+
+        const clearPendingResetState = () => {
+            pendingResetCode = null;
+            pendingResetEmail = '';
+            updateForgotPasswordEmailDisplay('');
+        };
+
+        const handlePasswordResetLinkFromUrl = async () => {
+            if (!auth) return;
+            const params = new URLSearchParams(window.location.search);
+            const mode = params.get('mode');
+            const oobCode = params.get('oobCode');
+
+            if (mode !== 'resetPassword' || !oobCode) {
+                return;
+            }
+
+            try {
+                const email = await verifyPasswordResetCode(auth, oobCode);
+                pendingResetCode = oobCode;
+                pendingResetEmail = email || '';
+                updateForgotPasswordEmailDisplay(pendingResetEmail);
+                if (loginEmailInput && pendingResetEmail) loginEmailInput.value = pendingResetEmail;
+                window.history.replaceState(null, '', window.location.pathname);
+                switchAuthView('forgot');
+            } catch (err) {
+                console.error('Reset link verification failed', err);
+                clearPendingResetState();
+                switchAuthView('login');
+                setAuthMessage(err.message || 'This password reset link is invalid or has expired.');
+            }
+        };
+
         const authToggleContainer = toggleAuthText ? toggleAuthText.parentElement : null;
 
         const switchAuthView = (view = 'login') => {
@@ -692,27 +726,29 @@ let activeNewIssueDocId = null;
                 toggleAuthText.textContent = 'Already have an account?';
                 toggleAuthBtn.textContent = 'Sign In';
                 if (authToggleContainer) authToggleContainer.classList.remove('hidden');
+                if (forgotPasswordForm) forgotPasswordForm.reset();
+                if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = false;
+                setAuthMessage('');
             } else if (view === 'forgot') {
                 authTitle.textContent = 'Reset Password';
                 if (authToggleContainer) authToggleContainer.classList.add('hidden');
+                if (forgotPasswordForm) forgotPasswordForm.reset();
+                if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = !pendingResetCode;
+                updateForgotPasswordEmailDisplay(pendingResetEmail);
+                if (pendingResetCode) {
+                    setAuthMessage('Enter and confirm your new password to finish resetting.', 'success');
+                } else {
+                    setAuthMessage('Open the password reset link from your email to continue.', 'error');
+                }
             } else {
                 authTitle.textContent = 'Sign In';
                 toggleAuthText.textContent = "Don't have an account?";
                 toggleAuthBtn.textContent = 'Register';
                 if (authToggleContainer) authToggleContainer.classList.remove('hidden');
+                if (forgotPasswordForm) forgotPasswordForm.reset();
+                if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = false;
+                setAuthMessage('');
             }
-
-            if (view !== 'forgot') {
-                if (forgotPasswordEmailInput) forgotPasswordEmailInput.value = '';
-                if (forgotPasswordCodeInput) forgotPasswordCodeInput.value = '';
-                if (forgotNewPasswordInput) forgotNewPasswordInput.value = '';
-                if (forgotConfirmPasswordInput) forgotConfirmPasswordInput.value = '';
-                if (sendResetCodeBtn) {
-                    sendResetCodeBtn.disabled = false;
-                    sendResetCodeBtn.textContent = 'Send Reset Code';
-                }
-            }
-            setAuthMessage('');
         };
 
         const showMessage = (element, message, duration = 2500) => {
@@ -813,7 +849,11 @@ let activeNewIssueDocId = null;
         }
 
         if (forgotPasswordBackBtn) {
-            forgotPasswordBackBtn.addEventListener('click', () => switchAuthView('login'));
+            forgotPasswordBackBtn.addEventListener('click', () => {
+                clearPendingResetState();
+                switchAuthView('login');
+                window.history.replaceState(null, '', window.location.pathname);
+            });
         }
 
         if (loginForm) {
@@ -883,43 +923,14 @@ let activeNewIssueDocId = null;
             });
         }
 
-        if (sendResetCodeBtn) {
-            sendResetCodeBtn.addEventListener('click', async () => {
-                if (!auth) return;
-                const email = (forgotPasswordEmailInput.value || '').trim();
-                if (!email) {
-                    setAuthMessage('Please enter your email to receive a reset code.');
-                    return;
-                }
-
-                const originalText = sendResetCodeBtn.textContent;
-                sendResetCodeBtn.disabled = true;
-                sendResetCodeBtn.textContent = 'Sending...';
-                setAuthMessage('Sending reset email...', 'success');
-
-                try {
-                    await sendPasswordResetEmail(auth, email);
-                    setAuthMessage('Reset email sent. Copy the code from the link to continue.', 'success');
-                } catch (err) {
-                    console.error('Password reset email failed', err);
-                    setAuthMessage(err.message || 'Failed to send reset email.');
-                } finally {
-                    sendResetCodeBtn.disabled = false;
-                    sendResetCodeBtn.textContent = originalText;
-                }
-            });
-        }
-
         if (forgotPasswordForm) {
             forgotPasswordForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!auth) return;
-                const email = (forgotPasswordEmailInput.value || '').trim();
-                const code = (forgotPasswordCodeInput.value || '').trim();
                 const newPassword = forgotNewPasswordInput.value || '';
                 const confirmPassword = forgotConfirmPasswordInput.value || '';
 
-                if (!email || !code || !newPassword || !confirmPassword) {
+                if (!newPassword || !confirmPassword) {
                     setAuthMessage('Please complete all fields to reset your password.');
                     return;
                 }
@@ -929,21 +940,23 @@ let activeNewIssueDocId = null;
                     return;
                 }
 
-                const submitButton = forgotPasswordForm.querySelector('button[type="submit"]');
+                if (!pendingResetCode) {
+                    setAuthMessage('This password reset link is invalid or has expired.');
+                    return;
+                }
+
+                const submitButton = forgotPasswordSubmitBtn || forgotPasswordForm.querySelector('button[type="submit"]');
                 const originalText = submitButton.textContent;
                 submitButton.disabled = true;
                 submitButton.textContent = 'Updating...';
                 setAuthMessage('Applying new password...', 'success');
 
                 try {
-                    const codeEmail = await verifyPasswordResetCode(auth, code);
-                    if (codeEmail && email && codeEmail.toLowerCase() !== email.toLowerCase()) {
-                        setAuthMessage('Reset code does not match the provided email.');
-                        return;
-                    }
-                    await confirmPasswordReset(auth, code, newPassword);
+                    await confirmPasswordReset(auth, pendingResetCode, newPassword);
+                    const emailToPrefill = pendingResetEmail;
+                    clearPendingResetState();
                     switchAuthView('login');
-                    if (loginEmailInput) loginEmailInput.value = email;
+                    if (loginEmailInput && emailToPrefill) loginEmailInput.value = emailToPrefill;
                     setAuthMessage('Password updated successfully! Please sign in with your new password.', 'success');
                 } catch (err) {
                     console.error('Password reset failed', err);
@@ -1753,7 +1766,7 @@ resetAppState();
 appContent.classList.add('hidden');
 authOverlay.classList.remove('hidden');
 
-            onAuthStateChanged(auth, (user) => {
+            onAuthStateChanged(auth, async (user) => {
                 clearRealtimeListeners();
                 if (user) {
                     userId = user.uid;
@@ -1768,6 +1781,7 @@ authOverlay.classList.remove('hidden');
                     if (loginForm) loginForm.reset();
                     if (registerForm) registerForm.reset();
                     if (forgotPasswordForm) forgotPasswordForm.reset();
+                    clearPendingResetState();
                     setupRealtimeListeners();
                     updateSubmitButtonState();
                 } else {
@@ -1782,6 +1796,7 @@ authOverlay.classList.remove('hidden');
                     switchAuthView('login');
                     setAuthMessage('');
                     updateSubmitButtonState();
+                    await handlePasswordResetLinkFromUrl();
                 }
             });
         };
