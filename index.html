@@ -37,6 +37,10 @@
         .tooltip { position: relative; cursor: help; }
         .tooltip::after { content: attr(data-tooltip); position: absolute; top: 50%; left: 100%; transform: translate(12px, -50%) scale(0.95); background-color: rgba(45, 55, 72, 0.95); color: #e2e8f0; padding: 6px 10px; border-radius: 6px; white-space: nowrap; opacity: 0; pointer-events: none; transition: opacity 0.15s ease, transform 0.15s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); z-index: 50; }
         .tooltip:hover::after { opacity: 1; transform: translate(12px, -50%) scale(1); }
+        .sort-button { display: inline-flex; align-items: center; gap: 0.25rem; background: transparent; border: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+        .sort-button:focus-visible { outline: 2px solid #63b3ed; outline-offset: 2px; }
+        .sort-button .sort-indicator { font-size: 0.75rem; opacity: 0.8; }
+        .sort-button.active { color: #63b3ed; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -463,18 +467,18 @@
                 <table class="min-w-full rounded-lg overflow-hidden">
                     <thead>
                         <tr class="table-header text-xs uppercase tracking-wider">
-                            <th class="p-3 text-left">Timestamp</th>
-                            <th class="p-3 text-left">Type</th>
-                            <th class="p-3 text-left">Client</th>
-                            <th class="p-3 text-left">Type</th>
-                            <th class="p-3 text-left">Region</th>
-                            <th class="p-3 text-left">Securities</th>
-                            <th class="p-3 text-left">Buy/Sell</th>
-                            <th class="p-3 text-left">Size (MM)</th>
-                            <th class="p-3 text-left">Price/Level</th>
-                            <th class="p-3 text-left">Currency</th>
-                            <th class="p-3 text-left">USD Eq.</th>
-                            <th class="p-3 text-left">CPTY</th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="timestamp"><span>Timestamp</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="activityType"><span>Type</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="clientName"><span>Client</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="clientType"><span>Type</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="clientRegion"><span>Region</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="securities"><span>Securities</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="buySell"><span>Buy/Sell</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="size"><span>Size (MM)</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="price"><span>Price/Level</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="currency"><span>Currency</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="usdEquivalent"><span>USD Eq.</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="general" data-sort-key="cpty"><span>CPTY</span><span class="sort-indicator"></span></button></th>
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -486,18 +490,18 @@
                 <table class="min-w-full rounded-lg overflow-hidden">
                     <thead>
                         <tr class="table-header text-xs uppercase tracking-wider">
-                            <th class="p-3 text-left">Timestamp</th>
-                            <th class="p-3 text-left">Client</th>
-                            <th class="p-3 text-left">Type</th>
-                            <th class="p-3 text-left">Region</th>
-                            <th class="p-3 text-left">Securities</th>
-                            <th class="p-3 text-left">IOI</th>
-                            <th class="p-3 text-left">Order Size</th>
-                            <th class="p-3 text-left">Real Interest</th>
-                            <th class="p-3 text-left">Price Target</th>
-                            <th class="p-3 text-left">Currency</th>
-                            <th class="p-3 text-left">USD Eq.</th>
-                            <th class="p-3 text-left">Remarks</th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="timestamp"><span>Timestamp</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="clientName"><span>Client</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="clientType"><span>Type</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="clientRegion"><span>Region</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="securities"><span>Securities</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="ioi"><span>IOI</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="orderSize"><span>Order Size</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="realInterest"><span>Real Interest</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="priceTarget"><span>Price Target</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="currency"><span>Currency</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="usdEquivalent"><span>USD Eq.</span><span class="sort-indicator"></span></button></th>
+                            <th class="p-3 text-left"><button type="button" class="sort-button" data-sort-table="newIssues" data-sort-key="remarks"><span>Remarks</span><span class="sort-indicator"></span></button></th>
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
@@ -598,6 +602,147 @@ let activeNewIssueDocId = null;
         const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
         const forgotPasswordEmailInput = document.getElementById('forgotPasswordEmail');
+        const sortButtons = document.querySelectorAll('.sort-button');
+
+        const generalSortState = { key: 'timestamp', direction: 'desc' };
+        const newIssuesSortState = { key: 'timestamp', direction: 'desc' };
+
+        const parseNumericValue = (value) => {
+            if (value === null || value === undefined) return null;
+            if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+            const cleaned = String(value).replace(/[^0-9.\-]/g, '');
+            if (!cleaned) return null;
+            const parsed = parseFloat(cleaned);
+            return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        const getGeneralPriceValue = (activity) => activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
+
+        const getSortValue = (item, tableType, key) => {
+            if (tableType === 'general') {
+                switch (key) {
+                    case 'timestamp':
+                        return item.timestamp?.toMillis?.() ?? 0;
+                    case 'activityType':
+                        return item.type ?? '';
+                    case 'clientName':
+                        return item.clientName ?? '';
+                    case 'clientType':
+                        return item.clientType ?? '';
+                    case 'clientRegion':
+                        return item.clientRegion ?? '';
+                    case 'securities':
+                        return item.securities ?? '';
+                    case 'buySell':
+                        return item.buySell ?? '';
+                    case 'size':
+                        return item.size ?? '';
+                    case 'price':
+                        return getGeneralPriceValue(item) ?? '';
+                    case 'currency':
+                        return item.currency ?? '';
+                    case 'usdEquivalent':
+                        return item.usdEquivalent ?? '';
+                    case 'cpty':
+                        return item.type === 'MISSED TRADES' ? (item.cptyTradedAway ?? '') : 'N/A';
+                    default:
+                        return '';
+                }
+            }
+
+            switch (key) {
+                case 'timestamp':
+                    return item.timestamp?.toMillis?.() ?? 0;
+                case 'clientName':
+                    return item.clientName ?? '';
+                case 'clientType':
+                    return item.clientType ?? '';
+                case 'clientRegion':
+                    return item.clientRegion ?? '';
+                case 'securities':
+                    return item.securities ?? '';
+                case 'ioi':
+                    return item.ioi ?? '';
+                case 'orderSize':
+                    return item.orderSize ?? '';
+                case 'realInterest':
+                    return item.realInterest ?? '';
+                case 'priceTarget':
+                    return item.priceTarget ?? '';
+                case 'currency':
+                    return item.currency ?? '';
+                case 'usdEquivalent':
+                    return item.usdEquivalent ?? '';
+                case 'remarks':
+                    return item.remarks ?? '';
+                default:
+                    return '';
+            }
+        };
+
+        const compareBySortState = (a, b, state, tableType) => {
+            const directionMultiplier = state.direction === 'asc' ? 1 : -1;
+            const valueA = getSortValue(a, tableType, state.key);
+            const valueB = getSortValue(b, tableType, state.key);
+
+            if (state.key === 'timestamp') {
+                return (valueA - valueB) * directionMultiplier;
+            }
+
+            const numericA = parseNumericValue(valueA);
+            const numericB = parseNumericValue(valueB);
+
+            if (numericA !== null && numericB !== null) {
+                if (numericA === numericB) return 0;
+                return numericA > numericB ? directionMultiplier : -directionMultiplier;
+            }
+
+            const stringA = (valueA ?? '').toString().toLowerCase();
+            const stringB = (valueB ?? '').toString().toLowerCase();
+
+            if (!stringA && stringB) return 1 * directionMultiplier;
+            if (stringA && !stringB) return -1 * directionMultiplier;
+            return stringA.localeCompare(stringB) * directionMultiplier;
+        };
+
+        const updateSortIndicators = (tableType) => {
+            const state = tableType === 'general' ? generalSortState : newIssuesSortState;
+            sortButtons.forEach(button => {
+                if (button.dataset.sortTable !== tableType) return;
+                const indicator = button.querySelector('.sort-indicator');
+                if (button.dataset.sortKey === state.key) {
+                    if (indicator) indicator.textContent = state.direction === 'asc' ? '▲' : '▼';
+                    button.classList.add('active');
+                } else {
+                    if (indicator) indicator.textContent = '';
+                    button.classList.remove('active');
+                }
+            });
+        };
+
+        const handleSortClick = (event) => {
+            const button = event.currentTarget;
+            const tableType = button.dataset.sortTable;
+            const sortKey = button.dataset.sortKey;
+            const state = tableType === 'general' ? generalSortState : newIssuesSortState;
+
+            if (state.key === sortKey) {
+                state.direction = state.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                state.key = sortKey;
+                state.direction = sortKey === 'timestamp' ? 'desc' : 'asc';
+            }
+
+            if (tableType === 'general') {
+                renderGeneralActivities(generalActivities);
+            } else {
+                renderNewIssues(newIssueActivities);
+            }
+        };
+
+        sortButtons.forEach(button => button.addEventListener('click', handleSortClick));
+        updateSortIndicators('general');
+        updateSortIndicators('newIssues');
 
         const editGeneralModal = document.getElementById('editGeneralModal');
         const editGeneralForm = document.getElementById('editGeneralForm');
@@ -1375,13 +1520,13 @@ activityForm.addEventListener('submit', async (e) => {
         cancelDeleteBtn.addEventListener('click', hideDeleteModal);
         window.showDeleteModal = showDeleteModal;
 
-        const renderGeneralActivities = (activities) => {
+        const renderGeneralActivities = (activities = []) => {
             generalActivities = [...activities];
             generalLogTable.innerHTML = '';
-            generalActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
-            generalActivities.forEach(activity=>{
+            const sortedActivities = [...generalActivities].sort((a, b) => compareBySortState(a, b, generalSortState, 'general'));
+            sortedActivities.forEach(activity=>{
                 const row = document.createElement('tr'); row.className='table-row text-sm';
-                const priceValue = activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
+                const priceValue = getGeneralPriceValue(activity);
                 const cptyValue = activity.type === 'MISSED TRADES' ? activity.cptyTradedAway : 'N/A';
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${activity.timestamp ? new Date(activity.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
@@ -1403,14 +1548,15 @@ activityForm.addEventListener('submit', async (e) => {
                 `;
                 generalLogTable.appendChild(row);
             });
+            updateSortIndicators('general');
             updateAccountOverview();
         };
 
-        const renderNewIssues = (issues) => {
+        const renderNewIssues = (issues = []) => {
             newIssueActivities = [...issues];
             newIssuesLogTable.innerHTML = '';
-            newIssueActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
-            newIssueActivities.forEach(issue=>{
+            const sortedIssues = [...newIssueActivities].sort((a, b) => compareBySortState(a, b, newIssuesSortState, 'newIssues'));
+            sortedIssues.forEach(issue=>{
                 const row = document.createElement('tr'); row.className='table-row text-sm';
                 row.innerHTML = `
                     <td class="p-3 whitespace-nowrap">${issue.timestamp ? new Date(issue.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
@@ -1432,6 +1578,7 @@ activityForm.addEventListener('submit', async (e) => {
                 `;
             newIssuesLogTable.appendChild(row);
         });
+        updateSortIndicators('newIssues');
         updateAccountOverview();
     };
 
