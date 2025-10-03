@@ -80,8 +80,11 @@
             </form>
 
             <form id="forgotPasswordForm" class="space-y-4 hidden">
-                <p id="forgotPasswordInfo" class="text-sm text-gray-300">Enter your new password below to complete the reset.</p>
-                <p id="forgotPasswordEmailDisplay" class="text-xs text-indigo-300 hidden"></p>
+                <p id="forgotPasswordInfo" class="text-sm text-gray-300">Enter your registered email, new password, and confirmation below to complete the reset.</p>
+                <div>
+                    <label for="forgotEmail" class="block text-sm font-medium mb-1">Email</label>
+                    <input id="forgotEmail" type="email" class="form-input" required autocomplete="email">
+                </div>
                 <div>
                     <label for="forgotNewPassword" class="block text-sm font-medium mb-1">New Password</label>
                     <input id="forgotNewPassword" type="password" class="form-input" minlength="6" required autocomplete="new-password">
@@ -578,9 +581,9 @@ let activeNewIssueDocId = null;
         const forgotPasswordForm = document.getElementById('forgotPasswordForm');
         const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
+        const forgotEmailInput = document.getElementById('forgotEmail');
         const forgotNewPasswordInput = document.getElementById('forgotNewPassword');
         const forgotConfirmPasswordInput = document.getElementById('forgotConfirmPassword');
-        const forgotPasswordEmailDisplay = document.getElementById('forgotPasswordEmailDisplay');
         const forgotPasswordSubmitBtn = document.getElementById('forgotPasswordSubmitBtn');
 
         const editGeneralModal = document.getElementById('editGeneralModal');
@@ -672,13 +675,13 @@ let activeNewIssueDocId = null;
         let pendingResetEmail = '';
 
         const updateForgotPasswordEmailDisplay = (email = '') => {
-            if (!forgotPasswordEmailDisplay) return;
+            if (!forgotEmailInput) return;
             if (email) {
-                forgotPasswordEmailDisplay.textContent = `Resetting password for ${email}`;
-                forgotPasswordEmailDisplay.classList.remove('hidden');
+                forgotEmailInput.value = '';
+                forgotEmailInput.placeholder = email;
             } else {
-                forgotPasswordEmailDisplay.textContent = '';
-                forgotPasswordEmailDisplay.classList.add('hidden');
+                forgotEmailInput.value = '';
+                forgotEmailInput.placeholder = '';
             }
         };
 
@@ -735,11 +738,8 @@ let activeNewIssueDocId = null;
                 if (forgotPasswordForm) forgotPasswordForm.reset();
                 if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = !pendingResetCode;
                 updateForgotPasswordEmailDisplay(pendingResetEmail);
-                if (pendingResetCode) {
-                    setAuthMessage('Enter and confirm your new password to finish resetting.', 'success');
-                } else {
-                    setAuthMessage('Open the password reset link from your email to continue.', 'error');
-                }
+                const resetMessage = 'Enter your registered email with a new password and confirmation to finish resetting.';
+                setAuthMessage(resetMessage, pendingResetCode ? 'success' : 'error');
             } else {
                 authTitle.textContent = 'Sign In';
                 toggleAuthText.textContent = "Don't have an account?";
@@ -927,16 +927,22 @@ let activeNewIssueDocId = null;
             forgotPasswordForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!auth) return;
+                const email = (forgotEmailInput?.value || '').trim();
                 const newPassword = forgotNewPasswordInput.value || '';
                 const confirmPassword = forgotConfirmPasswordInput.value || '';
 
-                if (!newPassword || !confirmPassword) {
+                if (!email || !newPassword || !confirmPassword) {
                     setAuthMessage('Please complete all fields to reset your password.');
                     return;
                 }
 
                 if (newPassword !== confirmPassword) {
                     setAuthMessage('New passwords do not match.');
+                    return;
+                }
+
+                if (pendingResetEmail && email.toLowerCase() !== pendingResetEmail.toLowerCase()) {
+                    setAuthMessage('Please enter the email associated with this password reset request.');
                     return;
                 }
 
@@ -953,7 +959,7 @@ let activeNewIssueDocId = null;
 
                 try {
                     await confirmPasswordReset(auth, pendingResetCode, newPassword);
-                    const emailToPrefill = pendingResetEmail;
+                    const emailToPrefill = email || pendingResetEmail;
                     clearPendingResetState();
                     switchAuthView('login');
                     if (loginEmailInput && emailToPrefill) loginEmailInput.value = emailToPrefill;
