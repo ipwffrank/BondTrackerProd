@@ -1139,11 +1139,13 @@ if (clientNameSelect.options.length > 1) {
             usdEquivalentInput.disabled = true;
             usdEquivalentInput.parentElement.style.display = "none";
 
-            niCurrencySelect.disabled = true;
-            niCurrencySelect.parentElement.style.display = "none";
+            niCurrencySelect.disabled = false;
+            niCurrencySelect.required = true;
+            niCurrencySelect.parentElement.style.display = "";
 
-            niUsdEquivalentInput.disabled = true;
-            niUsdEquivalentInput.parentElement.style.display = "none";
+            niUsdEquivalentInput.disabled = false;
+            niUsdEquivalentInput.readOnly = true;
+            niUsdEquivalentInput.parentElement.style.display = "";
             break;
 
         default:
