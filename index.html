@@ -958,11 +958,24 @@ let activeNewIssueDocId = null;
 
                 try {
                     await confirmPasswordReset(auth, pendingResetCode, newPassword);
-                    const emailToPrefill = email || pendingResetEmail;
+                    const emailToPrefill = (email || pendingResetEmail || '').trim();
                     clearPendingResetState();
-                    switchAuthView('login');
-                    if (loginEmailInput && emailToPrefill) loginEmailInput.value = emailToPrefill;
-                    setAuthMessage('Password updated successfully! Please sign in with your new password.', 'success');
+
+                    if (emailToPrefill) {
+                        if (loginEmailInput) loginEmailInput.value = emailToPrefill;
+                        try {
+                            await signInWithEmailAndPassword(auth, emailToPrefill, newPassword);
+                            setAuthMessage('Password updated successfully! Signing you in with your new credentials...', 'success');
+                        } catch (signInErr) {
+                            console.warn('Automatic sign-in after reset failed', signInErr);
+                            switchAuthView('login');
+                            if (loginEmailInput) loginEmailInput.value = emailToPrefill;
+                            setAuthMessage('Password updated successfully! Please sign in with your new password.', 'success');
+                        }
+                    } else {
+                        switchAuthView('login');
+                        setAuthMessage('Password updated successfully! Please sign in with your new password.', 'success');
+                    }
                 } catch (err) {
                     console.error('Password reset failed', err);
                     setAuthMessage(err.message || 'Failed to update password.');
