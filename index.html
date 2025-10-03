@@ -80,12 +80,24 @@
             </form>
 
             <form id="forgotPasswordForm" class="space-y-4 hidden">
-                <p class="text-sm text-gray-300">Enter the email associated with your account and we'll send reset instructions.</p>
+                <p class="text-sm text-gray-300">Confirm your current credentials below to immediately set a new password.</p>
                 <div>
                     <label for="forgotPasswordEmail" class="block text-sm font-medium mb-1">Email</label>
                     <input id="forgotPasswordEmail" type="email" class="form-input" required autocomplete="email">
                 </div>
-                <button type="submit" class="btn-primary w-full">Send Reset Email</button>
+                <div>
+                    <label for="forgotPasswordCurrent" class="block text-sm font-medium mb-1">Current Password</label>
+                    <input id="forgotPasswordCurrent" type="password" class="form-input" required autocomplete="current-password">
+                </div>
+                <div>
+                    <label for="forgotPasswordNew" class="block text-sm font-medium mb-1">New Password</label>
+                    <input id="forgotPasswordNew" type="password" class="form-input" required minlength="6" autocomplete="new-password">
+                </div>
+                <div>
+                    <label for="forgotPasswordConfirm" class="block text-sm font-medium mb-1">Confirm New Password</label>
+                    <input id="forgotPasswordConfirm" type="password" class="form-input" required minlength="6" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary w-full">Update Password</button>
                 <button type="button" id="forgotPasswordBackBtn" class="w-full btn-muted">Back to Sign In</button>
             </form>
 
@@ -141,28 +153,7 @@
                             <p id="accountTotalSize" class="text-2xl font-bold text-green-300 mt-1">0</p>
                         </div>
                     </div>
-                    <div>
-                        <h4 class="text-lg font-semibold text-white mb-3">Reset Password</h4>
-                        <form id="accountPasswordForm" class="space-y-4">
-                            <div id="accountPasswordMessage" class="text-sm hidden"></div>
-                            <div>
-                                <label for="currentPassword" class="block text-sm font-medium mb-1">Current Password</label>
-                                <input id="currentPassword" type="password" class="form-input" required autocomplete="current-password">
-                            </div>
-                            <div>
-                                <label for="newPassword" class="block text-sm font-medium mb-1">New Password</label>
-                                <input id="newPassword" type="password" class="form-input" required minlength="6" autocomplete="new-password">
-                            </div>
-                            <div>
-                                <label for="confirmNewPassword" class="block text-sm font-medium mb-1">Confirm New Password</label>
-                                <input id="confirmNewPassword" type="password" class="form-input" required minlength="6" autocomplete="new-password">
-                            </div>
-                            <div class="flex justify-end gap-3">
-                                <button type="button" id="cancelPasswordChange" class="btn-muted">Cancel</button>
-                                <button type="submit" class="btn-primary">Update Password</button>
-                            </div>
-                        </form>
-                    </div>
+                    <p class="text-sm text-gray-400">Password changes can now be made directly from the sign-in screen by selecting "Forgot Password?".</p>
                 </div>
             </div>
         </div>
@@ -459,13 +450,65 @@
                 <button id="log-new-issues-tab" class="tab-btn px-4 py-2 rounded-full border border-gray-600">New Issues</button>
             </div>
 
-            <div id="generalLog" class="overflow-x-auto">
-                <table class="min-w-full rounded-lg overflow-hidden">
-                    <thead>
-                        <tr class="table-header text-xs uppercase tracking-wider">
-                            <th class="p-3 text-left">Timestamp</th>
-                            <th class="p-3 text-left">Type</th>
-                            <th class="p-3 text-left">Client</th>
+            <div id="generalLog" class="space-y-4">
+                <div id="generalLogControls" class="flex flex-wrap gap-3 text-sm text-gray-300">
+                    <div class="flex flex-col">
+                        <label for="generalSortColumn" class="text-xs uppercase tracking-wider text-gray-400">Sort Column</label>
+                        <select id="generalSortColumn" class="form-select text-sm">
+                            <option value="timestamp">Timestamp</option>
+                            <option value="type">Activity Type</option>
+                            <option value="clientName">Client</option>
+                            <option value="clientType">Client Type</option>
+                            <option value="clientRegion">Region</option>
+                            <option value="securities">Securities</option>
+                            <option value="buySell">Buy/Sell</option>
+                            <option value="size">Size (MM)</option>
+                            <option value="price">Price/Level</option>
+                            <option value="currency">Currency</option>
+                            <option value="usdEquivalent">USD Eq.</option>
+                            <option value="cpty">CPTY</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="generalSortDirection" class="text-xs uppercase tracking-wider text-gray-400">Direction</label>
+                        <select id="generalSortDirection" class="form-select text-sm">
+                            <option value="desc">Descending</option>
+                            <option value="asc">Ascending</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="generalFilterColumn" class="text-xs uppercase tracking-wider text-gray-400">Filter Column</label>
+                        <select id="generalFilterColumn" class="form-select text-sm">
+                            <option value="all">All Columns</option>
+                            <option value="timestamp">Timestamp</option>
+                            <option value="type">Activity Type</option>
+                            <option value="clientName">Client</option>
+                            <option value="clientType">Client Type</option>
+                            <option value="clientRegion">Region</option>
+                            <option value="securities">Securities</option>
+                            <option value="buySell">Buy/Sell</option>
+                            <option value="size">Size (MM)</option>
+                            <option value="price">Price/Level</option>
+                            <option value="currency">Currency</option>
+                            <option value="usdEquivalent">USD Eq.</option>
+                            <option value="cpty">CPTY</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col flex-1 min-w-[180px]">
+                        <label for="generalFilterValue" class="text-xs uppercase tracking-wider text-gray-400">Filter Value</label>
+                        <input id="generalFilterValue" type="text" class="form-input text-sm" placeholder="Type to filter...">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="button" id="generalClearFilters" class="btn-muted px-4 py-2 text-sm">Clear</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full rounded-lg overflow-hidden">
+                        <thead>
+                            <tr class="table-header text-xs uppercase tracking-wider">
+                                <th class="p-3 text-left">Timestamp</th>
+                                <th class="p-3 text-left">Type</th>
+                                <th class="p-3 text-left">Client</th>
                             <th class="p-3 text-left">Type</th>
                             <th class="p-3 text-left">Region</th>
                             <th class="p-3 text-left">Securities</th>
@@ -478,17 +521,70 @@
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="generalLogTable"></tbody>
-                </table>
+                        <tbody id="generalLogTable"></tbody>
+                    </table>
+                </div>
             </div>
 
-            <div id="newIssuesLog" class="overflow-x-auto hidden">
-                <table class="min-w-full rounded-lg overflow-hidden">
-                    <thead>
-                        <tr class="table-header text-xs uppercase tracking-wider">
-                            <th class="p-3 text-left">Timestamp</th>
-                            <th class="p-3 text-left">Client</th>
-                            <th class="p-3 text-left">Type</th>
+            <div id="newIssuesLog" class="space-y-4 hidden">
+                <div id="newIssuesLogControls" class="flex flex-wrap gap-3 text-sm text-gray-300">
+                    <div class="flex flex-col">
+                        <label for="newIssuesSortColumn" class="text-xs uppercase tracking-wider text-gray-400">Sort Column</label>
+                        <select id="newIssuesSortColumn" class="form-select text-sm">
+                            <option value="timestamp">Timestamp</option>
+                            <option value="clientName">Client</option>
+                            <option value="clientType">Client Type</option>
+                            <option value="clientRegion">Region</option>
+                            <option value="securities">Securities</option>
+                            <option value="ioi">IOI</option>
+                            <option value="orderSize">Order Size</option>
+                            <option value="realInterest">Real Interest</option>
+                            <option value="priceTarget">Price Target</option>
+                            <option value="currency">Currency</option>
+                            <option value="usdEquivalent">USD Eq.</option>
+                            <option value="remarks">Remarks</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="newIssuesSortDirection" class="text-xs uppercase tracking-wider text-gray-400">Direction</label>
+                        <select id="newIssuesSortDirection" class="form-select text-sm">
+                            <option value="desc">Descending</option>
+                            <option value="asc">Ascending</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col">
+                        <label for="newIssuesFilterColumn" class="text-xs uppercase tracking-wider text-gray-400">Filter Column</label>
+                        <select id="newIssuesFilterColumn" class="form-select text-sm">
+                            <option value="all">All Columns</option>
+                            <option value="timestamp">Timestamp</option>
+                            <option value="clientName">Client</option>
+                            <option value="clientType">Client Type</option>
+                            <option value="clientRegion">Region</option>
+                            <option value="securities">Securities</option>
+                            <option value="ioi">IOI</option>
+                            <option value="orderSize">Order Size</option>
+                            <option value="realInterest">Real Interest</option>
+                            <option value="priceTarget">Price Target</option>
+                            <option value="currency">Currency</option>
+                            <option value="usdEquivalent">USD Eq.</option>
+                            <option value="remarks">Remarks</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-col flex-1 min-w-[180px]">
+                        <label for="newIssuesFilterValue" class="text-xs uppercase tracking-wider text-gray-400">Filter Value</label>
+                        <input id="newIssuesFilterValue" type="text" class="form-input text-sm" placeholder="Type to filter...">
+                    </div>
+                    <div class="flex items-end">
+                        <button type="button" id="newIssuesClearFilters" class="btn-muted px-4 py-2 text-sm">Clear</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full rounded-lg overflow-hidden">
+                        <thead>
+                            <tr class="table-header text-xs uppercase tracking-wider">
+                                <th class="p-3 text-left">Timestamp</th>
+                                <th class="p-3 text-left">Client</th>
+                                <th class="p-3 text-left">Type</th>
                             <th class="p-3 text-left">Region</th>
                             <th class="p-3 text-left">Securities</th>
                             <th class="p-3 text-left">IOI</th>
@@ -501,8 +597,9 @@
                             <th class="p-3 text-right">Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="newIssuesLogTable"></tbody>
-                </table>
+                        <tbody id="newIssuesLogTable"></tbody>
+                    </table>
+                </div>
             </div>
 
         </div>
@@ -512,7 +609,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
@@ -587,17 +684,39 @@ let activeNewIssueDocId = null;
         const accountLogsCount = document.getElementById('accountLogsCount');
         const accountLastUpdate = document.getElementById('accountLastUpdate');
         const accountTotalSize = document.getElementById('accountTotalSize');
-        const accountPasswordForm = document.getElementById('accountPasswordForm');
-        const accountPasswordMessage = document.getElementById('accountPasswordMessage');
-        const currentPasswordInput = document.getElementById('currentPassword');
-        const newPasswordInput = document.getElementById('newPassword');
-        const confirmNewPasswordInput = document.getElementById('confirmNewPassword');
-        const cancelPasswordChangeBtn = document.getElementById('cancelPasswordChange');
-
         const forgotPasswordForm = document.getElementById('forgotPasswordForm');
         const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
         const forgotPasswordEmailInput = document.getElementById('forgotPasswordEmail');
+        const forgotPasswordCurrentInput = document.getElementById('forgotPasswordCurrent');
+        const forgotPasswordNewInput = document.getElementById('forgotPasswordNew');
+        const forgotPasswordConfirmInput = document.getElementById('forgotPasswordConfirm');
+
+        const generalSortColumnSelect = document.getElementById('generalSortColumn');
+        const generalSortDirectionSelect = document.getElementById('generalSortDirection');
+        const generalFilterColumnSelect = document.getElementById('generalFilterColumn');
+        const generalFilterValueInput = document.getElementById('generalFilterValue');
+        const generalClearFiltersBtn = document.getElementById('generalClearFilters');
+
+        const newIssuesSortColumnSelect = document.getElementById('newIssuesSortColumn');
+        const newIssuesSortDirectionSelect = document.getElementById('newIssuesSortDirection');
+        const newIssuesFilterColumnSelect = document.getElementById('newIssuesFilterColumn');
+        const newIssuesFilterValueInput = document.getElementById('newIssuesFilterValue');
+        const newIssuesClearFiltersBtn = document.getElementById('newIssuesClearFilters');
+
+        const generalSortState = {
+            column: 'timestamp',
+            direction: 'desc',
+            filterColumn: 'all',
+            filterValue: ''
+        };
+
+        const newIssuesSortState = {
+            column: 'timestamp',
+            direction: 'desc',
+            filterColumn: 'all',
+            filterValue: ''
+        };
 
         const editGeneralModal = document.getElementById('editGeneralModal');
         const editGeneralForm = document.getElementById('editGeneralForm');
@@ -649,25 +768,12 @@ let activeNewIssueDocId = null;
             authMessage.classList.add(type === 'success' ? 'text-green-400' : 'text-red-400');
         };
 
-        const setAccountPasswordMessage = (message = '', type = 'error') => {
-            if (!accountPasswordMessage) return;
-            accountPasswordMessage.textContent = message;
-            if (!message) {
-                accountPasswordMessage.classList.add('hidden');
-                return;
-            }
-            accountPasswordMessage.classList.remove('hidden');
-            accountPasswordMessage.classList.remove('text-red-400', 'text-green-400');
-            accountPasswordMessage.classList.add(type === 'success' ? 'text-green-400' : 'text-red-400');
+        const resetForgotPasswordForm = () => {
+            if (forgotPasswordForm) forgotPasswordForm.reset();
         };
 
         const openModal = (modal) => { if (modal) modal.style.display = 'flex'; };
         const closeModal = (modal) => { if (modal) modal.style.display = 'none'; };
-
-        const resetAccountPasswordForm = (preserveMessage = false) => {
-            if (accountPasswordForm) accountPasswordForm.reset();
-            if (!preserveMessage) setAccountPasswordMessage('');
-        };
 
         const updateAccountOverview = () => {
             if (!accountLogsCount || !accountLastUpdate || !accountTotalSize) return;
@@ -715,7 +821,7 @@ let activeNewIssueDocId = null;
                 if (authToggleContainer) authToggleContainer.classList.remove('hidden');
             }
 
-            if (view !== 'forgot' && forgotPasswordEmailInput) forgotPasswordEmailInput.value = '';
+            if (view !== 'forgot') resetForgotPasswordForm();
             setAuthMessage('');
         };
 
@@ -891,24 +997,38 @@ let activeNewIssueDocId = null;
             forgotPasswordForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!auth) return;
-                const email = (forgotPasswordEmailInput.value || '').trim();
-                if (!email) {
-                    setAuthMessage('Please enter the email associated with your account.');
+
+                const email = (forgotPasswordEmailInput?.value || '').trim();
+                const currentPassword = forgotPasswordCurrentInput?.value || '';
+                const newPassword = forgotPasswordNewInput?.value || '';
+                const confirmPassword = forgotPasswordConfirmInput?.value || '';
+
+                if (!email || !currentPassword || !newPassword || !confirmPassword) {
+                    setAuthMessage('All fields are required to reset your password.');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    setAuthMessage('New passwords do not match.');
                     return;
                 }
 
                 const submitButton = forgotPasswordForm.querySelector('button[type="submit"]');
                 const originalText = submitButton.textContent;
                 submitButton.disabled = true;
-                submitButton.textContent = 'Sending...';
-                setAuthMessage('Sending reset email...', 'success');
+                submitButton.textContent = 'Updating...';
+                setAuthMessage('Verifying credentials...', 'success');
 
                 try {
-                    await sendPasswordResetEmail(auth, email);
-                    setAuthMessage('Password reset instructions sent. Please check your inbox.', 'success');
+                    const credential = EmailAuthProvider.credential(email, currentPassword);
+                    const userCredential = await signInWithEmailAndPassword(auth, email, currentPassword);
+                    await reauthenticateWithCredential(userCredential.user, credential);
+                    await updatePassword(userCredential.user, newPassword);
+                    resetForgotPasswordForm();
+                    setAuthMessage('Password updated successfully. You are now signed in.', 'success');
                 } catch (err) {
                     console.error('Password reset failed', err);
-                    setAuthMessage(err.message || 'Failed to send reset email.');
+                    setAuthMessage(err.message || 'Failed to update password.');
                 } finally {
                     submitButton.disabled = false;
                     submitButton.textContent = originalText;
@@ -930,7 +1050,6 @@ let activeNewIssueDocId = null;
 
         const hideAccountModal = () => {
             closeModal(accountModal);
-            resetAccountPasswordForm();
         };
 
         if (accountBtn) {
@@ -941,7 +1060,6 @@ let activeNewIssueDocId = null;
                 }
                 accountEmailDisplay.textContent = auth.currentUser.email || '-';
                 updateAccountOverview();
-                resetAccountPasswordForm();
                 openModal(accountModal);
             });
         }
@@ -954,57 +1072,6 @@ let activeNewIssueDocId = null;
             accountModal.addEventListener('click', (event) => {
                 if (event.target === accountModal) {
                     hideAccountModal();
-                }
-            });
-        }
-
-        if (cancelPasswordChangeBtn) {
-            cancelPasswordChangeBtn.addEventListener('click', (event) => {
-                event.preventDefault();
-                hideAccountModal();
-            });
-        }
-
-        if (accountPasswordForm) {
-            accountPasswordForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!auth || !auth.currentUser) {
-                    setAccountPasswordMessage('You must be signed in to update your password.');
-                    return;
-                }
-
-                const currentPassword = currentPasswordInput.value;
-                const newPassword = newPasswordInput.value;
-                const confirmPassword = confirmNewPasswordInput.value;
-
-                if (!currentPassword || !newPassword || !confirmPassword) {
-                    setAccountPasswordMessage('All password fields are required.');
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    setAccountPasswordMessage('New passwords do not match.');
-                    return;
-                }
-
-                const submitButton = accountPasswordForm.querySelector('button[type="submit"]');
-                const originalText = submitButton.textContent;
-                submitButton.disabled = true;
-                submitButton.textContent = 'Updating...';
-                setAccountPasswordMessage('Updating password...', 'success');
-
-                try {
-                    const credential = EmailAuthProvider.credential(auth.currentUser.email || '', currentPassword);
-                    await reauthenticateWithCredential(auth.currentUser, credential);
-                    await updatePassword(auth.currentUser, newPassword);
-                    resetAccountPasswordForm(true);
-                    setAccountPasswordMessage('Password updated successfully.', 'success');
-                } catch (err) {
-                    console.error('Password update failed', err);
-                    setAccountPasswordMessage(err.message || 'Failed to update password.');
-                } finally {
-                    submitButton.disabled = false;
-                    submitButton.textContent = originalText;
                 }
             });
         }
@@ -1377,27 +1444,129 @@ activityForm.addEventListener('submit', async (e) => {
         cancelDeleteBtn.addEventListener('click', hideDeleteModal);
         window.showDeleteModal = showDeleteModal;
 
-        const renderGeneralActivities = (activities) => {
-            generalActivities = [...activities];
+        const getTimestampMillis = (timestamp) => {
+            if (timestamp && typeof timestamp.toMillis === 'function') return timestamp.toMillis();
+            if (typeof timestamp === 'number') return timestamp;
+            return null;
+        };
+
+        const compareValues = (a, b) => {
+            const aVal = a ?? (typeof a === 'number' ? 0 : '');
+            const bVal = b ?? (typeof b === 'number' ? 0 : '');
+            if (typeof aVal === 'number' && typeof bVal === 'number') return aVal - bVal;
+            return aVal.toString().toLowerCase().localeCompare(bVal.toString().toLowerCase(), undefined, { numeric: true, sensitivity: 'base' });
+        };
+
+        const generalFilterableColumns = ['timestamp', 'type', 'clientName', 'clientType', 'clientRegion', 'securities', 'buySell', 'size', 'price', 'currency', 'usdEquivalent', 'cpty'];
+
+        const getGeneralFieldValue = (activity, column, { forSort = false } = {}) => {
+            switch (column) {
+                case 'timestamp': {
+                    const millis = getTimestampMillis(activity.timestamp);
+                    if (forSort) return millis || 0;
+                    return millis ? new Date(millis).toLocaleString() : 'N/A';
+                }
+                case 'type':
+                    return activity.type || (forSort ? '' : 'N/A');
+                case 'clientName':
+                    return activity.clientName || (forSort ? '' : 'N/A');
+                case 'clientType':
+                    return activity.clientType || (forSort ? '' : 'N/A');
+                case 'clientRegion':
+                    return activity.clientRegion || (forSort ? '' : 'N/A');
+                case 'securities':
+                    return activity.securities || (forSort ? '' : 'N/A');
+                case 'buySell':
+                    return activity.buySell || (forSort ? '' : 'N/A');
+                case 'size': {
+                    const size = parseFloat(activity.size);
+                    if (forSort) return Number.isNaN(size) ? 0 : size;
+                    return activity.size ?? 'N/A';
+                }
+                case 'price': {
+                    const priceValue = activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
+                    if (forSort) {
+                        const numericPrice = parseFloat(priceValue);
+                        return Number.isNaN(numericPrice) ? (priceValue || '').toString().toUpperCase() : numericPrice;
+                    }
+                    return priceValue || 'N/A';
+                }
+                case 'currency':
+                    return activity.currency || (forSort ? '' : 'N/A');
+                case 'usdEquivalent': {
+                    const usdValue = parseFloat(activity.usdEquivalent);
+                    if (forSort) return Number.isNaN(usdValue) ? 0 : usdValue;
+                    return activity.usdEquivalent || 'N/A';
+                }
+                case 'cpty': {
+                    const cpty = activity.type === 'MISSED TRADES' ? activity.cptyTradedAway : '';
+                    return cpty || (forSort ? '' : 'N/A');
+                }
+                default:
+                    return forSort ? '' : 'N/A';
+            }
+        };
+
+        const matchesGeneralFilter = (activity) => {
+            const query = (generalSortState.filterValue || '').trim().toLowerCase();
+            if (!query) return true;
+            const columns = generalSortState.filterColumn === 'all' ? generalFilterableColumns : [generalSortState.filterColumn];
+            return columns.some((column) => {
+                const value = getGeneralFieldValue(activity, column);
+                return value !== undefined && value !== null && value.toString().toLowerCase().includes(query);
+            });
+        };
+
+        const getProcessedGeneralActivities = () => {
+            const filtered = generalActivities.filter(matchesGeneralFilter);
+            const directionMultiplier = generalSortState.direction === 'asc' ? 1 : -1;
+            const sorted = [...filtered].sort((a, b) => {
+                const column = generalSortState.column;
+                const comparison = compareValues(
+                    getGeneralFieldValue(a, column, { forSort: true }),
+                    getGeneralFieldValue(b, column, { forSort: true })
+                );
+                if (comparison !== 0) return comparison * directionMultiplier;
+                const fallback = compareValues(
+                    getGeneralFieldValue(a, 'timestamp', { forSort: true }),
+                    getGeneralFieldValue(b, 'timestamp', { forSort: true })
+                );
+                return fallback * -1;
+            });
+            return sorted;
+        };
+
+        const refreshGeneralLog = () => {
+            if (!generalLogTable) return;
             generalLogTable.innerHTML = '';
-            generalActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
-            generalActivities.forEach(activity=>{
-                const row = document.createElement('tr'); row.className='table-row text-sm';
-                const priceValue = activity.type === 'MISSED TRADES' ? activity.tradedAwayLevel : activity.priceTarget;
-                const cptyValue = activity.type === 'MISSED TRADES' ? activity.cptyTradedAway : 'N/A';
+            const processed = getProcessedGeneralActivities();
+
+            if (!processed.length) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = '<td colspan="13" class="p-4 text-center text-gray-400">No activities match the current filters.</td>';
+                generalLogTable.appendChild(emptyRow);
+                return;
+            }
+
+            processed.forEach((activity) => {
+                const row = document.createElement('tr');
+                row.className = 'table-row text-sm';
+                const priceDisplay = getGeneralFieldValue(activity, 'price');
+                const cptyDisplay = getGeneralFieldValue(activity, 'cpty');
+                const timestampDisplay = getGeneralFieldValue(activity, 'timestamp');
                 row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${activity.timestamp ? new Date(activity.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.type || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${activity.clientType || 'N/A'}">${activity.clientName}</span></td>
-                    <td class="p-3 whitespace-nowrap">${activity.clientType}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.clientRegion || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.securities}</td>
+                    <td class="p-3 whitespace-nowrap">${timestampDisplay}</td>
+                    <td class="p-3 whitespace-nowrap">${getGeneralFieldValue(activity, 'type')}</td>
+                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${(activity.clientType || 'N/A').toString()}">${activity.clientName || 'N/A'}</span></td>
+                    <td class="p-3 whitespace-nowrap">${activity.clientType || 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${getGeneralFieldValue(activity, 'clientRegion')}</td>
+                    <td class="p-3 whitespace-nowrap">${activity.securities || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.buySell || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${activity.size || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${priceValue || 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${activity.size ?? 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${priceDisplay}</td>
                     <td class="p-3 whitespace-nowrap">${activity.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${activity.usdEquivalent || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${cptyValue}</td>
+                    <td class="p-3 whitespace-nowrap">${cptyDisplay}</td>
                     <td class="p-3 text-right space-x-2">
                         <button class="btn-secondary text-xs px-3 py-1" onclick="window.showEditGeneralModal('${activity.id}')">Modify</button>
                         <button class="btn-danger text-xs px-3 py-1" onclick="showDeleteModal('general_activities','${activity.id}')">Delete</button>
@@ -1405,25 +1574,113 @@ activityForm.addEventListener('submit', async (e) => {
                 `;
                 generalLogTable.appendChild(row);
             });
-            updateAccountOverview();
         };
 
-        const renderNewIssues = (issues) => {
-            newIssueActivities = [...issues];
+        const newIssuesFilterableColumns = ['timestamp', 'clientName', 'clientType', 'clientRegion', 'securities', 'ioi', 'orderSize', 'realInterest', 'priceTarget', 'currency', 'usdEquivalent', 'remarks'];
+
+        const getNewIssueFieldValue = (issue, column, { forSort = false } = {}) => {
+            switch (column) {
+                case 'timestamp': {
+                    const millis = getTimestampMillis(issue.timestamp);
+                    if (forSort) return millis || 0;
+                    return millis ? new Date(millis).toLocaleString() : 'N/A';
+                }
+                case 'clientName':
+                    return issue.clientName || (forSort ? '' : 'N/A');
+                case 'clientType':
+                    return issue.clientType || (forSort ? '' : 'N/A');
+                case 'clientRegion':
+                    return issue.clientRegion || (forSort ? '' : 'N/A');
+                case 'securities':
+                    return issue.securities || (forSort ? '' : 'N/A');
+                case 'ioi':
+                    return issue.ioi || (forSort ? '' : 'N/A');
+                case 'orderSize': {
+                    const orderSize = parseFloat(issue.orderSize);
+                    if (forSort) return Number.isNaN(orderSize) ? 0 : orderSize;
+                    return issue.orderSize ?? 'N/A';
+                }
+                case 'realInterest': {
+                    const interest = parseFloat(issue.realInterest);
+                    if (forSort) return Number.isNaN(interest) ? 0 : interest;
+                    return issue.realInterest ?? 'N/A';
+                }
+                case 'priceTarget': {
+                    const price = issue.priceTarget;
+                    if (forSort) {
+                        const numericPrice = parseFloat(price);
+                        return Number.isNaN(numericPrice) ? (price || '').toString().toUpperCase() : numericPrice;
+                    }
+                    return price || 'N/A';
+                }
+                case 'currency':
+                    return issue.currency || (forSort ? '' : 'N/A');
+                case 'usdEquivalent': {
+                    const usd = parseFloat(issue.usdEquivalent);
+                    if (forSort) return Number.isNaN(usd) ? 0 : usd;
+                    return issue.usdEquivalent || 'N/A';
+                }
+                case 'remarks':
+                    return issue.remarks || (forSort ? '' : 'N/A');
+                default:
+                    return forSort ? '' : 'N/A';
+            }
+        };
+
+        const matchesNewIssuesFilter = (issue) => {
+            const query = (newIssuesSortState.filterValue || '').trim().toLowerCase();
+            if (!query) return true;
+            const columns = newIssuesSortState.filterColumn === 'all' ? newIssuesFilterableColumns : [newIssuesSortState.filterColumn];
+            return columns.some((column) => {
+                const value = getNewIssueFieldValue(issue, column);
+                return value !== undefined && value !== null && value.toString().toLowerCase().includes(query);
+            });
+        };
+
+        const getProcessedNewIssueActivities = () => {
+            const filtered = newIssueActivities.filter(matchesNewIssuesFilter);
+            const directionMultiplier = newIssuesSortState.direction === 'asc' ? 1 : -1;
+            const sorted = [...filtered].sort((a, b) => {
+                const column = newIssuesSortState.column;
+                const comparison = compareValues(
+                    getNewIssueFieldValue(a, column, { forSort: true }),
+                    getNewIssueFieldValue(b, column, { forSort: true })
+                );
+                if (comparison !== 0) return comparison * directionMultiplier;
+                const fallback = compareValues(
+                    getNewIssueFieldValue(a, 'timestamp', { forSort: true }),
+                    getNewIssueFieldValue(b, 'timestamp', { forSort: true })
+                );
+                return fallback * -1;
+            });
+            return sorted;
+        };
+
+        const refreshNewIssuesLog = () => {
+            if (!newIssuesLogTable) return;
             newIssuesLogTable.innerHTML = '';
-            newIssueActivities.sort((a,b)=>{ const ta=a.timestamp?.toMillis?.()||0; const tb=b.timestamp?.toMillis?.()||0; return tb-ta; });
-            newIssueActivities.forEach(issue=>{
-                const row = document.createElement('tr'); row.className='table-row text-sm';
+            const processed = getProcessedNewIssueActivities();
+
+            if (!processed.length) {
+                const emptyRow = document.createElement('tr');
+                emptyRow.innerHTML = '<td colspan="13" class="p-4 text-center text-gray-400">No new issues match the current filters.</td>';
+                newIssuesLogTable.appendChild(emptyRow);
+                return;
+            }
+
+            processed.forEach((issue) => {
+                const row = document.createElement('tr');
+                row.className = 'table-row text-sm';
                 row.innerHTML = `
-                    <td class="p-3 whitespace-nowrap">${issue.timestamp ? new Date(issue.timestamp.toMillis()).toLocaleString() : 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${issue.clientType || 'N/A'}">${issue.clientName}</span></td>
-                    <td class="p-3 whitespace-nowrap">${issue.clientType}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.clientRegion || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.securities}</td>
+                    <td class="p-3 whitespace-nowrap">${getNewIssueFieldValue(issue, 'timestamp')}</td>
+                    <td class="p-3 whitespace-nowrap"><span class="tooltip" data-tooltip="${(issue.clientType || 'N/A').toString()}">${issue.clientName || 'N/A'}</span></td>
+                    <td class="p-3 whitespace-nowrap">${issue.clientType || 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${getNewIssueFieldValue(issue, 'clientRegion')}</td>
+                    <td class="p-3 whitespace-nowrap">${issue.securities || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.ioi || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.orderSize || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.realInterest || 'N/A'}</td>
-                    <td class="p-3 whitespace-nowrap">${issue.priceTarget || 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${issue.orderSize ?? 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${issue.realInterest ?? 'N/A'}</td>
+                    <td class="p-3 whitespace-nowrap">${getNewIssueFieldValue(issue, 'priceTarget')}</td>
                     <td class="p-3 whitespace-nowrap">${issue.currency || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap">${issue.usdEquivalent || 'N/A'}</td>
                     <td class="p-3 whitespace-nowrap max-w-xs overflow-hidden truncate" title="${issue.remarks || ''}">${issue.remarks || 'N/A'}</td>
@@ -1432,10 +1689,113 @@ activityForm.addEventListener('submit', async (e) => {
                         <button class="btn-danger text-xs px-3 py-1" onclick="showDeleteModal('new_issues','${issue.id}')">Delete</button>
                     </td>
                 `;
-            newIssuesLogTable.appendChild(row);
-        });
-        updateAccountOverview();
-    };
+                newIssuesLogTable.appendChild(row);
+            });
+        };
+
+        const renderGeneralActivities = (activities) => {
+            generalActivities = [...activities];
+            refreshGeneralLog();
+            updateAccountOverview();
+        };
+
+        const renderNewIssues = (issues) => {
+            newIssueActivities = [...issues];
+            refreshNewIssuesLog();
+            updateAccountOverview();
+        };
+
+        const resetGeneralControls = () => {
+            generalSortState.column = 'timestamp';
+            generalSortState.direction = 'desc';
+            generalSortState.filterColumn = 'all';
+            generalSortState.filterValue = '';
+            if (generalSortColumnSelect) generalSortColumnSelect.value = 'timestamp';
+            if (generalSortDirectionSelect) generalSortDirectionSelect.value = 'desc';
+            if (generalFilterColumnSelect) generalFilterColumnSelect.value = 'all';
+            if (generalFilterValueInput) generalFilterValueInput.value = '';
+        };
+
+        const resetNewIssuesControls = () => {
+            newIssuesSortState.column = 'timestamp';
+            newIssuesSortState.direction = 'desc';
+            newIssuesSortState.filterColumn = 'all';
+            newIssuesSortState.filterValue = '';
+            if (newIssuesSortColumnSelect) newIssuesSortColumnSelect.value = 'timestamp';
+            if (newIssuesSortDirectionSelect) newIssuesSortDirectionSelect.value = 'desc';
+            if (newIssuesFilterColumnSelect) newIssuesFilterColumnSelect.value = 'all';
+            if (newIssuesFilterValueInput) newIssuesFilterValueInput.value = '';
+        };
+
+        if (generalSortColumnSelect) {
+            generalSortColumnSelect.addEventListener('change', (event) => {
+                generalSortState.column = event.target.value;
+                refreshGeneralLog();
+            });
+        }
+
+        if (generalSortDirectionSelect) {
+            generalSortDirectionSelect.addEventListener('change', (event) => {
+                generalSortState.direction = event.target.value;
+                refreshGeneralLog();
+            });
+        }
+
+        if (generalFilterColumnSelect) {
+            generalFilterColumnSelect.addEventListener('change', (event) => {
+                generalSortState.filterColumn = event.target.value;
+                refreshGeneralLog();
+            });
+        }
+
+        if (generalFilterValueInput) {
+            generalFilterValueInput.addEventListener('input', (event) => {
+                generalSortState.filterValue = event.target.value;
+                refreshGeneralLog();
+            });
+        }
+
+        if (generalClearFiltersBtn) {
+            generalClearFiltersBtn.addEventListener('click', () => {
+                resetGeneralControls();
+                refreshGeneralLog();
+            });
+        }
+
+        if (newIssuesSortColumnSelect) {
+            newIssuesSortColumnSelect.addEventListener('change', (event) => {
+                newIssuesSortState.column = event.target.value;
+                refreshNewIssuesLog();
+            });
+        }
+
+        if (newIssuesSortDirectionSelect) {
+            newIssuesSortDirectionSelect.addEventListener('change', (event) => {
+                newIssuesSortState.direction = event.target.value;
+                refreshNewIssuesLog();
+            });
+        }
+
+        if (newIssuesFilterColumnSelect) {
+            newIssuesFilterColumnSelect.addEventListener('change', (event) => {
+                newIssuesSortState.filterColumn = event.target.value;
+                refreshNewIssuesLog();
+            });
+        }
+
+        if (newIssuesFilterValueInput) {
+            newIssuesFilterValueInput.addEventListener('input', (event) => {
+                newIssuesSortState.filterValue = event.target.value;
+                refreshNewIssuesLog();
+            });
+        }
+
+        if (newIssuesClearFiltersBtn) {
+            newIssuesClearFiltersBtn.addEventListener('click', () => {
+                resetNewIssuesControls();
+                refreshNewIssuesLog();
+            });
+        }
 
         const closeEditGeneralModal = () => {
             activeGeneralDocId = null;
@@ -1701,6 +2061,10 @@ try {
 }
 
 resetAppState();
+resetGeneralControls();
+resetNewIssuesControls();
+refreshGeneralLog();
+refreshNewIssuesLog();
 appContent.classList.add('hidden');
 authOverlay.classList.remove('hidden');
 
@@ -1728,6 +2092,10 @@ authOverlay.classList.remove('hidden');
                     if (accountBtn) accountBtn.disabled = true;
                     if (accountEmailDisplay) accountEmailDisplay.textContent = '-';
                     resetAppState();
+                    resetGeneralControls();
+                    resetNewIssuesControls();
+                    refreshGeneralLog();
+                    refreshNewIssuesLog();
                     appContent.classList.add('hidden');
                     authOverlay.classList.remove('hidden');
                     switchAuthView('login');
