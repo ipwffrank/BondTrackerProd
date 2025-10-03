@@ -502,7 +502,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, verifyPasswordResetCode, confirmPasswordReset, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
@@ -673,22 +673,48 @@ let activeNewIssueDocId = null;
 
         let pendingResetCode = null;
         let pendingResetEmail = '';
+        let lastRequestedResetEmail = '';
 
-        const updateForgotPasswordEmailDisplay = (email = '') => {
+        const updateForgotPasswordEmailDisplay = (email = '', clearValue = false) => {
             if (!forgotEmailInput) return;
-            if (email) {
-                forgotEmailInput.value = '';
-                forgotEmailInput.placeholder = email;
-            } else {
-                forgotEmailInput.value = '';
-                forgotEmailInput.placeholder = '';
+            if (clearValue) forgotEmailInput.value = '';
+            forgotEmailInput.placeholder = email || '';
+        };
+
+        const setForgotPasswordMode = () => {
+            const hasResetCode = Boolean(pendingResetCode);
+            if (forgotNewPasswordInput) {
+                forgotNewPasswordInput.disabled = !hasResetCode;
+                forgotNewPasswordInput.required = hasResetCode;
+                if (!hasResetCode) forgotNewPasswordInput.value = '';
+                if (forgotNewPasswordInput.parentElement) {
+                    forgotNewPasswordInput.parentElement.classList.toggle('hidden', !hasResetCode);
+                }
+            }
+            if (forgotConfirmPasswordInput) {
+                forgotConfirmPasswordInput.disabled = !hasResetCode;
+                forgotConfirmPasswordInput.required = hasResetCode;
+                if (!hasResetCode) forgotConfirmPasswordInput.value = '';
+                if (forgotConfirmPasswordInput.parentElement) {
+                    forgotConfirmPasswordInput.parentElement.classList.toggle('hidden', !hasResetCode);
+                }
+            }
+            if (forgotPasswordSubmitBtn) {
+                forgotPasswordSubmitBtn.disabled = false;
+                forgotPasswordSubmitBtn.textContent = hasResetCode ? 'Update Password' : 'Send Reset Email';
+            }
+            if (forgotPasswordInfo) {
+                forgotPasswordInfo.textContent = hasResetCode
+                    ? 'Enter your registered email, new password, and confirmation below to complete the reset.'
+                    : 'Enter your registered email below to receive a password reset email. Follow the link we send to continue.';
             }
         };
 
         const clearPendingResetState = () => {
             pendingResetCode = null;
             pendingResetEmail = '';
-            updateForgotPasswordEmailDisplay('');
+            setForgotPasswordMode();
+            updateForgotPasswordEmailDisplay(lastRequestedResetEmail || '', true);
         };
 
         const handlePasswordResetLinkFromUrl = async () => {
@@ -705,7 +731,9 @@ let activeNewIssueDocId = null;
                 const email = await verifyPasswordResetCode(auth, oobCode);
                 pendingResetCode = oobCode;
                 pendingResetEmail = email || '';
-                updateForgotPasswordEmailDisplay(pendingResetEmail);
+                lastRequestedResetEmail = pendingResetEmail || lastRequestedResetEmail;
+                updateForgotPasswordEmailDisplay(pendingResetEmail, true);
+                setForgotPasswordMode();
                 if (loginEmailInput && pendingResetEmail) loginEmailInput.value = pendingResetEmail;
                 window.history.replaceState(null, '', window.location.pathname);
                 switchAuthView('forgot');
@@ -736,9 +764,13 @@ let activeNewIssueDocId = null;
                 authTitle.textContent = 'Reset Password';
                 if (authToggleContainer) authToggleContainer.classList.add('hidden');
                 if (forgotPasswordForm) forgotPasswordForm.reset();
-                updateForgotPasswordEmailDisplay(pendingResetEmail);
-                const resetMessage = 'Enter your registered email with a new password and confirmation to finish resetting.';
-                setAuthMessage(resetMessage, pendingResetCode ? 'success' : 'error');
+                const emailHint = pendingResetEmail || lastRequestedResetEmail || '';
+                updateForgotPasswordEmailDisplay(emailHint, true);
+                setForgotPasswordMode();
+                const resetMessage = pendingResetCode
+                    ? 'Enter your registered email with a new password and confirmation to finish resetting.'
+                    : 'Enter your registered email to receive a password reset email with instructions.';
+                setAuthMessage(resetMessage, 'success');
             } else {
                 authTitle.textContent = 'Sign In';
                 toggleAuthText.textContent = "Don't have an account?";
@@ -747,6 +779,7 @@ let activeNewIssueDocId = null;
                 if (forgotPasswordForm) forgotPasswordForm.reset();
                 if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = false;
                 setAuthMessage('');
+                setForgotPasswordMode();
             }
         };
 
@@ -929,34 +962,51 @@ let activeNewIssueDocId = null;
                 const email = (forgotEmailInput?.value || '').trim();
                 const newPassword = forgotNewPasswordInput.value || '';
                 const confirmPassword = forgotConfirmPasswordInput.value || '';
-
-                if (!email || !newPassword || !confirmPassword) {
-                    setAuthMessage('Please complete all fields to reset your password.');
-                    return;
-                }
-
-                if (newPassword !== confirmPassword) {
-                    setAuthMessage('New passwords do not match.');
-                    return;
-                }
-
-                if (pendingResetEmail && email.toLowerCase() !== pendingResetEmail.toLowerCase()) {
-                    setAuthMessage('Please enter the email associated with this password reset request.');
-                    return;
-                }
-
-                if (!pendingResetCode) {
-                    setAuthMessage('This password reset link is invalid or has expired.');
-                    return;
-                }
-
                 const submitButton = forgotPasswordSubmitBtn || forgotPasswordForm.querySelector('button[type="submit"]');
-                const originalText = submitButton.textContent;
                 submitButton.disabled = true;
-                submitButton.textContent = 'Updating...';
-                setAuthMessage('Applying new password...', 'success');
 
                 try {
+                    if (!pendingResetCode) {
+                        if (!email) {
+                            setAuthMessage('Please enter the email linked to your account to request a reset email.');
+                            return;
+                        }
+
+                        submitButton.textContent = 'Sending...';
+                        const baseUrl = (window.location.origin && window.location.origin !== 'null')
+                            ? `${window.location.origin}${window.location.pathname}`
+                            : window.location.href.split('?')[0];
+                        try {
+                            await sendPasswordResetEmail(auth, email, { url: baseUrl, handleCodeInApp: true });
+                            lastRequestedResetEmail = email;
+                            updateForgotPasswordEmailDisplay(email, true);
+                            setForgotPasswordMode();
+                            setAuthMessage('Password reset email sent! Follow the link in your inbox to set a new password.', 'success');
+                        } catch (err) {
+                            console.error('Password reset email request failed', err);
+                            setAuthMessage(err.message || 'Failed to send password reset email.');
+                        }
+                        return;
+                    }
+
+                    if (!email || !newPassword || !confirmPassword) {
+                        setAuthMessage('Please complete all fields to reset your password.');
+                        return;
+                    }
+
+                    if (newPassword !== confirmPassword) {
+                        setAuthMessage('New passwords do not match.');
+                        return;
+                    }
+
+                    if (pendingResetEmail && email.toLowerCase() !== pendingResetEmail.toLowerCase()) {
+                        setAuthMessage('Please enter the email associated with this password reset request.');
+                        return;
+                    }
+
+                    submitButton.textContent = 'Updating...';
+                    setAuthMessage('Applying new password...', 'success');
+
                     await confirmPasswordReset(auth, pendingResetCode, newPassword);
                     const emailToPrefill = (email || pendingResetEmail || '').trim();
                     clearPendingResetState();
@@ -981,7 +1031,7 @@ let activeNewIssueDocId = null;
                     setAuthMessage(err.message || 'Failed to update password.');
                 } finally {
                     submitButton.disabled = false;
-                    submitButton.textContent = originalText;
+                    submitButton.textContent = pendingResetCode ? 'Update Password' : 'Send Reset Email';
                 }
             });
         }
@@ -1799,6 +1849,7 @@ authOverlay.classList.remove('hidden');
                     if (loginForm) loginForm.reset();
                     if (registerForm) registerForm.reset();
                     if (forgotPasswordForm) forgotPasswordForm.reset();
+                    lastRequestedResetEmail = '';
                     clearPendingResetState();
                     setupRealtimeListeners();
                     updateSubmitButtonState();
