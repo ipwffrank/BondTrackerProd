@@ -84,12 +84,24 @@
             </form>
 
             <form id="forgotPasswordForm" class="space-y-4 hidden">
-                <p class="text-sm text-gray-300">Enter the email associated with your account and we'll send reset instructions.</p>
+                <p class="text-sm text-gray-300">Update your password instantly by confirming your current credentials.</p>
                 <div>
                     <label for="forgotPasswordEmail" class="block text-sm font-medium mb-1">Email</label>
                     <input id="forgotPasswordEmail" type="email" class="form-input" required autocomplete="email">
                 </div>
-                <button type="submit" class="btn-primary w-full">Send Reset Email</button>
+                <div>
+                    <label for="forgotPasswordCurrentPassword" class="block text-sm font-medium mb-1">Current Password</label>
+                    <input id="forgotPasswordCurrentPassword" type="password" class="form-input" required autocomplete="current-password">
+                </div>
+                <div>
+                    <label for="forgotPasswordNewPassword" class="block text-sm font-medium mb-1">New Password</label>
+                    <input id="forgotPasswordNewPassword" type="password" class="form-input" required minlength="6" autocomplete="new-password">
+                </div>
+                <div>
+                    <label for="forgotPasswordConfirmPassword" class="block text-sm font-medium mb-1">Retype New Password</label>
+                    <input id="forgotPasswordConfirmPassword" type="password" class="form-input" required minlength="6" autocomplete="new-password">
+                </div>
+                <button type="submit" class="btn-primary w-full">Change Password</button>
                 <button type="button" id="forgotPasswordBackBtn" class="w-full btn-muted">Back to Sign In</button>
             </form>
 
@@ -516,7 +528,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, reauthenticateWithCredential, EmailAuthProvider } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-auth.js";
         import { getFirestore, doc, addDoc, deleteDoc, onSnapshot, collection, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
         import { setLogLevel } from "https://www.gstatic.com/firebasejs/10.6.0/firebase-firestore.js";
 
@@ -602,6 +614,9 @@ let activeNewIssueDocId = null;
         const forgotPasswordBtn = document.getElementById('forgotPasswordBtn');
         const forgotPasswordBackBtn = document.getElementById('forgotPasswordBackBtn');
         const forgotPasswordEmailInput = document.getElementById('forgotPasswordEmail');
+        const forgotPasswordCurrentPasswordInput = document.getElementById('forgotPasswordCurrentPassword');
+        const forgotPasswordNewPasswordInput = document.getElementById('forgotPasswordNewPassword');
+        const forgotPasswordConfirmPasswordInput = document.getElementById('forgotPasswordConfirmPassword');
         const sortButtons = document.querySelectorAll('.sort-button');
 
         const generalSortState = { key: 'timestamp', direction: 'desc' };
@@ -851,7 +866,7 @@ let activeNewIssueDocId = null;
                 toggleAuthBtn.textContent = 'Sign In';
                 if (authToggleContainer) authToggleContainer.classList.remove('hidden');
             } else if (view === 'forgot') {
-                authTitle.textContent = 'Reset Password';
+                authTitle.textContent = 'Change Password';
                 if (authToggleContainer) authToggleContainer.classList.add('hidden');
             } else {
                 authTitle.textContent = 'Sign In';
@@ -860,7 +875,7 @@ let activeNewIssueDocId = null;
                 if (authToggleContainer) authToggleContainer.classList.remove('hidden');
             }
 
-            if (view !== 'forgot' && forgotPasswordEmailInput) forgotPasswordEmailInput.value = '';
+            if (view !== 'forgot' && forgotPasswordForm) forgotPasswordForm.reset();
             setAuthMessage('');
         };
 
@@ -1036,24 +1051,37 @@ let activeNewIssueDocId = null;
             forgotPasswordForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!auth) return;
-                const email = (forgotPasswordEmailInput.value || '').trim();
-                if (!email) {
-                    setAuthMessage('Please enter the email associated with your account.');
+                const email = (forgotPasswordEmailInput?.value || '').trim();
+                const currentPassword = forgotPasswordCurrentPasswordInput?.value || '';
+                const newPassword = forgotPasswordNewPasswordInput?.value || '';
+                const confirmPassword = forgotPasswordConfirmPasswordInput?.value || '';
+
+                if (!email || !currentPassword || !newPassword || !confirmPassword) {
+                    setAuthMessage('Please complete all fields to change your password.');
+                    return;
+                }
+
+                if (newPassword !== confirmPassword) {
+                    setAuthMessage('New passwords do not match.');
                     return;
                 }
 
                 const submitButton = forgotPasswordForm.querySelector('button[type="submit"]');
                 const originalText = submitButton.textContent;
                 submitButton.disabled = true;
-                submitButton.textContent = 'Sending...';
-                setAuthMessage('Sending reset email...', 'success');
+                submitButton.textContent = 'Updating...';
+                setAuthMessage('Updating password...', 'success');
 
                 try {
-                    await sendPasswordResetEmail(auth, email);
-                    setAuthMessage('Password reset instructions sent. Please check your inbox.', 'success');
+                    const userCredential = await signInWithEmailAndPassword(auth, email, currentPassword);
+                    await updatePassword(userCredential.user, newPassword);
+                    await signOut(auth);
+                    forgotPasswordForm.reset();
+                    switchAuthView('login');
+                    setAuthMessage('Password updated. Please sign in with your new password.', 'success');
                 } catch (err) {
-                    console.error('Password reset failed', err);
-                    setAuthMessage(err.message || 'Failed to send reset email.');
+                    console.error('Password update failed', err);
+                    setAuthMessage(err.message || 'Failed to update password.');
                 } finally {
                     submitButton.disabled = false;
                     submitButton.textContent = originalText;
