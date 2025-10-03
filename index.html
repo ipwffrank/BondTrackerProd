@@ -149,7 +149,7 @@
                             <p id="accountLastUpdate" class="text-sm font-semibold text-white mt-1">N/A</p>
                         </div>
                         <div class="bg-gray-700 rounded-lg p-4">
-                            <p class="text-xs uppercase tracking-wider text-gray-400">Total Size (MM)</p>
+                            <p class="text-xs uppercase tracking-wider text-gray-400">Traded Size (mm)</p>
                             <p id="accountTotalSize" class="text-2xl font-bold text-green-300 mt-1">0</p>
                         </div>
                     </div>
@@ -793,10 +793,13 @@ let activeNewIssueDocId = null;
             const lastTimestamp = timestamps.length ? Math.max(...timestamps) : null;
             accountLastUpdate.textContent = lastTimestamp ? new Date(lastTimestamp).toLocaleString() : 'N/A';
 
-            const totalGeneralSize = generalActivities.reduce((sum, act) => sum + (parseFloat(act.size) || 0), 0);
-            const totalNewIssueSize = newIssueActivities.reduce((sum, issue) => sum + (parseFloat(issue.orderSize) || 0), 0);
-            const totalSize = totalGeneralSize + totalNewIssueSize;
-            accountTotalSize.textContent = totalSize ? totalSize.toLocaleString(undefined, { maximumFractionDigits: 2 }) : '0';
+            const totalTradeSize = generalActivities
+                .filter(activity => (activity.type || '').toUpperCase() === 'TRADE')
+                .reduce((sum, activity) => sum + (parseFloat(activity.size) || 0), 0);
+
+            accountTotalSize.textContent = totalTradeSize
+                ? totalTradeSize.toLocaleString(undefined, { maximumFractionDigits: 2 })
+                : '0';
         };
 
         const authToggleContainer = toggleAuthText ? toggleAuthText.parentElement : null;
