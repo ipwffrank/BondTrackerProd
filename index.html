@@ -736,7 +736,6 @@ let activeNewIssueDocId = null;
                 authTitle.textContent = 'Reset Password';
                 if (authToggleContainer) authToggleContainer.classList.add('hidden');
                 if (forgotPasswordForm) forgotPasswordForm.reset();
-                if (forgotPasswordSubmitBtn) forgotPasswordSubmitBtn.disabled = !pendingResetCode;
                 updateForgotPasswordEmailDisplay(pendingResetEmail);
                 const resetMessage = 'Enter your registered email with a new password and confirmation to finish resetting.';
                 setAuthMessage(resetMessage, pendingResetCode ? 'success' : 'error');
