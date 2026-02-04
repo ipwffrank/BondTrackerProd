@@ -1,0 +1,8 @@
+{
+  "name": "bondtracker-functions",
+  "version": "1.0.0",
+  "description": "Netlify Functions for BondTracker Enterprise",
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0"
+  }
+}
