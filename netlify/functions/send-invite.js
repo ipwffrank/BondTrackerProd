@@ -42,7 +42,7 @@ export default async (req, context) => {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Bond Tracker <noreply@yourdomain.com>', // Change to your verified domain
+        from: 'Bond Tracker <onboarding@resend.dev>', // Change to your verified domain
         to: [email],
         subject: `You're invited to join ${organizationName} on Bond Tracker`,
         html: `
