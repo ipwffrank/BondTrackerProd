@@ -2,39 +2,142 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
     
-    // Allow anyone authenticated to create their user document during signup
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow read: if request.auth.uid == userId;
-      allow update: if request.auth.uid == userId;
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
     
-    // Allow creating organizations during signup
+    function isSameOrg(orgId) {
+      return isAuthenticated() && getUserData().organizationId == orgId;
+    }
+    
+    function isAdminInOrg(orgId) {
+      return isSameOrg(orgId) && getUserData().isAdmin == true;
+    }
+    
+    // ============================================
+    // ORGANIZATIONS COLLECTION
+    // ============================================
+    
     match /organizations/{orgId} {
+      // Org members can read their organization
+      allow read: if isSameOrg(orgId);
+      
+      // Any authenticated user can create an organization (for first-time signup)
       allow create: if isAuthenticated();
-      allow read: if isAuthenticated();
-      allow update: if false;
+      
+      // Only admins can update organization settings
+      allow update: if isAdminInOrg(orgId);
+      
+      // Prevent deletion of organizations
+      allow delete: if false;
     }
     
-    match /organizations/{orgId}/clients/{clientId} {
-      allow read, write: if isAuthenticated();
+    // ============================================
+    // USERS COLLECTION (Top-level for team management)
+    // ============================================
+    
+    match /users/{userId} {
+      // Any authenticated user can read users (needed for team list)
+      allow read: if isAuthenticated();
+      
+      // Users can create their own profile during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Users can update their own profile
+      allow update: if request.auth.uid == userId;
+      
+      // Admins can update other users in their organization (for role changes)
+      allow update: if isAuthenticated() 
+        && getUserData().isAdmin == true 
+        && get(/databases/$(database)/documents/users/$(userId)).data.organizationId == getUserData().organizationId;
+      
+      // Admins can delete other users in their organization (but not themselves)
+      allow delete: if isAuthenticated() 
+        && getUserData().isAdmin == true 
+        && get(/databases/$(database)/documents/users/$(userId)).data.organizationId == getUserData().organizationId
+        && userId != request.auth.uid;
     }
+    
+    // ============================================
+    // ACTIVITIES SUB-COLLECTION
+    // ============================================
     
     match /organizations/{orgId}/activities/{activityId} {
-      allow read, write: if isAuthenticated();
+      // Org members can read all activities
+      allow read: if isSameOrg(orgId);
+      
+      // Org members can create activities
+      allow create: if isSameOrg(orgId);
+      
+      // Only admins can update or delete activities
+      allow update, delete: if isAdminInOrg(orgId);
     }
+    
+    // ============================================
+    // CLIENTS SUB-COLLECTION
+    // ============================================
+    
+    match /organizations/{orgId}/clients/{clientId} {
+      // Org members can read all clients
+      allow read: if isSameOrg(orgId);
+      
+      // Org members can create clients
+      allow create: if isSameOrg(orgId);
+      
+      // Only admins can update or delete clients
+      allow update, delete: if isAdminInOrg(orgId);
+    }
+    
+    // ============================================
+    // PIPELINE SUB-COLLECTION
+    // ============================================
     
     match /organizations/{orgId}/pipeline/{issueId} {
-      allow read, write: if isAuthenticated();
+      // Org members can read all pipeline issues
+      allow read: if isSameOrg(orgId);
+      
+      // Org members can create pipeline issues
+      allow create: if isSameOrg(orgId);
+      
+      // Org members can update pipeline issues (for drag-drop status changes)
+      allow update: if isSameOrg(orgId);
+      
+      // Only admins can delete pipeline issues
+      allow delete: if isAdminInOrg(orgId);
     }
     
-    match /organizations/{orgId}/analytics/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if false;
+    // ============================================
+    // INVITATIONS SUB-COLLECTION (Team Management)
+    // ============================================
+    
+    match /organizations/{orgId}/invitations/{invitationId} {
+      // Org members can read invitations
+      allow read: if isSameOrg(orgId);
+      
+      // Only admins can create invitations
+      allow create: if isAdminInOrg(orgId);
+      
+      // Only admins can update invitations (cancel, resend, mark as used)
+      allow update: if isAdminInOrg(orgId);
+      
+      // Only admins can delete invitations
+      allow delete: if isAdminInOrg(orgId);
+    }
+    
+    // ============================================
+    // ARTIFACTS COLLECTION (if used)
+    // ============================================
+    
+    match /artifacts/{artifactId} {
+      allow read, write: if isAuthenticated();
     }
   }
 }

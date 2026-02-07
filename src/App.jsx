@@ -1,9 +1,3 @@
-import Pipeline from './pages/Pipeline';
-<Route path="/pipeline" element={
-  <ProtectedRoute>
-    <Pipeline />
-  </ProtectedRoute>
-} />
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -15,8 +9,8 @@ import Activities from './pages/Activities';
 import Clients from './pages/Clients';
 import Analytics from './pages/Analytics';
 import Pipeline from './pages/Pipeline';
+import Team from './pages/Team';
 
-// Loading Screen Component
 function LoadingScreen() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -36,44 +30,18 @@ function LoadingScreen() {
   );
 }
 
-// App Routes Component
 function AppRoutes() {
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <Dashboard />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/activities" element={
-          <ProtectedRoute>
-            <Activities />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/clients" element={
-          <ProtectedRoute>
-            <Clients />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/analytics" element={
-          <ProtectedRoute>
-            <Analytics />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/pipeline" element={
-          <ProtectedRoute>
-            <Pipeline />
-          </ProtectedRoute>
-        } />
-        
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+        <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+        <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+        <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
+        <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
@@ -89,24 +57,20 @@ function App() {
   );
 }
 
-// Wrapper that shows loading screen until auth is ready
 function AuthLoadingWrapper() {
   const { currentUser } = useAuth();
   const [isInitializing, setIsInitializing] = React.useState(true);
 
   React.useEffect(() => {
-    // Give Firebase a moment to initialize
     const timer = setTimeout(() => {
       setIsInitializing(false);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [currentUser]);
 
   if (isInitializing) {
     return <LoadingScreen />;
   }
-
   return <AppRoutes />;
 }
 

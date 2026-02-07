@@ -3,16 +3,27 @@ import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { exportService } from '../services/export.service';
 
 export default function Activities() {
   const { userData, isAdmin } = useAuth();
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showUpload, setShowUpload] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
   const [transcript, setTranscript] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [parsedActivities, setParsedActivities] = useState([]);
   const [error, setError] = useState('');
+
+  // Search & Filter States
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDirection, setFilterDirection] = useState('ALL');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+  const [filterSizeMin, setFilterSizeMin] = useState('');
+  const [filterSizeMax, setFilterSizeMax] = useState('');
+  const [filterClient, setFilterClient] = useState('');
 
   // Load activities from Firestore
   useEffect(() => {
@@ -49,6 +60,68 @@ export default function Activities() {
       setLoading(false);
     }
   }, [userData?.organizationId]);
+
+  // Filter activities based on all criteria
+  const filteredActivities = activities.filter(activity => {
+    // Global search
+    if (searchTerm) {
+      const search = searchTerm.toLowerCase();
+      const matchesSearch = 
+        activity.clientName?.toLowerCase().includes(search) ||
+        activity.bondName?.toLowerCase().includes(search) ||
+        activity.ticker?.toLowerCase().includes(search) ||
+        activity.isin?.toLowerCase().includes(search) ||
+        activity.notes?.toLowerCase().includes(search) ||
+        activity.addedByName?.toLowerCase().includes(search);
+      
+      if (!matchesSearch) return false;
+    }
+
+    // Direction filter
+    if (filterDirection !== 'ALL' && activity.direction !== filterDirection) {
+      return false;
+    }
+
+    // Client filter
+    if (filterClient && !activity.clientName?.toLowerCase().includes(filterClient.toLowerCase())) {
+      return false;
+    }
+
+    // Date range filter
+    if (filterDateFrom && activity.createdAt) {
+      const activityDate = new Date(activity.createdAt).setHours(0, 0, 0, 0);
+      const fromDate = new Date(filterDateFrom).setHours(0, 0, 0, 0);
+      if (activityDate < fromDate) return false;
+    }
+
+    if (filterDateTo && activity.createdAt) {
+      const activityDate = new Date(activity.createdAt).setHours(0, 0, 0, 0);
+      const toDate = new Date(filterDateTo).setHours(0, 0, 0, 0);
+      if (activityDate > toDate) return false;
+    }
+
+    // Size range filter
+    const size = parseFloat(activity.size) || 0;
+    if (filterSizeMin && size < parseFloat(filterSizeMin)) {
+      return false;
+    }
+    if (filterSizeMax && size > parseFloat(filterSizeMax)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Clear all filters function
+  function clearFilters() {
+    setSearchTerm('');
+    setFilterDirection('ALL');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+    setFilterSizeMin('');
+    setFilterSizeMax('');
+    setFilterClient('');
+  }
 
   // Analyze transcript with AI
   async function analyzeTranscript() {
@@ -165,14 +238,176 @@ export default function Activities() {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h2 className="text-3xl font-bold text-gray-900">Activity Log</h2>
-            <p className="text-gray-600 mt-1">{activities.length} activities logged</p>
+            <p className="text-gray-600 mt-1">{activities.length} activities total</p>
           </div>
-          <button
-            onClick={() => setShowUpload(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            + Add Activity
-          </button>
+          <div className="flex gap-3">
+            {activities.length > 0 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowExportMenu(!showExportMenu)}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition border border-gray-300 font-semibold"
+                >
+                  📥 Export
+                </button>
+                {showExportMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                    <button
+                      onClick={() => {
+                        exportService.exportActivitiesToExcel(filteredActivities, userData?.organizationName || 'BondTracker');
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-t-lg"
+                    >
+                      📊 Excel (.xlsx)
+                    </button>
+                    <button
+                      onClick={() => {
+                        exportService.exportActivitiesToPDF(filteredActivities, userData?.organizationName || 'BondTracker');
+                        setShowExportMenu(false);
+                      }}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-b-lg"
+                    >
+                      📄 PDF
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+            <button
+              onClick={() => setShowUpload(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            >
+              + Add Activity
+            </button>
+          </div>
+        </div>
+
+        {/* Search and Filters */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="text-lg font-bold mb-4">🔍 Search & Filters</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* Global Search */}
+            <div className="lg:col-span-3">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Search Activities
+              </label>
+              <input
+                type="text"
+                placeholder="Search by client, bond, ISIN, notes..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Direction Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Direction
+              </label>
+              <select
+                value={filterDirection}
+                onChange={(e) => setFilterDirection(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="ALL">All Directions</option>
+                <option value="BUY">BUY</option>
+                <option value="SELL">SELL</option>
+                <option value="TWO-WAY">TWO-WAY</option>
+              </select>
+            </div>
+
+            {/* Client Filter */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Client
+              </label>
+              <input
+                type="text"
+                placeholder="Filter by client..."
+                value={filterClient}
+                onChange={(e) => setFilterClient(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Date Range Start */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                value={filterDateFrom}
+                onChange={(e) => setFilterDateFrom(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Date Range End */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                value={filterDateTo}
+                onChange={(e) => setFilterDateTo(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Size Range Min */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Min Size (MM)
+              </label>
+              <input
+                type="number"
+                placeholder="0"
+                value={filterSizeMin}
+                onChange={(e) => setFilterSizeMin(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Size Range Max */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Max Size (MM)
+              </label>
+              <input
+                type="number"
+                placeholder="1000"
+                value={filterSizeMax}
+                onChange={(e) => setFilterSizeMax(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+
+            {/* Clear Filters Button */}
+            <div className="flex items-end">
+              <button
+                onClick={clearFilters}
+                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition border border-gray-300 font-semibold"
+              >
+                🗑️ Clear All Filters
+              </button>
+            </div>
+          </div>
+
+          {/* Filter Summary */}
+          <div className="mt-4 pt-4 border-t">
+            <p className="text-sm text-gray-600">
+              Showing <span className="font-bold text-blue-600">{filteredActivities.length}</span> of <span className="font-bold text-gray-900">{activities.length}</span> activities
+              {filteredActivities.length !== activities.length && (
+                <span className="ml-2 text-orange-600 font-medium">
+                  (filtered)
+                </span>
+              )}
+            </p>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -266,20 +501,31 @@ Bosera: Done"
         )}
 
         {/* Activities List */}
-        {activities.length === 0 ? (
+        {filteredActivities.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow">
             <div className="text-6xl mb-4">📋</div>
-            <p className="text-gray-600 mb-4 text-lg">No activities yet</p>
-            <button
-              onClick={() => setShowUpload(true)}
-              className="text-blue-600 hover:underline font-semibold"
-            >
-              Add your first activity →
-            </button>
+            <p className="text-gray-600 mb-4 text-lg">
+              {activities.length === 0 ? 'No activities yet' : 'No activities match your filters'}
+            </p>
+            {activities.length === 0 ? (
+              <button
+                onClick={() => setShowUpload(true)}
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                Add your first activity →
+              </button>
+            ) : (
+              <button
+                onClick={clearFilters}
+                className="text-blue-600 hover:underline font-semibold"
+              >
+                Clear filters to see all activities →
+              </button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
-            {activities.map((activity) => (
+            {filteredActivities.map((activity) => (
               <div key={activity.id} className="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
