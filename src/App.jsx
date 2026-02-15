@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Activities from './pages/Activities';
+import AIAssistant from './pages/AIAssistant';
 import Clients from './pages/Clients';
 import Analytics from './pages/Analytics';
 import Pipeline from './pages/Pipeline';
@@ -31,19 +32,36 @@ function LoadingScreen() {
 }
 
 function AppRoutes() {
+  const { currentUser } = useAuth();
+
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        
+        {/* Main application routes */}
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
+        <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
+        <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
         <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-        <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
         <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        
+        {/* Keep dashboard for backward compatibility */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        
+        {/* Redirect root based on auth status */}
+        <Route 
+          path="/" 
+          element={currentUser ? <Navigate to="/activities" replace /> : <Navigate to="/login" replace />} 
+        />
+        
+        {/* Catch all - redirect to activities if logged in, login if not */}
+        <Route 
+          path="*" 
+          element={currentUser ? <Navigate to="/activities" replace /> : <Navigate to="/login" replace />} 
+        />
       </Routes>
     </Router>
   );
