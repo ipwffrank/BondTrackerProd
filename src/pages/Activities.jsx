@@ -1,594 +1,889 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { collection, addDoc, query, orderBy, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import Navigation from '../components/Navigation';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { exportService } from '../services/export.service';
 
 export default function Activities() {
-  const { userData, isAdmin } = useAuth();
+  const { userData } = useAuth();
+  
+  const [activityForm, setActivityForm] = useState({
+    clientName: '',
+    activityType: '',
+    isin: '',
+    ticker: '',
+    size: '',
+    currency: 'USD',
+    otherCurrency: '',
+    price: '',
+    direction: '',
+    status: '',
+    notes: ''
+  });
+
   const [activities, setActivities] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [stats, setStats] = useState({
+    totalActivities: 0,
+    totalVolume: 0,
+    buyCount: 0,
+    sellCount: 0,
+    twoWayCount: 0
+  });
+
+  const [editingActivity, setEditingActivity] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showUpload, setShowUpload] = useState(false);
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const [transcript, setTranscript] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [parsedActivities, setParsedActivities] = useState([]);
-  const [error, setError] = useState('');
+  const [submitLoading, setSubmitLoading] = useState(false);
+  const [bondLookupLoading, setBondLookupLoading] = useState(false);
 
-  // Search & Filter States
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterDirection, setFilterDirection] = useState('ALL');
-  const [filterDateFrom, setFilterDateFrom] = useState('');
-  const [filterDateTo, setFilterDateTo] = useState('');
-  const [filterSizeMin, setFilterSizeMin] = useState('');
-  const [filterSizeMax, setFilterSizeMax] = useState('');
-  const [filterClient, setFilterClient] = useState('');
-
-  // Load activities from Firestore
   useEffect(() => {
     if (!userData?.organizationId) {
       setLoading(false);
       return;
     }
 
+    const unsubscribes = [];
+
     try {
       const activitiesRef = collection(db, `organizations/${userData.organizationId}/activities`);
-      const q = query(activitiesRef, orderBy('createdAt', 'desc'));
+      const activitiesQuery = query(activitiesRef, orderBy('createdAt', 'desc'), limit(100));
+      
+      const activitiesUnsub = onSnapshot(activitiesQuery, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
+        }));
+        
+        setActivities(data);
+        
+        const totalActivities = data.length;
+        const totalVolume = data.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
+        const buyCount = data.filter(a => a.direction === 'BUY').length;
+        const sellCount = data.filter(a => a.direction === 'SELL').length;
+        const twoWayCount = data.filter(a => a.direction === 'TWO-WAY').length;
+        
+        setStats({ totalActivities, totalVolume: totalVolume.toFixed(2), buyCount, sellCount, twoWayCount });
+        setLoading(false);
+      });
+      unsubscribes.push(activitiesUnsub);
 
-      const unsubscribe = onSnapshot(q, 
-        (snapshot) => {
-          const activitiesData = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-            createdAt: doc.data().createdAt?.toDate()
-          }));
-          setActivities(activitiesData);
-          setLoading(false);
-        },
-        (error) => {
-          console.error('Error loading activities:', error);
-          setError('Failed to load activities');
-          setLoading(false);
-        }
-      );
+      const clientsRef = collection(db, `organizations/${userData.organizationId}/clients`);
+      const clientsQuery = query(clientsRef, orderBy('name', 'asc'));
+      
+      const clientsUnsub = onSnapshot(clientsQuery, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setClients(data);
+      });
+      unsubscribes.push(clientsUnsub);
 
-      return () => unsubscribe();
-    } catch (err) {
-      console.error('Setup error:', err);
-      setError('Failed to setup activities listener');
+    } catch (error) {
+      console.error('Setup error:', error);
       setLoading(false);
     }
+
+    return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId]);
 
-  // Filter activities based on all criteria
-  const filteredActivities = activities.filter(activity => {
-    // Global search
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      const matchesSearch = 
-        activity.clientName?.toLowerCase().includes(search) ||
-        activity.bondName?.toLowerCase().includes(search) ||
-        activity.ticker?.toLowerCase().includes(search) ||
-        activity.isin?.toLowerCase().includes(search) ||
-        activity.notes?.toLowerCase().includes(search) ||
-        activity.addedByName?.toLowerCase().includes(search);
-      
-      if (!matchesSearch) return false;
-    }
+  useEffect(() => {
+    if (editingActivity) return;
+    
+    const timeoutId = setTimeout(async () => {
+      if (activityForm.isin && !activityForm.ticker) {
+        await fetchBondDetails('isin', activityForm.isin);
+      } else if (activityForm.ticker && !activityForm.isin) {
+        await fetchBondDetails('ticker', activityForm.ticker);
+      }
+    }, 800);
 
-    // Direction filter
-    if (filterDirection !== 'ALL' && activity.direction !== filterDirection) {
-      return false;
-    }
+    return () => clearTimeout(timeoutId);
+  }, [activityForm.isin, activityForm.ticker, editingActivity]);
 
-    // Client filter
-    if (filterClient && !activity.clientName?.toLowerCase().includes(filterClient.toLowerCase())) {
-      return false;
-    }
+  async function fetchBondDetails(searchType, searchValue) {
+    if (!searchValue || searchValue.length < 2) return;
 
-    // Date range filter
-    if (filterDateFrom && activity.createdAt) {
-      const activityDate = new Date(activity.createdAt).setHours(0, 0, 0, 0);
-      const fromDate = new Date(filterDateFrom).setHours(0, 0, 0, 0);
-      if (activityDate < fromDate) return false;
-    }
-
-    if (filterDateTo && activity.createdAt) {
-      const activityDate = new Date(activity.createdAt).setHours(0, 0, 0, 0);
-      const toDate = new Date(filterDateTo).setHours(0, 0, 0, 0);
-      if (activityDate > toDate) return false;
-    }
-
-    // Size range filter
-    const size = parseFloat(activity.size) || 0;
-    if (filterSizeMin && size < parseFloat(filterSizeMin)) {
-      return false;
-    }
-    if (filterSizeMax && size > parseFloat(filterSizeMax)) {
-      return false;
-    }
-
-    return true;
-  });
-
-  // Clear all filters function
-  function clearFilters() {
-    setSearchTerm('');
-    setFilterDirection('ALL');
-    setFilterDateFrom('');
-    setFilterDateTo('');
-    setFilterSizeMin('');
-    setFilterSizeMax('');
-    setFilterClient('');
-  }
-
-  // Analyze transcript with AI
-  async function analyzeTranscript() {
-    if (!transcript.trim()) {
-      alert('Please enter a transcript');
-      return;
-    }
-
-    setAnalyzing(true);
-    setError('');
+    setBondLookupLoading(true);
 
     try {
-      const response = await fetch('/.netlify/functions/analyze-transcript', {
+      const payload = searchType === 'isin' 
+        ? { isin: searchValue }
+        : { ticker: searchValue };
+
+      const response = await fetch('/.netlify/functions/bloomberg-lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript })
+        body: JSON.stringify(payload)
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        if (response.status === 404) {
+          console.log(`${searchType} not found:`, searchValue);
+          return;
+        }
+        throw new Error('Bloomberg lookup failed');
       }
 
-      const data = await response.json();
-      
-      if (data.activities && data.activities.length > 0) {
-        setParsedActivities(data.activities);
-      } else {
-        alert('No activities found in transcript');
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const bond = result.data;
+        
+        setActivityForm(prev => {
+          if (prev.isin && prev.ticker) return prev;
+          
+          return {
+            ...prev,
+            isin: prev.isin || bond.isin || '',
+            ticker: prev.ticker || bond.ticker || ''
+          };
+        });
+
+        console.log('✅ Bond details fetched:', {
+          isin: bond.isin,
+          ticker: bond.ticker,
+          name: bond.bondName
+        });
       }
     } catch (error) {
-      console.error('Analysis error:', error);
-      setError('Failed to analyze transcript: ' + error.message);
+      console.error('Error fetching bond details:', error);
     } finally {
-      setAnalyzing(false);
+      setBondLookupLoading(false);
     }
   }
 
-  // Save parsed activities to Firestore
-  async function saveActivities() {
-    if (parsedActivities.length === 0) return;
+  const getSelectedClient = () => {
+    return clients.find(c => c.name === activityForm.clientName);
+  };
 
+  async function handleActivitySubmit(e) {
+    e.preventDefault();
+    if (!userData?.organizationId) return;
+
+    const selectedClient = getSelectedClient();
+    
+    setSubmitLoading(true);
     try {
       const activitiesRef = collection(db, `organizations/${userData.organizationId}/activities`);
       
-      for (const activity of parsedActivities) {
-        await addDoc(activitiesRef, {
-          ...activity,
-          transcript: transcript,
-          addedBy: userData.email,
-          addedByName: userData.name,
-          createdAt: new Date(),
-          updatedAt: new Date()
-        });
+      const activityData = {
+        clientName: activityForm.clientName,
+        clientType: selectedClient?.type || '',
+        clientRegion: selectedClient?.region || '',
+        salesCoverage: selectedClient?.salesCoverage || '',
+        activityType: activityForm.activityType,
+        isin: activityForm.isin.toUpperCase(),
+        ticker: activityForm.ticker.toUpperCase(),
+        size: parseFloat(activityForm.size) || 0,
+        currency: activityForm.currency === 'OTHER' ? activityForm.otherCurrency : activityForm.currency,
+        price: activityForm.price ? parseFloat(activityForm.price) : null,
+        direction: activityForm.direction,
+        status: activityForm.status,
+        notes: activityForm.notes,
+        createdAt: serverTimestamp(),
+        createdBy: userData.name || userData.email
+      };
+
+      if (editingActivity) {
+        await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, editingActivity), activityData);
+        setEditingActivity(null);
+        alert('Activity updated successfully!');
+      } else {
+        await addDoc(activitiesRef, activityData);
+        alert('Activity added successfully!');
       }
 
-      setTranscript('');
-      setParsedActivities([]);
-      setShowUpload(false);
-      alert(`Successfully saved ${parsedActivities.length} activities!`);
+      setActivityForm({
+        clientName: '',
+        activityType: '',
+        isin: '',
+        ticker: '',
+        size: '',
+        currency: 'USD',
+        otherCurrency: '',
+        price: '',
+        direction: '',
+        status: '',
+        notes: ''
+      });
+
     } catch (error) {
-      console.error('Save error:', error);
-      setError('Failed to save activities: ' + error.message);
+      console.error('Error saving activity:', error);
+      alert('Failed to save activity');
+    } finally {
+      setSubmitLoading(false);
     }
   }
 
-  // Delete activity (admin only)
-  async function deleteActivity(activityId) {
-    if (!isAdmin) return;
-    if (!confirm('Are you sure you want to delete this activity?')) return;
-
+  async function handleDeleteActivity(activityId) {
+    if (!window.confirm('Are you sure you want to delete this activity?')) return;
+    
     try {
-      await deleteDoc(doc(db, `organizations/${userData.organizationId}/activities/${activityId}`));
+      await deleteDoc(doc(db, `organizations/${userData.organizationId}/activities`, activityId));
+      alert('Activity deleted successfully!');
     } catch (error) {
-      console.error('Delete error:', error);
+      console.error('Error deleting activity:', error);
       alert('Failed to delete activity');
     }
   }
 
-  // Get color for direction badge
-  const getDirectionColor = (direction) => {
-    switch (direction) {
-      case 'BUY': return 'bg-green-100 text-green-800';
-      case 'SELL': return 'bg-red-100 text-red-800';
-      case 'TWO-WAY': return 'bg-yellow-100 text-yellow-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
+  function handleEditActivity(activity) {
+    setActivityForm({
+      clientName: activity.clientName,
+      activityType: activity.activityType,
+      isin: activity.isin,
+      ticker: activity.ticker,
+      size: activity.size.toString(),
+      currency: ['USD', 'EUR', 'GBP', 'AUD', 'HKD', 'SGD', 'CNH'].includes(activity.currency) ? activity.currency : 'OTHER',
+      otherCurrency: ['USD', 'EUR', 'GBP', 'AUD', 'HKD', 'SGD', 'CNH'].includes(activity.currency) ? '' : activity.currency,
+      price: activity.price?.toString() || '',
+      direction: activity.direction,
+      status: activity.status,
+      notes: activity.notes || ''
+    });
+    setEditingActivity(activity.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  const getDirectionBadge = (direction) => {
+    const badges = {
+      'BUY': 'badge-success',
+      'SELL': 'badge-danger',
+      'TWO-WAY': 'badge-warning'
+    };
+    return badges[direction] || 'badge-primary';
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      'ENQUIRY': 'badge-primary',
+      'QUOTED': 'badge-warning',
+      'EXECUTED': 'badge-success',
+      'PASSED': 'badge-danger',
+      'TRADED AWAY': 'badge-danger'
+    };
+    return badges[status] || 'badge-primary';
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl font-semibold">Loading activities...</div>
-          <div className="text-gray-600 mt-2">Please wait</div>
+      <div className="app-container">
+        <Navigation />
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh'}}>
+          <div style={{textAlign: 'center'}}>
+            <div className="spinner" style={{width: '40px', height: '40px', margin: '0 auto 16px'}}></div>
+            <div style={{color: 'var(--text-primary)'}}>Loading activities...</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow mb-8">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Activities</h1>
-          <Link to="/dashboard" className="text-blue-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="app-container">
+      <Navigation />
+      
+      <main className="main-content">
+        <div className="page-header">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Activity Log</h2>
-            <p className="text-gray-600 mt-1">{activities.length} activities total</p>
+            <h1 className="page-title">📋 Activity Log</h1>
+            <p className="page-description">Track client interactions and bond trading activities</p>
           </div>
-          <div className="flex gap-3">
-            {activities.length > 0 && (
-              <div className="relative">
-                <button
-                  onClick={() => setShowExportMenu(!showExportMenu)}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition border border-gray-300 font-semibold"
-                >
-                  📥 Export
-                </button>
-                {showExportMenu && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                    <button
-                      onClick={() => {
-                        exportService.exportActivitiesToExcel(filteredActivities, userData?.organizationName || 'BondTracker');
-                        setShowExportMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-t-lg"
-                    >
-                      📊 Excel (.xlsx)
-                    </button>
-                    <button
-                      onClick={() => {
-                        exportService.exportActivitiesToPDF(filteredActivities, userData?.organizationName || 'BondTracker');
-                        setShowExportMenu(false);
-                      }}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-b-lg"
-                    >
-                      📄 PDF
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-            <button
-              onClick={() => setShowUpload(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              + Add Activity
-            </button>
+          <div className="stats-summary">
+            <div className="stat-item">
+              <div className="stat-value">{stats.totalActivities}</div>
+              <div className="stat-label">Total</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value">${stats.totalVolume}MM</div>
+              <div className="stat-label">Volume</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value" style={{color: '#22c55e'}}>{stats.buyCount}</div>
+              <div className="stat-label">Buy</div>
+            </div>
+            <div className="stat-item">
+              <div className="stat-value" style={{color: '#ef4444'}}>{stats.sellCount}</div>
+              <div className="stat-label">Sell</div>
+            </div>
           </div>
         </div>
 
-        {/* Search and Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h3 className="text-lg font-bold mb-4">🔍 Search & Filters</h3>
+        <div className="card">
+          <div className="card-header">
+            <span>📝 {editingActivity ? 'Edit Activity' : 'New Activity'}</span>
+            {editingActivity && (
+              <button 
+                className="btn btn-muted"
+                onClick={() => {
+                  setEditingActivity(null);
+                  setActivityForm({
+                    clientName: '',
+                    activityType: '',
+                    isin: '',
+                    ticker: '',
+                    size: '',
+                    currency: 'USD',
+                    otherCurrency: '',
+                    price: '',
+                    direction: '',
+                    status: '',
+                    notes: ''
+                  });
+                }}
+              >
+                Cancel Edit
+              </button>
+            )}
+          </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {/* Global Search */}
-            <div className="lg:col-span-3">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Search Activities
-              </label>
-              <input
-                type="text"
-                placeholder="Search by client, bond, ISIN, notes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
+          <form onSubmit={handleActivitySubmit}>
+            <div className="form-grid">
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Client Name *</label>
+                  <select
+                    className="form-select"
+                    value={activityForm.clientName}
+                    onChange={(e) => setActivityForm({...activityForm, clientName: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Client</option>
+                    {clients.map(client => (
+                      <option key={client.id} value={client.name}>{client.name}</option>
+                    ))}
+                  </select>
+                  {activityForm.clientName && getSelectedClient() && (
+                    <div className="auto-filled-info">
+                      Type: {getSelectedClient().type} | Region: {getSelectedClient().region} | Coverage: {getSelectedClient().salesCoverage || 'N/A'}
+                    </div>
+                  )}
+                </div>
 
-            {/* Direction Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Direction
-              </label>
-              <select
-                value={filterDirection}
-                onChange={(e) => setFilterDirection(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="ALL">All Directions</option>
-                <option value="BUY">BUY</option>
-                <option value="SELL">SELL</option>
-                <option value="TWO-WAY">TWO-WAY</option>
-              </select>
-            </div>
-
-            {/* Client Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Client
-              </label>
-              <input
-                type="text"
-                placeholder="Filter by client..."
-                value={filterClient}
-                onChange={(e) => setFilterClient(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Date Range Start */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                From Date
-              </label>
-              <input
-                type="date"
-                value={filterDateFrom}
-                onChange={(e) => setFilterDateFrom(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Date Range End */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                To Date
-              </label>
-              <input
-                type="date"
-                value={filterDateTo}
-                onChange={(e) => setFilterDateTo(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Size Range Min */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Min Size (MM)
-              </label>
-              <input
-                type="number"
-                placeholder="0"
-                value={filterSizeMin}
-                onChange={(e) => setFilterSizeMin(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Size Range Max */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Max Size (MM)
-              </label>
-              <input
-                type="number"
-                placeholder="1000"
-                value={filterSizeMax}
-                onChange={(e) => setFilterSizeMax(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-
-            {/* Clear Filters Button */}
-            <div className="flex items-end">
-              <button
-                onClick={clearFilters}
-                className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition border border-gray-300 font-semibold"
-              >
-                🗑️ Clear All Filters
-              </button>
-            </div>
-          </div>
-
-          {/* Filter Summary */}
-          <div className="mt-4 pt-4 border-t">
-            <p className="text-sm text-gray-600">
-              Showing <span className="font-bold text-blue-600">{filteredActivities.length}</span> of <span className="font-bold text-gray-900">{activities.length}</span> activities
-              {filteredActivities.length !== activities.length && (
-                <span className="ml-2 text-orange-600 font-medium">
-                  (filtered)
-                </span>
-              )}
-            </p>
-          </div>
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-
-        {/* Upload Modal */}
-        {showUpload && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-lg p-6 max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-2xl font-bold mb-4">Upload Transcript</h2>
-              
-              <textarea
-                value={transcript}
-                onChange={(e) => setTranscript(e.target.value)}
-                placeholder="Paste your chat transcript here...
-
-Example:
-Bosera: Bosera bid 10mm DKS 52
-Paul: @ 100
-Bosera: Done"
-                className="w-full h-48 border border-gray-300 rounded-lg p-4 mb-4 font-mono text-sm"
-              />
-
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={analyzeTranscript}
-                  disabled={analyzing || !transcript.trim()}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                >
-                  {analyzing ? 'Analyzing with AI...' : 'Analyze with AI'}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowUpload(false);
-                    setTranscript('');
-                    setParsedActivities([]);
-                    setError('');
-                  }}
-                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                >
-                  Cancel
-                </button>
+                <div className="field-group">
+                  <label className="form-label">Activity Type *</label>
+                  <select
+                    className="form-select"
+                    value={activityForm.activityType}
+                    onChange={(e) => setActivityForm({...activityForm, activityType: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Type</option>
+                    <option value="Phone Call">Phone Call</option>
+                    <option value="Email">Email</option>
+                    <option value="Meeting">Meeting</option>
+                    <option value="Bloomberg Chat">Bloomberg Chat</option>
+                  </select>
+                </div>
               </div>
 
-              {/* Parsed Activities Preview */}
-              {parsedActivities.length > 0 && (
-                <div className="border-t pt-4">
-                  <h3 className="font-bold mb-4 text-lg">
-                    Detected Activities ({parsedActivities.length})
-                  </h3>
-                  <div className="space-y-3 mb-4">
-                    {parsedActivities.map((activity, idx) => (
-                      <div key={idx} className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className="font-bold text-lg">{activity.clientName}</span>
-                          <span className={`px-2 py-1 rounded text-sm font-medium ${getDirectionColor(activity.direction)}`}>
-                            {activity.direction}
-                          </span>
-                          {activity.confidence && (
-                            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                              {activity.confidence} confidence
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-sm text-gray-700 space-y-1">
-                          <p><strong>Bond:</strong> {activity.bondName || activity.ticker || 'N/A'}</p>
-                          <p><strong>Size:</strong> {activity.size} MM {activity.currency || 'USD'}</p>
-                          {activity.price && <p><strong>Price:</strong> {activity.price}</p>}
-                          {activity.isin && <p><strong>ISIN:</strong> {activity.isin}</p>}
-                          {activity.notes && (
-                            <p className="text-gray-600 mt-2 italic">{activity.notes}</p>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <button
-                    onClick={saveActivities}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
-                  >
-                    💾 Save All {parsedActivities.length} Activities
-                  </button>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">ISIN</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="US0378331005"
+                    value={activityForm.isin}
+                    onChange={(e) => setActivityForm({...activityForm, isin: e.target.value.toUpperCase()})}
+                  />
                 </div>
-              )}
-            </div>
-          </div>
-        )}
 
-        {/* Activities List */}
-        {filteredActivities.length === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="text-6xl mb-4">📋</div>
-            <p className="text-gray-600 mb-4 text-lg">
-              {activities.length === 0 ? 'No activities yet' : 'No activities match your filters'}
-            </p>
-            {activities.length === 0 ? (
-              <button
-                onClick={() => setShowUpload(true)}
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                Add your first activity →
-              </button>
-            ) : (
-              <button
-                onClick={clearFilters}
-                className="text-blue-600 hover:underline font-semibold"
-              >
-                Clear filters to see all activities →
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredActivities.map((activity) => (
-              <div key={activity.id} className="border rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition">
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-3">
-                      <h3 className="text-xl font-bold">{activity.clientName}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${getDirectionColor(activity.direction)}`}>
-                        {activity.direction}
-                      </span>
-                      {activity.confidence && (
-                        <span className="text-xs text-gray-500">
-                          {activity.confidence} confidence
-                        </span>
-                      )}
+                <div className="field-group">
+                  <label className="form-label">Ticker</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="AAPL"
+                    value={activityForm.ticker}
+                    onChange={(e) => setActivityForm({...activityForm, ticker: e.target.value.toUpperCase()})}
+                  />
+                  <div className="form-hint">Enter ISIN or Ticker - other auto-fills via Bloomberg API</div>
+                  {bondLookupLoading && (
+                    <div style={{
+                      fontSize: '11px', 
+                      color: 'var(--accent)', 
+                      marginTop: '4px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}>
+                      <span className="spinner" style={{width: '10px', height: '10px'}}></span>
+                      Looking up bond details...
                     </div>
-                    
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm mb-3">
-                      <div>
-                        <span className="text-gray-600">Bond:</span>
-                        <p className="font-medium">{activity.bondName || activity.ticker || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Size:</span>
-                        <p className="font-medium">{activity.size} MM</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-600">Currency:</span>
-                        <p className="font-medium">{activity.currency || 'USD'}</p>
-                      </div>
-                      {activity.price && (
-                        <div>
-                          <span className="text-gray-600">Price:</span>
-                          <p className="font-medium">{activity.price}</p>
-                        </div>
-                      )}
-                    </div>
-
-                    {activity.notes && (
-                      <p className="mt-3 text-gray-700 bg-gray-50 p-3 rounded text-sm">
-                        {activity.notes}
-                      </p>
-                    )}
-
-                    <div className="mt-3 text-xs text-gray-500">
-                      Added by {activity.addedByName || activity.addedBy} • 
-                      {activity.createdAt && new Date(activity.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-
-                  {isAdmin && (
-                    <button
-                      onClick={() => deleteActivity(activity.id)}
-                      className="ml-4 px-3 py-1 text-red-600 hover:bg-red-50 rounded transition"
-                      title="Delete activity"
-                    >
-                      🗑️ Delete
-                    </button>
                   )}
                 </div>
               </div>
-            ))}
+
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Size (MM) *</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-input"
+                    value={activityForm.size}
+                    onChange={(e) => setActivityForm({...activityForm, size: e.target.value})}
+                    required
+                  />
+                </div>
+
+                <div className="field-group">
+                  <label className="form-label">Currency *</label>
+                  <select
+                    className="form-select"
+                    value={activityForm.currency}
+                    onChange={(e) => setActivityForm({...activityForm, currency: e.target.value})}
+                    required
+                  >
+                    <option value="USD">USD</option>
+                    <option value="EUR">EUR</option>
+                    <option value="GBP">GBP</option>
+                    <option value="AUD">AUD</option>
+                    <option value="HKD">HKD</option>
+                    <option value="SGD">SGD</option>
+                    <option value="CNH">CNH</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  {activityForm.currency === 'OTHER' && (
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Specify currency"
+                      value={activityForm.otherCurrency}
+                      onChange={(e) => setActivityForm({...activityForm, otherCurrency: e.target.value.toUpperCase()})}
+                      style={{marginTop: '8px'}}
+                    />
+                  )}
+                </div>
+              </div>
+
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Price</label>
+                  <input
+                    type="number"
+                    step="0.0001"
+                    className="form-input"
+                    placeholder="98.75"
+                    value={activityForm.price}
+                    onChange={(e) => setActivityForm({...activityForm, price: e.target.value})}
+                  />
+                </div>
+
+                <div className="field-group">
+                  <label className="form-label">Direction *</label>
+                  <select
+                    className="form-select"
+                    value={activityForm.direction}
+                    onChange={(e) => setActivityForm({...activityForm, direction: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Direction</option>
+                    <option value="BUY">Buy</option>
+                    <option value="SELL">Sell</option>
+                    <option value="TWO-WAY">Two Way</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Status *</label>
+                  <select
+                    className="form-select"
+                    value={activityForm.status}
+                    onChange={(e) => setActivityForm({...activityForm, status: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Status</option>
+                    <option value="ENQUIRY">Enquiry</option>
+                    <option value="QUOTED">Quoted</option>
+                    <option value="EXECUTED">Executed</option>
+                    <option value="PASSED">Passed</option>
+                    <option value="TRADED AWAY">Traded Away</option>
+                  </select>
+                </div>
+
+                <div className="field-group">
+                  <label className="form-label">Notes</label>
+                  <textarea
+                    className="form-textarea"
+                    rows="2"
+                    value={activityForm.notes}
+                    onChange={(e) => setActivityForm({...activityForm, notes: e.target.value})}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div style={{padding: '20px 24px', borderTop: '1px solid var(--border)'}}>
+              <button type="submit" className="btn btn-primary" disabled={submitLoading}>
+                {submitLoading ? (editingActivity ? 'Updating...' : 'Adding...') : (editingActivity ? 'Update Activity' : '+ Add Activity')}
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div className="card" style={{marginTop: '24px'}}>
+          <div className="card-header">
+            <span>📊 Activity History ({stats.totalActivities})</span>
           </div>
-        )}
-      </div>
+          
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Client</th>
+                  <th>Type</th>
+                  <th>ISIN/Ticker</th>
+                  <th>Size</th>
+                  <th>Currency</th>
+                  <th>Direction</th>
+                  <th>Price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.length === 0 ? (
+                  <tr>
+                    <td colSpan="10" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                      No activities yet. Add your first activity above!
+                    </td>
+                  </tr>
+                ) : (
+                  activities.map((activity) => (
+                    <tr key={activity.id}>
+                      <td>{activity.createdAt ? new Date(activity.createdAt).toLocaleDateString() : '-'}</td>
+                      <td style={{fontWeight: 600}}>{activity.clientName}</td>
+                      <td><span className="badge badge-primary">{activity.activityType}</span></td>
+                      <td>{activity.isin || activity.ticker || '-'}</td>
+                      <td>{activity.size}MM</td>
+                      <td>{activity.currency}</td>
+                      <td><span className={`badge ${getDirectionBadge(activity.direction)}`}>{activity.direction}</span></td>
+                      <td>{activity.price || '-'}</td>
+                      <td><span className={`badge ${getStatusBadge(activity.status)}`}>{activity.status}</span></td>
+                      <td>
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <button 
+                            className="btn-icon"
+                            onClick={() => handleEditActivity(activity)}
+                            title="Edit"
+                          >
+                            ✏️
+                          </button>
+                          <button 
+                            className="btn-icon"
+                            onClick={() => handleDeleteActivity(activity.id)}
+                            title="Delete"
+                          >
+                            🗑️
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <style jsx>{`
+        .app-container {
+          min-height: 100vh;
+          background: var(--bg-base);
+          color: var(--text-primary);
+        }
+
+        .main-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 32px 24px;
+        }
+
+        .page-header {
+          margin-bottom: 32px;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          flex-wrap: wrap;
+          gap: 24px;
+        }
+
+        .page-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .page-description {
+          font-size: 16px;
+          color: var(--text-secondary);
+        }
+
+        .stats-summary {
+          display: flex;
+          gap: 24px;
+        }
+
+        .stat-item {
+          text-align: center;
+        }
+
+        .stat-value {
+          font-size: 24px;
+          font-weight: 700;
+          color: var(--accent);
+        }
+
+        .stat-label {
+          font-size: 12px;
+          color: var(--text-muted);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: var(--shadow);
+        }
+
+        .card-header {
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text-primary);
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .form-grid {
+          padding: 24px;
+        }
+
+        .field-row {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 16px;
+          margin-bottom: 16px;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .form-label {
+          display: block;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 5px;
+        }
+
+        .form-hint {
+          font-size: 11.5px;
+          color: var(--text-muted);
+          margin-top: 4px;
+        }
+
+        .form-input,
+        .form-select,
+        .form-textarea {
+          width: 100%;
+          padding: 10px 14px;
+          background: var(--bg-input);
+          border: 1.5px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 14px;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+          outline: none;
+          border-color: var(--border-focus);
+          background: var(--bg-input-focus);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .form-textarea {
+          resize: vertical;
+        }
+
+        .auto-filled-info {
+          font-size: 11px;
+          color: var(--autofill-text);
+          background: var(--autofill-bg);
+          padding: 6px 10px;
+          border-radius: 6px;
+          margin-top: 6px;
+          border: 1px solid var(--autofill-border);
+        }
+
+        .btn {
+          padding: 10px 18px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13.5px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          color: #fff;
+          box-shadow: 0 2px 8px var(--accent-glow-strong);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px var(--accent-glow-strong);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-muted {
+          background: var(--btn-muted-bg);
+          color: var(--btn-muted-text);
+        }
+
+        .btn-muted:hover {
+          background: var(--btn-muted-hover);
+        }
+
+        .btn-icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 16px;
+          padding: 4px;
+          transition: transform 0.2s;
+        }
+
+        .btn-icon:hover {
+          transform: scale(1.2);
+        }
+
+        .table-container {
+          overflow-x: auto;
+        }
+
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+        }
+
+        .table thead {
+          background: var(--table-header-bg);
+        }
+
+        .table th {
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 600;
+          color: var(--text-secondary);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border);
+          color: var(--text-primary);
+        }
+
+        .table tbody tr:nth-child(odd) {
+          background: var(--table-odd);
+        }
+
+        .table tbody tr:nth-child(even) {
+          background: var(--table-even);
+        }
+
+        .table tbody tr:hover {
+          background: var(--table-hover);
+        }
+
+        .badge {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-block;
+        }
+
+        .badge-primary {
+          background: var(--badge-primary-bg);
+          color: var(--badge-primary-text);
+        }
+
+        .badge-success {
+          background: var(--badge-success-bg);
+          color: var(--badge-success-text);
+        }
+
+        .badge-warning {
+          background: var(--badge-warning-bg);
+          color: var(--badge-warning-text);
+        }
+
+        .badge-danger {
+          background: var(--badge-danger-bg);
+          color: var(--badge-danger-text);
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border: 2px solid var(--accent);
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .field-row {
+            grid-template-columns: 1fr;
+          }
+
+          .stats-summary {
+            width: 100%;
+            justify-content: space-between;
+          }
+        }
+      `}</style>
     </div>
   );
 }
