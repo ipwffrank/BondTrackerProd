@@ -1,0 +1,116 @@
+/* Theme Variables */
+:root[data-theme="dark"] {
+  --bg-base: #0f172a;
+  --bg-surface: #1e293b;
+  --bg-raised: #1e293b;
+  --bg-input: #1e293b;
+  --bg-input-focus: #0f172a;
+  --border: #334155;
+  --border-focus: #6366f1;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --accent-glow-strong: rgba(99, 102, 241, 0.3);
+  --card-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --nav-bg: rgba(15, 23, 42, 0.85);
+  --nav-border: #334155;
+  --tab-active-color: #6366f1;
+  --section-label-bg: rgba(99, 102, 241, 0.08);
+  --section-label-border: rgba(99, 102, 241, 0.2);
+  --autofill-bg: rgba(99, 102, 241, 0.06);
+  --autofill-border: rgba(99, 102, 241, 0.25);
+  --autofill-text: #a5b4fc;
+  --table-odd: rgba(30, 41, 59, 0.5);
+  --table-even: rgba(15, 23, 42, 0.5);
+  --table-hover: rgba(99, 102, 241, 0.08);
+  --table-header-bg: #1e293b;
+  --badge-primary-bg: rgba(99, 102, 241, 0.15);
+  --badge-primary-text: #a5b4fc;
+  --badge-success-bg: rgba(34, 197, 94, 0.15);
+  --badge-success-text: #86efac;
+  --badge-warning-bg: rgba(251, 146, 60, 0.15);
+  --badge-warning-text: #fdba74;
+  --badge-danger-bg: rgba(239, 68, 68, 0.15);
+  --badge-danger-text: #fca5a5;
+  --btn-muted-bg: #334155;
+  --btn-muted-text: #e2e8f0;
+  --btn-muted-hover: #475569;
+  --btn-secondary-bg: #1e40af;
+  --btn-secondary-hover: #1e3a8a;
+  --modal-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --toggle-bg: #334155;
+  --toggle-knob: #6366f1;
+  --logo-color: #6366f1;
+}
+
+:root[data-theme="light"] {
+  --bg-base: #f3f5f7;
+  --bg-surface: #ffffff;
+  --bg-raised: #ffffff;
+  --bg-input: #ffffff;
+  --bg-input-focus: #ffffff;
+  --border: #d1d5db;
+  --border-focus: #0066cc;
+  --text-primary: #1a1a2e;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+  --accent: #0066cc;
+  --accent-hover: #0052a3;
+  --accent-glow: rgba(0, 102, 204, 0.1);
+  --accent-glow-strong: rgba(0, 102, 204, 0.25);
+  --card-bg: #ffffff;
+  --nav-bg: rgba(255, 255, 255, 0.92);
+  --nav-border: #e5e7eb;
+  --tab-active-color: #0066cc;
+  --section-label-bg: rgba(0, 102, 204, 0.06);
+  --section-label-border: rgba(0, 102, 204, 0.2);
+  --autofill-bg: #eef2f7;
+  --autofill-border: #c5d5e8;
+  --autofill-text: #0066cc;
+  --table-odd: #ffffff;
+  --table-even: #f9fafb;
+  --table-hover: rgba(0, 102, 204, 0.04);
+  --table-header-bg: #f3f4f6;
+  --badge-primary-bg: rgba(0, 102, 204, 0.1);
+  --badge-primary-text: #0066cc;
+  --badge-success-bg: rgba(16, 185, 129, 0.1);
+  --badge-success-text: #059669;
+  --badge-warning-bg: rgba(217, 119, 7, 0.1);
+  --badge-warning-text: #d97706;
+  --badge-danger-bg: rgba(220, 38, 38, 0.1);
+  --badge-danger-text: #dc2626;
+  --btn-muted-bg: #f3f4f6;
+  --btn-muted-text: #374151;
+  --btn-muted-hover: #e5e7eb;
+  --btn-secondary-bg: #0052a3;
+  --btn-secondary-hover: #003d7a;
+  --modal-bg: #ffffff;
+  --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --toggle-bg: #d1d5db;
+  --toggle-knob: #0066cc;
+  --logo-color: #0066cc;
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  transition: background 0.3s, color 0.3s;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
