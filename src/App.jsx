@@ -4,7 +4,6 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
-import Dashboard from './pages/Dashboard';
 import Activities from './pages/Activities';
 import AIAssistant from './pages/AIAssistant';
 import Clients from './pages/Clients';
@@ -48,8 +47,8 @@ function AppRoutes() {
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
         
-        {/* Keep dashboard for backward compatibility */}
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+        {/* Redirect old dashboard route to activities */}
+        <Route path="/dashboard" element={<Navigate to="/activities" replace />} />
         
         {/* Redirect root based on auth status */}
         <Route 
