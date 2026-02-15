@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import Navigation from '../components/Navigation';
 import { teamService } from '../services/team.service';
 
 export default function Team() {
@@ -11,9 +12,8 @@ export default function Team() {
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [activityStats, setActivityStats] = useState([]);
-  const [activeTab, setActiveTab] = useState('members');
+  const [activeSubTab, setActiveSubTab] = useState('members');
   
-  // Invite form
   const [inviteForm, setInviteForm] = useState({
     email: '',
     role: 'user'
@@ -21,14 +21,12 @@ export default function Team() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState('');
 
-  // Redirect non-admins
   useEffect(() => {
     if (!isAdmin && !loading) {
-      navigate('/dashboard');
+      navigate('/activities');
     }
   }, [isAdmin, loading, navigate]);
 
-  // Load team data
   useEffect(() => {
     if (!userData?.organizationId || !isAdmin) {
       setLoading(false);
@@ -37,27 +35,23 @@ export default function Team() {
 
     const unsubscribes = [];
 
-    // Subscribe to team members
     const membersUnsub = teamService.subscribe(userData.organizationId, (data) => {
       setMembers(data);
       setLoading(false);
     });
     unsubscribes.push(membersUnsub);
 
-    // Subscribe to invitations
     const invitationsUnsub = teamService.subscribeToInvitations(userData.organizationId, (data) => {
       setInvitations(data);
     });
     unsubscribes.push(invitationsUnsub);
 
-    // Load activity stats
     teamService.getActivityLog(userData.organizationId).then(setActivityStats).catch(console.error);
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId, isAdmin]);
 
-  // Handle invite
-  const handleInvite = async (e) => {
+  async function handleInvite(e) {
     e.preventDefault();
     setInviteLoading(true);
     setInviteError('');
@@ -79,10 +73,9 @@ export default function Team() {
     } finally {
       setInviteLoading(false);
     }
-  };
+  }
 
-  // Handle role change
-  const handleRoleChange = async (memberId, newIsAdmin) => {
+  async function handleRoleChange(memberId, newIsAdmin) {
     if (memberId === currentUser?.uid) {
       alert("You cannot change your own role");
       return;
@@ -94,10 +87,9 @@ export default function Team() {
       console.error('Error updating role:', error);
       alert('Failed to update role');
     }
-  };
+  }
 
-  // Handle remove member
-  const handleRemoveMember = async (member) => {
+  async function handleRemoveMember(member) {
     if (member.id === currentUser?.uid) {
       alert("You cannot remove yourself");
       return;
@@ -113,10 +105,9 @@ export default function Team() {
       console.error('Error removing member:', error);
       alert('Failed to remove member');
     }
-  };
+  }
 
-  // Handle cancel invitation
-  const handleCancelInvitation = async (invitationId) => {
+  async function handleCancelInvitation(invitationId) {
     if (!confirm('Are you sure you want to cancel this invitation?')) return;
 
     try {
@@ -125,10 +116,9 @@ export default function Team() {
       console.error('Error cancelling invitation:', error);
       alert('Failed to cancel invitation');
     }
-  };
+  }
 
-  // Handle resend invitation - pass full invitation data for email
-  const handleResendInvitation = async (invitation) => {
+  async function handleResendInvitation(invitation) {
     try {
       await teamService.resendInvitation(userData.organizationId, invitation.id, {
         email: invitation.email,
@@ -141,28 +131,21 @@ export default function Team() {
       console.error('Error resending invitation:', error);
       alert('Failed to resend invitation');
     }
-  };
+  }
 
-  // Get role badge
   const getRoleBadge = (isAdminUser) => {
     return isAdminUser ? (
-      <span className="px-2 py-1 bg-purple-100 text-purple-800 text-xs rounded-full font-semibold">
-        Admin
-      </span>
+      <span className="badge badge-primary">Admin</span>
     ) : (
-      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full font-semibold">
-        User
-      </span>
+      <span className="badge badge-primary" style={{opacity: 0.6}}>User</span>
     );
   };
 
-  // Get initials
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
-  // Get random color for avatar
   const getAvatarColor = (name) => {
     const colors = [
       'bg-blue-500', 'bg-green-500', 'bg-purple-500', 
@@ -174,10 +157,13 @@ export default function Team() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <div className="text-xl font-semibold text-gray-700">Loading team...</div>
+      <div className="app-container">
+        <Navigation />
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh'}}>
+          <div style={{textAlign: 'center'}}>
+            <div className="spinner" style={{width: '40px', height: '40px', margin: '0 auto 16px'}}></div>
+            <div style={{color: 'var(--text-primary)'}}>Loading team...</div>
+          </div>
         </div>
       </div>
     );
@@ -185,196 +171,141 @@ export default function Team() {
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-4xl mb-4">🔒</div>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Access Denied</h2>
-          <p className="text-gray-600 mb-4">Only admins can access team management</p>
-          <Link to="/dashboard" className="text-blue-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
+      <div className="app-container">
+        <Navigation />
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh'}}>
+          <div style={{textAlign: 'center'}}>
+            <div style={{fontSize: '64px', marginBottom: '16px'}}>🔒</div>
+            <h2 style={{fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px'}}>Access Denied</h2>
+            <p style={{color: 'var(--text-secondary)'}}>Only admins can access team management</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-purple-600">👥 Team</h1>
-            <span className="text-gray-400">|</span>
-            <Link to="/dashboard" className="text-gray-600 hover:text-blue-600 transition">
-              ← Dashboard
-            </Link>
-          </div>
-          <div className="text-right">
-            <div className="text-sm font-medium text-gray-700">{userData?.organizationName}</div>
-            <div className="text-xs text-gray-500">{members.length} members</div>
+    <div className="app-container">
+      <Navigation />
+      
+      <main className="main-content">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">👥 Team</h1>
+            <p className="page-description">Manage team members and invitations</p>
           </div>
         </div>
-      </nav>
 
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900">Team Management</h2>
-            <p className="text-gray-600 mt-1">
-              Manage your organization's team members and invitations
-            </p>
-          </div>
-          <button
-            onClick={() => setShowInviteModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold flex items-center gap-2"
+        {/* Sub-tabs */}
+        <div className="sub-tabs">
+          <button 
+            className={`sub-tab ${activeSubTab === 'members' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('members')}
           >
-            <span>➕</span> Invite Member
+            👥 Members ({members.length})
+          </button>
+          <button 
+            className={`sub-tab ${activeSubTab === 'invitations' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('invitations')}
+          >
+            ✉️ Invitations ({invitations.length})
+          </button>
+          <button 
+            className={`sub-tab ${activeSubTab === 'activity' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('activity')}
+          >
+            📊 Activity
           </button>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-blue-100">
-                <span className="text-2xl">👥</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Total Members</p>
-                <p className="text-2xl font-bold">{members.length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-purple-100">
-                <span className="text-2xl">👑</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Admins</p>
-                <p className="text-2xl font-bold">{members.filter(m => m.isAdmin).length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-green-100">
-                <span className="text-2xl">👤</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Users</p>
-                <p className="text-2xl font-bold">{members.filter(m => !m.isAdmin).length}</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-lg shadow p-6">
-            <div className="flex items-center">
-              <div className="p-3 rounded-full bg-orange-100">
-                <span className="text-2xl">✉️</span>
-              </div>
-              <div className="ml-4">
-                <p className="text-sm text-gray-600">Pending Invites</p>
-                <p className="text-2xl font-bold">{invitations.length}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-lg shadow">
-          <div className="border-b">
-            <div className="flex">
-              <button
-                onClick={() => setActiveTab('members')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition ${
-                  activeTab === 'members'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                👥 Members ({members.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('invitations')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition ${
-                  activeTab === 'invitations'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                ✉️ Invitations ({invitations.length})
-              </button>
-              <button
-                onClick={() => setActiveTab('activity')}
-                className={`px-6 py-4 text-sm font-medium border-b-2 transition ${
-                  activeTab === 'activity'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                📊 Activity
+        {/* Members Tab */}
+        {activeSubTab === 'members' && (
+          <div className="card">
+            <div className="card-header">
+              <span>Team Members</span>
+              <button onClick={() => setShowInviteModal(true)} className="btn btn-primary">
+                + Invite Member
               </button>
             </div>
-          </div>
-
-          {/* Members Tab */}
-          {activeTab === 'members' && (
-            <div className="p-6">
+            
+            <div style={{padding: '24px'}}>
               {members.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="text-4xl mb-4">👥</div>
-                  <p>No team members yet</p>
+                <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
+                  <div style={{fontSize: '48px', marginBottom: '16px'}}>👥</div>
+                  <p style={{fontSize: '16px'}}>No team members yet</p>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div style={{display: 'grid', gap: '12px'}}>
                   {members.map((member) => (
                     <div
                       key={member.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '16px',
+                        background: 'var(--section-label-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '12px'
+                      }}
                     >
-                      <div className="flex items-center gap-4">
-                        <div className={`w-12 h-12 rounded-full ${getAvatarColor(member.name)} flex items-center justify-center text-white font-bold`}>
+                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                        <div 
+                          className={getAvatarColor(member.name)}
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '16px',
+                            background: '#6366f1'
+                          }}
+                        >
                           {getInitials(member.name)}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-gray-900">{member.name}</span>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
+                            <span style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
+                              {member.name}
+                            </span>
                             {getRoleBadge(member.isAdmin)}
                             {member.id === currentUser?.uid && (
-                              <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                                You
-                              </span>
+                              <span className="badge badge-success" style={{fontSize: '10px'}}>You</span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">{member.email}</p>
-                          {member.createdAt && (
-                            <p className="text-xs text-gray-400">
-                              Joined {new Date(member.createdAt.toDate?.() || member.createdAt).toLocaleDateString()}
+                          <p style={{fontSize: '13px', color: 'var(--text-muted)'}}>
+                            {member.email}
+                          </p>
+                          {member.lastLogin && (
+                            <p style={{fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px'}}>
+                              Last active: {new Date(member.lastLogin.toDate?.() || member.lastLogin).toLocaleDateString()}
                             </p>
                           )}
                         </div>
                       </div>
 
                       {member.id !== currentUser?.uid && (
-                        <div className="flex items-center gap-3">
+                        <div style={{display: 'flex', gap: '8px'}}>
                           <select
                             value={member.isAdmin ? 'admin' : 'user'}
                             onChange={(e) => handleRoleChange(member.id, e.target.value === 'admin')}
-                            className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                            className="form-select"
+                            style={{padding: '6px 10px', fontSize: '13px', width: 'auto'}}
                           >
                             <option value="user">User</option>
                             <option value="admin">Admin</option>
                           </select>
                           <button
                             onClick={() => handleRemoveMember(member)}
-                            className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition"
+                            className="btn-icon"
+                            style={{color: '#ef4444'}}
+                            title="Remove member"
                           >
-                            Remove
+                            🗑️
                           </button>
                         </div>
                       )}
@@ -383,150 +314,200 @@ export default function Team() {
                 </div>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Invitations Tab */}
-          {activeTab === 'invitations' && (
-            <div className="p-6">
+        {/* Invitations Tab */}
+        {activeSubTab === 'invitations' && (
+          <div className="card">
+            <div className="card-header">
+              <span>Pending Invitations</span>
+            </div>
+            
+            <div style={{padding: '24px'}}>
               {invitations.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="text-4xl mb-4">✉️</div>
-                  <p>No pending invitations</p>
+                <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
+                  <div style={{fontSize: '48px', marginBottom: '16px'}}>✉️</div>
+                  <p style={{fontSize: '16px'}}>No pending invitations</p>
                   <button
                     onClick={() => setShowInviteModal(true)}
-                    className="mt-4 text-blue-600 hover:underline"
+                    className="btn btn-secondary"
+                    style={{marginTop: '16px'}}
                   >
-                    Invite someone →
+                    Invite someone
                   </button>
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div style={{display: 'grid', gap: '12px'}}>
                   {invitations.map((invitation) => (
                     <div
                       key={invitation.id}
-                      className="flex items-center justify-between p-4 bg-orange-50 rounded-lg border border-orange-200"
+                      style={{
+                        padding: '16px',
+                        background: 'var(--badge-warning-bg)',
+                        border: '1px solid var(--badge-warning-text)',
+                        borderRadius: '12px'
+                      }}
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900">{invitation.email}</span>
-                          <span className={`px-2 py-1 text-xs rounded-full ${
-                            invitation.role === 'admin' 
-                              ? 'bg-purple-100 text-purple-800' 
-                              : 'bg-gray-100 text-gray-600'
-                          }`}>
-                            {invitation.role === 'admin' ? 'Admin' : 'User'}
-                          </span>
-                          {invitation.emailSent && (
-                            <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                              ✓ Email Sent
+                      <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'start'}}>
+                        <div style={{flex: 1}}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px'}}>
+                            <span style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
+                              {invitation.email}
                             </span>
-                          )}
-                          {invitation.emailSent === false && (
-                            <span className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
-                              ✗ Email Failed
+                            <span className="badge badge-primary" style={{opacity: invitation.role === 'admin' ? 1 : 0.6}}>
+                              {invitation.role === 'admin' ? 'Admin' : 'User'}
                             </span>
+                            {invitation.emailSent && (
+                              <span className="badge badge-success" style={{fontSize: '10px'}}>
+                                ✓ Email Sent
+                              </span>
+                            )}
+                            {invitation.emailSent === false && (
+                              <span className="badge badge-danger" style={{fontSize: '10px'}}>
+                                ✗ Email Failed
+                              </span>
+                            )}
+                          </div>
+                          <p style={{fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '4px'}}>
+                            Invited by {invitation.invitedBy}
+                            {invitation.createdAt && (
+                              <> • {new Date(invitation.createdAt.toDate?.() || invitation.createdAt).toLocaleDateString()}</>
+                            )}
+                          </p>
+                          {invitation.expiresAt && (
+                            <p style={{fontSize: '11px', color: 'var(--badge-warning-text)'}}>
+                              Expires {new Date(invitation.expiresAt.toDate?.() || invitation.expiresAt).toLocaleDateString()}
+                            </p>
                           )}
                         </div>
-                        <p className="text-sm text-gray-500 mt-1">
-                          Invited by {invitation.invitedBy} • 
-                          {invitation.createdAt && (
-                            <span> {new Date(invitation.createdAt.toDate?.() || invitation.createdAt).toLocaleDateString()}</span>
-                          )}
-                        </p>
-                        {invitation.expiresAt && (
-                          <p className="text-xs text-orange-600">
-                            Expires {new Date(invitation.expiresAt.toDate?.() || invitation.expiresAt).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleResendInvitation(invitation)}
-                          className="px-3 py-1.5 text-blue-600 hover:bg-blue-50 rounded-lg text-sm font-medium transition"
-                        >
-                          Resend
-                        </button>
-                        <button
-                          onClick={() => handleCancelInvitation(invitation.id)}
-                          className="px-3 py-1.5 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition"
-                        >
-                          Cancel
-                        </button>
+                        <div style={{display: 'flex', gap: '8px'}}>
+                          <button
+                            onClick={() => handleResendInvitation(invitation)}
+                            className="btn btn-secondary"
+                            style={{padding: '6px 12px', fontSize: '13px'}}
+                          >
+                            Resend
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvitation(invitation.id)}
+                            className="btn btn-danger"
+                            style={{padding: '6px 12px', fontSize: '13px'}}
+                          >
+                            Cancel
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Activity Tab */}
-          {activeTab === 'activity' && (
-            <div className="p-6">
+        {/* Activity Tab */}
+        {activeSubTab === 'activity' && (
+          <div className="card">
+            <div className="card-header">
+              <span>Team Activity</span>
+            </div>
+            
+            <div style={{padding: '24px'}}>
               {activityStats.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <div className="text-4xl mb-4">📊</div>
-                  <p>No activity data yet</p>
+                <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
+                  <div style={{fontSize: '48px', marginBottom: '16px'}}>📊</div>
+                  <p style={{fontSize: '16px'}}>No activity data yet</p>
                 </div>
               ) : (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Activity (by activities logged)</h3>
-                  <div className="space-y-3">
-                    {activityStats.map((stat, index) => (
-                      <div key={stat.email} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div className="flex items-center gap-4">
-                          <span className="text-2xl font-bold text-gray-400 w-8">#{index + 1}</span>
-                          <div className={`w-10 h-10 rounded-full ${getAvatarColor(stat.name)} flex items-center justify-center text-white font-bold text-sm`}>
-                            {getInitials(stat.name)}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900">{stat.name}</p>
-                            <p className="text-xs text-gray-500">{stat.email}</p>
-                          </div>
+                <div style={{display: 'grid', gap: '12px'}}>
+                  {activityStats.map((stat, index) => (
+                    <div 
+                      key={stat.email}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '16px',
+                        background: 'var(--section-label-bg)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
+                        <span style={{fontSize: '24px', fontWeight: 'bold', color: 'var(--text-muted)', width: '40px'}}>
+                          #{index + 1}
+                        </span>
+                        <div 
+                          className={getAvatarColor(stat.name)}
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: '14px',
+                            background: '#6366f1'
+                          }}
+                        >
+                          {getInitials(stat.name)}
                         </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-blue-600">{stat.count}</p>
-                          <p className="text-xs text-gray-500">activities</p>
+                        <div>
+                          <p style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
+                            {stat.name}
+                          </p>
+                          <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
+                            {stat.email}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
+                      <div style={{textAlign: 'right'}}>
+                        <p style={{fontSize: '28px', fontWeight: 'bold', color: 'var(--accent)'}}>
+                          {stat.count}
+                        </p>
+                        <p style={{fontSize: '11px', color: 'var(--text-muted)'}}>
+                          activities
+                        </p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
+          </div>
+        )}
+      </main>
 
       {/* Invite Modal */}
       {showInviteModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h2 className="text-2xl font-bold mb-6">Invite Team Member</h2>
+        <div className="modal-overlay">
+          <div className="modal-content">
+            <h2 style={{fontSize: '22px', fontWeight: 700, marginBottom: '24px', color: 'var(--text-primary)'}}>
+              Invite Team Member
+            </h2>
             
-            <form onSubmit={handleInvite} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Email Address *
-                </label>
+            <form onSubmit={handleInvite}>
+              <div className="field-group" style={{marginBottom: '16px'}}>
+                <label className="form-label">Email Address *</label>
                 <input
                   type="email"
                   required
                   value={inviteForm.email}
                   onChange={(e) => setInviteForm({ ...inviteForm, email: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="form-input"
                   placeholder="colleague@company.com"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Role
-                </label>
+              <div className="field-group" style={{marginBottom: '16px'}}>
+                <label className="form-label">Role</label>
                 <select
                   value={inviteForm.role}
                   onChange={(e) => setInviteForm({ ...inviteForm, role: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="form-select"
                 >
                   <option value="user">User - Can view and add data</option>
                   <option value="admin">Admin - Full access including team management</option>
@@ -534,21 +515,36 @@ export default function Team() {
               </div>
 
               {inviteError && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+                <div style={{
+                  padding: '12px',
+                  background: 'var(--badge-danger-bg)',
+                  color: 'var(--badge-danger-text)',
+                  borderRadius: '8px',
+                  fontSize: '13px',
+                  marginBottom: '16px'
+                }}>
                   {inviteError}
                 </div>
               )}
 
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-                <p className="font-semibold mb-1">📧 How invitations work:</p>
+              <div style={{
+                padding: '12px',
+                background: 'var(--badge-primary-bg)',
+                color: 'var(--badge-primary-text)',
+                borderRadius: '8px',
+                fontSize: '13px',
+                marginBottom: '24px'
+              }}>
+                <p style={{fontWeight: 600, marginBottom: '4px'}}>📧 How invitations work:</p>
                 <p>An email will be sent to the invitee with a link to sign up. They must use this exact email address to join your organization.</p>
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div style={{display: 'flex', gap: '12px'}}>
                 <button
                   type="submit"
                   disabled={inviteLoading}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold disabled:opacity-50"
+                  className="btn btn-primary"
+                  style={{flex: 1}}
                 >
                   {inviteLoading ? 'Sending...' : 'Send Invitation'}
                 </button>
@@ -559,7 +555,8 @@ export default function Team() {
                     setInviteForm({ email: '', role: 'user' });
                     setInviteError('');
                   }}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+                  className="btn btn-muted"
+                  style={{flex: 1}}
                 >
                   Cancel
                 </button>
@@ -568,6 +565,246 @@ export default function Team() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        .app-container {
+          min-height: 100vh;
+          background: var(--bg-base);
+          color: var(--text-primary);
+        }
+
+        .main-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 32px 24px;
+        }
+
+        .page-header {
+          margin-bottom: 32px;
+        }
+
+        .page-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .page-description {
+          font-size: 16px;
+          color: var(--text-secondary);
+        }
+
+        .sub-tabs {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 24px;
+          border-bottom: 2px solid var(--border);
+        }
+
+        .sub-tab {
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          border-bottom: 2px solid transparent;
+          color: var(--text-secondary);
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+          margin-bottom: -2px;
+        }
+
+        .sub-tab:hover {
+          color: var(--accent);
+        }
+
+        .sub-tab.active {
+          color: var(--accent);
+          border-bottom-color: var(--accent);
+        }
+
+        .card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: var(--shadow);
+        }
+
+        .card-header {
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text-primary);
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .field-group {
+          display: flex;
+          flex-direction: column;
+        }
+
+        .form-label {
+          display: block;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          margin-bottom: 5px;
+        }
+
+        .form-input,
+        .form-select {
+          width: 100%;
+          padding: 10px 14px;
+          background: var(--bg-input);
+          border: 1.5px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 14px;
+          transition: all 0.2s ease;
+          font-family: inherit;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+          outline: none;
+          border-color: var(--border-focus);
+          background: var(--bg-input-focus);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .btn {
+          padding: 10px 18px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 13.5px;
+          transition: all 0.2s ease;
+          cursor: pointer;
+          border: none;
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          font-family: inherit;
+          white-space: nowrap;
+        }
+
+        .btn-primary {
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          color: #fff;
+          box-shadow: 0 2px 8px var(--accent-glow-strong);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px var(--accent-glow-strong);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        .btn-secondary {
+          background: var(--btn-secondary-bg);
+          color: #fff;
+        }
+
+        .btn-secondary:hover {
+          background: var(--btn-secondary-hover);
+        }
+
+        .btn-danger {
+          background: #dc2626;
+          color: #fff;
+        }
+
+        .btn-danger:hover {
+          background: #b91c1c;
+        }
+
+        .btn-muted {
+          background: var(--btn-muted-bg);
+          color: var(--btn-muted-text);
+        }
+
+        .btn-muted:hover {
+          background: var(--btn-muted-hover);
+        }
+
+        .btn-icon {
+          background: none;
+          border: none;
+          cursor: pointer;
+          font-size: 16px;
+          padding: 4px;
+          transition: transform 0.2s;
+        }
+
+        .btn-icon:hover {
+          transform: scale(1.2);
+        }
+
+        .badge {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-block;
+        }
+
+        .badge-primary {
+          background: var(--badge-primary-bg);
+          color: var(--badge-primary-text);
+        }
+
+        .badge-success {
+          background: var(--badge-success-bg);
+          color: var(--badge-success-text);
+        }
+
+        .badge-danger {
+          background: var(--badge-danger-bg);
+          color: var(--badge-danger-text);
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border: 2px solid var(--accent);
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1000;
+          padding: 16px;
+        }
+
+        .modal-content {
+          background: var(--card-bg);
+          border-radius: 12px;
+          padding: 24px;
+          max-width: 500px;
+          width: 100%;
+          border: 1px solid var(--border);
+          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+      `}</style>
     </div>
   );
 }

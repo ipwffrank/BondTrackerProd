@@ -1,331 +1,484 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { analyticsService } from '../services/analytics.service';
-import { exportService } from '../services/export.service';
-import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-
-const COLORS = {
-  BUY: '#10b981',
-  SELL: '#ef4444',
-  'TWO-WAY': '#f59e0b'
-};
+import Navigation from '../components/Navigation';
+import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 export default function Analytics() {
   const { userData } = useAuth();
-  const [analytics, setAnalytics] = useState(null);
+  
+  const [activities, setActivities] = useState([]);
+  const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('30'); // Last 30 days
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [showExportMenu, setShowExportMenu] = useState(false);
+  const [stats, setStats] = useState({
+    totalActivities: 0,
+    totalVolume: 0,
+    totalClients: 0,
+    buyCount: 0,
+    sellCount: 0,
+    twoWayCount: 0,
+    enquiryCount: 0,
+    quotedCount: 0,
+    executedCount: 0,
+    topClients: [],
+    topUsers: [],
+    currencyBreakdown: {}
+  });
 
   useEffect(() => {
-    loadAnalytics();
-  }, [userData?.organizationId, dateRange]);
-
-  const loadAnalytics = async () => {
     if (!userData?.organizationId) {
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    const unsubscribes = [];
+
     try {
-      let start, end;
+      const activitiesRef = collection(db, `organizations/${userData.organizationId}/activities`);
+      const activitiesQuery = query(activitiesRef, orderBy('createdAt', 'desc'));
       
-      if (dateRange === 'custom') {
-        start = new Date(startDate);
-        end = new Date(endDate);
-      } else {
-        end = new Date();
-        start = new Date();
-        start.setDate(start.getDate() - parseInt(dateRange));
-      }
-      
-      const data = await analyticsService.getAnalytics(userData.organizationId, start, end);
-      setAnalytics(data);
+      const activitiesUnsub = onSnapshot(activitiesQuery, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          createdAt: doc.data().createdAt?.toDate()
+        }));
+        setActivities(data);
+        calculateStats(data);
+        setLoading(false);
+      });
+      unsubscribes.push(activitiesUnsub);
+
+      const clientsRef = collection(db, `organizations/${userData.organizationId}/clients`);
+      const clientsUnsub = onSnapshot(clientsRef, (snapshot) => {
+        const data = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        setClients(data);
+      });
+      unsubscribes.push(clientsUnsub);
+
     } catch (error) {
-      console.error('Error loading analytics:', error);
-    } finally {
+      console.error('Setup error:', error);
       setLoading(false);
     }
-  };
 
-  const pieData = analytics ? [
-    { name: 'BUY', value: parseFloat(analytics.volumeByDirection.BUY) || 0 },
-    { name: 'SELL', value: parseFloat(analytics.volumeByDirection.SELL) || 0 },
-    { name: 'TWO-WAY', value: parseFloat(analytics.volumeByDirection['TWO-WAY']) || 0 }
-  ].filter(item => item.value > 0) : [];
+    return () => unsubscribes.forEach(unsub => unsub());
+  }, [userData?.organizationId]);
+
+  function calculateStats(data) {
+    const totalActivities = data.length;
+    const totalVolume = data.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
+    
+    const buyCount = data.filter(a => a.direction === 'BUY').length;
+    const sellCount = data.filter(a => a.direction === 'SELL').length;
+    const twoWayCount = data.filter(a => a.direction === 'TWO-WAY').length;
+    
+    const enquiryCount = data.filter(a => a.status === 'ENQUIRY').length;
+    const quotedCount = data.filter(a => a.status === 'QUOTED').length;
+    const executedCount = data.filter(a => a.status === 'EXECUTED').length;
+
+    // Top clients by volume
+    const clientVolumes = {};
+    data.forEach(a => {
+      if (!clientVolumes[a.clientName]) {
+        clientVolumes[a.clientName] = 0;
+      }
+      clientVolumes[a.clientName] += parseFloat(a.size) || 0;
+    });
+    const topClients = Object.entries(clientVolumes)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, volume]) => ({ name, volume: volume.toFixed(2) }));
+
+    // Top users by activity count
+    const userCounts = {};
+    data.forEach(a => {
+      if (!userCounts[a.createdBy]) {
+        userCounts[a.createdBy] = 0;
+      }
+      userCounts[a.createdBy]++;
+    });
+    const topUsers = Object.entries(userCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }));
+
+    // Currency breakdown
+    const currencyBreakdown = {};
+    data.forEach(a => {
+      if (!currencyBreakdown[a.currency]) {
+        currencyBreakdown[a.currency] = { count: 0, volume: 0 };
+      }
+      currencyBreakdown[a.currency].count++;
+      currencyBreakdown[a.currency].volume += parseFloat(a.size) || 0;
+    });
+
+    setStats({
+      totalActivities,
+      totalVolume: totalVolume.toFixed(2),
+      totalClients: new Set(data.map(a => a.clientName)).size,
+      buyCount,
+      sellCount,
+      twoWayCount,
+      enquiryCount,
+      quotedCount,
+      executedCount,
+      topClients,
+      topUsers,
+      currencyBreakdown
+    });
+  }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-xl font-semibold">Loading analytics...</div>
+      <div className="app-container">
+        <Navigation />
+        <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh'}}>
+          <div style={{textAlign: 'center'}}>
+            <div className="spinner" style={{width: '40px', height: '40px', margin: '0 auto 16px'}}></div>
+            <div style={{color: 'var(--text-primary)'}}>Loading analytics...</div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Navigation */}
-      <nav className="bg-white shadow mb-8">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <Link to="/dashboard" className="text-blue-600 hover:underline">
-            ← Back to Dashboard
-          </Link>
-        </div>
-      </nav>
-
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+    <div className="app-container">
+      <Navigation />
+      
+      <main className="main-content">
+        <div className="page-header">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h2>
-            <p className="text-gray-600 mt-1">Visual insights from your activities</p>
-          </div>
-          {analytics && analytics.totalActivities > 0 && (
-            <div className="relative">
-              <button
-                onClick={() => setShowExportMenu(!showExportMenu)}
-                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition border border-gray-300 font-semibold"
-              >
-                📥 Export Report
-              </button>
-              {showExportMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                  <button
-                    onClick={() => {
-                      const range = dateRange === 'custom' ? `${startDate} to ${endDate}` : `Last ${dateRange} days`;
-                      exportService.exportAnalyticsToExcel(analytics, userData?.organizationName || 'BondTracker', range);
-                      setShowExportMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-t-lg"
-                  >
-                    📊 Excel (.xlsx)
-                  </button>
-                  <button
-                    onClick={() => {
-                      const range = dateRange === 'custom' ? `${startDate} to ${endDate}` : `Last ${dateRange} days`;
-                      exportService.exportAnalyticsToPDF(analytics, userData?.organizationName || 'BondTracker', range);
-                      setShowExportMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-50 rounded-b-lg"
-                  >
-                    📄 PDF
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Date Range Filter */}
-        <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date Range
-              </label>
-              <select
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="7">Last 7 days</option>
-                <option value="30">Last 30 days</option>
-                <option value="90">Last 90 days</option>
-                <option value="365">Last year</option>
-                <option value="custom">Custom range</option>
-              </select>
-            </div>
-
-            {dateRange === 'custom' && (
-              <>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex-1 min-w-[200px]">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    End Date
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <button
-                  onClick={loadAnalytics}
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                >
-                  Apply
-                </button>
-              </>
-            )}
+            <h1 className="page-title">📊 Analytics</h1>
+            <p className="page-description">Business intelligence and performance metrics</p>
           </div>
         </div>
 
-        {!analytics || analytics.totalActivities === 0 ? (
-          <div className="text-center py-12 bg-white rounded-lg shadow">
-            <div className="text-6xl mb-4">📊</div>
-            <p className="text-gray-600 mb-4 text-lg">No data for selected period</p>
-            <Link to="/activities" className="text-blue-600 hover:underline font-semibold">
-              Add activities to see analytics →
-            </Link>
+        {/* Overview Stats */}
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '24px'}}>
+          <div className="stat-card">
+            <div className="stat-icon">📋</div>
+            <div className="stat-value">{stats.totalActivities}</div>
+            <div className="stat-label">Total Activities</div>
           </div>
-        ) : (
-          <>
-            {/* Key Metrics */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-blue-100">
-                    <span className="text-2xl">📋</span>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-600">Total Activities</p>
-                    <p className="text-2xl font-bold">{analytics.totalActivities}</p>
-                  </div>
-                </div>
-              </div>
+          <div className="stat-card">
+            <div className="stat-icon">💰</div>
+            <div className="stat-value">${stats.totalVolume}MM</div>
+            <div className="stat-label">Total Volume</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">👥</div>
+            <div className="stat-value">{stats.totalClients}</div>
+            <div className="stat-label">Active Clients</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-icon">✅</div>
+            <div className="stat-value">{stats.executedCount}</div>
+            <div className="stat-label">Executed Trades</div>
+          </div>
+        </div>
 
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-green-100">
-                    <span className="text-2xl">💰</span>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-600">Total Volume</p>
-                    <p className="text-2xl font-bold">${analytics.totalVolume}MM</p>
-                  </div>
-                </div>
+        {/* Direction Breakdown */}
+        <div className="card" style={{marginBottom: '24px'}}>
+          <div className="card-header">
+            <span>📈 Direction Breakdown</span>
+          </div>
+          <div style={{padding: '24px'}}>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px'}}>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--badge-success-bg)', borderRadius: '8px'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: 'var(--badge-success-text)'}}>{stats.buyCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--badge-success-text)', marginTop: '4px'}}>BUY Orders</div>
               </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-purple-100">
-                    <span className="text-2xl">📊</span>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-600">Avg Deal Size</p>
-                    <p className="text-2xl font-bold">${analytics.avgDealSize}MM</p>
-                  </div>
-                </div>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--badge-danger-bg)', borderRadius: '8px'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: 'var(--badge-danger-text)'}}>{stats.sellCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--badge-danger-text)', marginTop: '4px'}}>SELL Orders</div>
               </div>
-
-              <div className="bg-white rounded-lg shadow p-6">
-                <div className="flex items-center">
-                  <div className="p-3 rounded-full bg-orange-100">
-                    <span className="text-2xl">👥</span>
-                  </div>
-                  <div className="ml-4">
-                    <p className="text-sm text-gray-600">Active Clients</p>
-                    <p className="text-2xl font-bold">{analytics.topClients.length}</p>
-                  </div>
-                </div>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--badge-warning-bg)', borderRadius: '8px'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: 'var(--badge-warning-text)'}}>{stats.twoWayCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--badge-warning-text)', marginTop: '4px'}}>TWO-WAY Orders</div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              {/* Volume by Direction - Pie Chart */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-bold mb-4">Volume by Direction</h3>
-                {pieData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, value }) => `${name}: $${value.toFixed(0)}MM`}
-                        outerRadius={80}
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[entry.name]} />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => `$${value.toFixed(2)}MM`} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="text-center text-gray-500 py-12">No data available</div>
-                )}
+        {/* Status Breakdown */}
+        <div className="card" style={{marginBottom: '24px'}}>
+          <div className="card-header">
+            <span>🎯 Status Breakdown</span>
+          </div>
+          <div style={{padding: '24px'}}>
+            <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px'}}>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--section-label-bg)', borderRadius: '8px', border: '1px solid var(--border)'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: 'var(--accent)'}}>{stats.enquiryCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>Enquiries</div>
               </div>
-
-              {/* Activity Count by Direction */}
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-bold mb-4">Activity Count by Direction</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={[
-                    { name: 'BUY', count: analytics.countByDirection.BUY },
-                    { name: 'SELL', count: analytics.countByDirection.SELL },
-                    { name: 'TWO-WAY', count: analytics.countByDirection['TWO-WAY'] }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#6366f1" />
-                  </BarChart>
-                </ResponsiveContainer>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--section-label-bg)', borderRadius: '8px', border: '1px solid var(--border)'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: 'var(--accent)'}}>{stats.quotedCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>Quoted</div>
+              </div>
+              <div style={{textAlign: 'center', padding: '20px', background: 'var(--section-label-bg)', borderRadius: '8px', border: '1px solid var(--border)'}}>
+                <div style={{fontSize: '32px', fontWeight: 'bold', color: '#22c55e'}}>{stats.executedCount}</div>
+                <div style={{fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px'}}>Executed</div>
               </div>
             </div>
+          </div>
+        </div>
 
-            {/* Top Clients - Bar Chart */}
-            <div className="bg-white rounded-lg shadow p-6 mb-8">
-              <h3 className="text-lg font-bold mb-4">Top Clients by Volume</h3>
-              {analytics.topClients.length > 0 ? (
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart data={analytics.topClients} layout="horizontal">
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis type="number" label={{ value: 'Volume (MM)', position: 'insideBottom', offset: -5 }} />
-                    <YAxis dataKey="name" type="category" width={150} />
-                    <Tooltip formatter={(value) => `$${value.toFixed(2)}MM`} />
-                    <Bar dataKey="volume" fill="#10b981" />
-                  </BarChart>
-                </ResponsiveContainer>
+        <div style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '24px'}}>
+          {/* Top Clients */}
+          <div className="card">
+            <div className="card-header">
+              <span>🏆 Top Clients by Volume</span>
+            </div>
+            <div style={{padding: '24px'}}>
+              {stats.topClients.length === 0 ? (
+                <div style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                  No data yet
+                </div>
               ) : (
-                <div className="text-center text-gray-500 py-12">No client data available</div>
+                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                  {stats.topClients.map((client, index) => (
+                    <div key={index} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--section-label-bg)', borderRadius: '8px'}}>
+                      <div style={{fontSize: '20px', fontWeight: 'bold', color: 'var(--text-muted)', width: '30px'}}>#{index + 1}</div>
+                      <div style={{flex: 1}}>
+                        <div style={{fontWeight: 600, color: 'var(--text-primary)'}}>{client.name}</div>
+                      </div>
+                      <div style={{fontSize: '18px', fontWeight: 'bold', color: 'var(--accent)'}}>${client.volume}MM</div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
+          </div>
 
-            {/* Activity Timeline - Line Chart */}
-            {analytics.timeline.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-lg font-bold mb-4">Activity Timeline</h3>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={analytics.timeline}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Line type="monotone" dataKey="count" stroke="#6366f1" strokeWidth={2} name="Activities" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          {/* Top Users */}
+          <div className="card">
+            <div className="card-header">
+              <span>👤 Most Active Users</span>
+            </div>
+            <div style={{padding: '24px'}}>
+              {stats.topUsers.length === 0 ? (
+                <div style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                  No data yet
+                </div>
+              ) : (
+                <div style={{display: 'flex', flexDirection: 'column', gap: '12px'}}>
+                  {stats.topUsers.map((user, index) => (
+                    <div key={index} style={{display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', background: 'var(--section-label-bg)', borderRadius: '8px'}}>
+                      <div style={{fontSize: '20px', fontWeight: 'bold', color: 'var(--text-muted)', width: '30px'}}>#{index + 1}</div>
+                      <div style={{flex: 1}}>
+                        <div style={{fontWeight: 600, color: 'var(--text-primary)'}}>{user.name}</div>
+                      </div>
+                      <div style={{fontSize: '18px', fontWeight: 'bold', color: 'var(--accent)'}}>{user.count} activities</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Currency Breakdown */}
+        <div className="card" style={{marginTop: '24px'}}>
+          <div className="card-header">
+            <span>💱 Currency Breakdown</span>
+          </div>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Currency</th>
+                  <th>Count</th>
+                  <th>Total Volume</th>
+                  <th>Percentage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.keys(stats.currencyBreakdown).length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                      No data yet
+                    </td>
+                  </tr>
+                ) : (
+                  Object.entries(stats.currencyBreakdown)
+                    .sort((a, b) => b[1].volume - a[1].volume)
+                    .map(([currency, data]) => {
+                      const percentage = ((data.volume / parseFloat(stats.totalVolume)) * 100).toFixed(1);
+                      return (
+                        <tr key={currency}>
+                          <td><span className="badge badge-primary">{currency}</span></td>
+                          <td>{data.count}</td>
+                          <td style={{fontWeight: 600}}>${data.volume.toFixed(2)}MM</td>
+                          <td>
+                            <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+                              <div style={{flex: 1, height: '8px', background: 'var(--border)', borderRadius: '4px', overflow: 'hidden'}}>
+                                <div style={{width: `${percentage}%`, height: '100%', background: 'var(--accent)', borderRadius: '4px'}}></div>
+                              </div>
+                              <span style={{fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', minWidth: '45px'}}>{percentage}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+
+      <style jsx>{`
+        .app-container {
+          min-height: 100vh;
+          background: var(--bg-base);
+          color: var(--text-primary);
+        }
+
+        .main-content {
+          max-width: 1400px;
+          margin: 0 auto;
+          padding: 32px 24px;
+        }
+
+        .page-header {
+          margin-bottom: 32px;
+        }
+
+        .page-title {
+          font-size: 32px;
+          font-weight: 700;
+          color: var(--text-primary);
+          margin-bottom: 8px;
+        }
+
+        .page-description {
+          font-size: 16px;
+          color: var(--text-secondary);
+        }
+
+        .stat-card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 24px;
+          text-align: center;
+          box-shadow: var(--shadow);
+        }
+
+        .stat-icon {
+          font-size: 32px;
+          margin-bottom: 12px;
+        }
+
+        .stat-value {
+          font-size: 28px;
+          font-weight: 700;
+          color: var(--accent);
+          margin-bottom: 8px;
+        }
+
+        .stat-label {
+          font-size: 13px;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+
+        .card {
+          background: var(--card-bg);
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          box-shadow: var(--shadow);
+        }
+
+        .card-header {
+          font-size: 17px;
+          font-weight: 700;
+          color: var(--text-primary);
+          padding: 20px 24px;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .table-container {
+          overflow-x: auto;
+        }
+
+        .table {
+          width: 100%;
+          border-collapse: collapse;
+          font-size: 14px;
+        }
+
+        .table thead {
+          background: var(--table-header-bg);
+        }
+
+        .table th {
+          padding: 12px 16px;
+          text-align: left;
+          font-weight: 600;
+          color: var(--text-secondary);
+          font-size: 12px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-bottom: 1px solid var(--border);
+        }
+
+        .table td {
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border);
+          color: var(--text-primary);
+        }
+
+        .table tbody tr:nth-child(odd) {
+          background: var(--table-odd);
+        }
+
+        .table tbody tr:nth-child(even) {
+          background: var(--table-even);
+        }
+
+        .table tbody tr:hover {
+          background: var(--table-hover);
+        }
+
+        .badge {
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 600;
+          display: inline-block;
+        }
+
+        .badge-primary {
+          background: var(--badge-primary-bg);
+          color: var(--badge-primary-text);
+        }
+
+        .spinner {
+          display: inline-block;
+          width: 10px;
+          height: 10px;
+          border: 2px solid var(--accent);
+          border-top-color: transparent;
+          border-radius: 50%;
+          animation: spin 0.6s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 768px) {
+          .stat-card {
+            padding: 16px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
