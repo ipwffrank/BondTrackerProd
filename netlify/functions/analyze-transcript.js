@@ -1,269 +1,168 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 exports.handler = async (event) => {
-  // Only allow POST
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
   }
 
-  // Get API key from environment variable
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    return { 
-      statusCode: 500, 
-      body: JSON.stringify({ error: 'Server configuration error: GEMINI_API_KEY not set' }) 
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
     };
   }
 
   try {
     const { transcript } = JSON.parse(event.body);
-    
-    if (!transcript || typeof transcript !== 'string') {
-      return { 
-        statusCode: 400, 
-        body: JSON.stringify({ error: 'Missing or invalid transcript' }) 
+
+    if (!transcript) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Transcript is required' })
       };
     }
 
-    // Initialize Gemini
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ 
-      model: 'gemini-2.0-flash',
-      generationConfig: {
-        temperature: 0.2,  // Lower temperature for more consistent/accurate results
-        topP: 0.8,
-        topK: 10,
-      }
-    });
+    if (!process.env.GEMINI_API_KEY) {
+      console.error('GEMINI_API_KEY not configured');
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'AI service not configured' })
+      };
+    }
 
-    const prompt = `You are an expert bond trading analyst. Extract structured data from this chat transcript.
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
 
-CRITICAL BOND TRADING TERMINOLOGY (YOU MUST FOLLOW THESE RULES):
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⚠️ MOST IMPORTANT: Distinguish between ASKING for a bid/offer vs MAKING a bid/offer!
+    const prompt = `You are analyzing bond trading chat transcripts from a DEALER's perspective. The dealer (me) is talking to clients.
 
-1. When client ASKS for YOUR BID → Client is SELLING
-   - "What's your bid?" = Client wants to SELL to you
-   - "Can you bid me?" = Client wants to SELL to you
-   - "Give me a bid on..." = Client wants to SELL to you
+CRITICAL BOND MARKET RULES:
+1. When a client asks for MY BID → They want to SELL to me → Direction: SELL (client is seller)
+2. When a client asks for MY OFFER/price → They want to BUY from me → Direction: BUY (client is buyer)
+3. "Your bid for X?" = Client wants to sell
+4. "Offer X please" or "Your offer?" = Client wants to buy
+5. "@" symbol means "at price" (e.g., "@ 101" = at price 101)
+6. "/" after number means "bid given" (e.g., "100/" = bid at 100)
+7. "Done" = Trade executed
+8. "Pass" = Client declined
 
-2. When client MAKES/STATES THEIR BID → Client is BUYING
-   - "I bid 10mm at 100" = Client is offering to BUY at 100
-   - "Bosera bid 5mm" = Bosera is offering to BUY
-   - "[ClientName] bid [amount]" = Client is BUYING
-   
-3. When client ASKS for YOUR OFFER/ASK → Client is BUYING
-   - "What's your offer?" = Client wants to BUY from you
-   - "Can you offer me?" = Client wants to BUY from you
-   - "What's your ask?" = Client wants to BUY from you
+CLIENT IDENTIFICATION:
+- Look for "(From [Company])" or company name in parentheses after the name
+- Example: "Aeris (From Bosera)" → Client: Bosera, Contact: Aeris
+- Example: "Michelle (Efund)" → Client: Efund, Contact: Michelle
 
-4. When client MAKES/STATES THEIR OFFER → Client is SELLING
-   - "I offer 10mm at 100" = Client is offering to SELL at 100
-   - "Bosera offers 5mm" = Bosera is offering to SELL
-   - "[ClientName] offers [amount]" = Client is SELLING
+ACTIVITY TYPE:
+- If contains "Done" → Status: EXECUTED
+- If contains "Pass" or client declined → Status: PASSED
+- If dealer gave price but no response → Status: QUOTED
+- If client only asked for price → Status: ENQUIRY
 
-5. TWO-WAY means client might buy OR sell
-   - "Give me a two-way" = Client wants both bid and offer
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OUTPUT FORMAT:
+Return ONLY a JSON array. Each activity must have:
+{
+  "clientName": "Company name (e.g., Bosera, Efund)",
+  "contactPerson": "Individual's name (e.g., Aeris, Michelle)", 
+  "activityType": "Bloomberg Chat",
+  "isin": "Bond ISIN if mentioned",
+  "ticker": "Bond ticker/name (e.g., APPLE 30)",
+  "size": "Size in millions (number only, e.g., 2 for 2mm)",
+  "direction": "BUY or SELL (from CLIENT perspective: if client asks for bid=SELL, if client asks for offer=BUY)",
+  "price": "Price if quoted (number only)",
+  "status": "EXECUTED, QUOTED, PASSED, or ENQUIRY",
+  "notes": "Brief summary of the conversation"
+}
 
-EXAMPLES TO LEARN FROM:
-Example 1:
-Transcript: "Hi, what's your bid on 5MM of the Treasury 4.5% due 2034?"
-Analysis: Client ASKING for your bid means they want to sell
-Direction: SELL
+EXAMPLE 1:
+Input: "Aeris (From Bosera): Your bid for APPLE 30? / Frank (CLSA): 100/ / Aeris: Done"
+Output: [{"clientName":"Bosera","contactPerson":"Aeris","activityType":"Bloomberg Chat","ticker":"APPLE 30","size":null,"direction":"SELL","price":100,"status":"EXECUTED","notes":"Client asked for bid and executed at 100"}]
 
-Example 2:
-Transcript: "Can you offer me 10MM of Apple bonds?"
-Analysis: Client ASKING for your offer means they want to buy
-Direction: BUY
+EXAMPLE 2:
+Input: "Michelle (Efund): Offer APPLE 30 in 2mm please / Frank (CLSA): @ 101 / Michelle: Pass"
+Output: [{"clientName":"Efund","contactPerson":"Michelle","activityType":"Bloomberg Chat","ticker":"APPLE 30","size":2,"direction":"BUY","price":101,"status":"PASSED","notes":"Client asked for offer at 2mm, quoted 101 but passed"}]
 
-Example 3:
-Transcript: "I need a two-way quote on 20MM Microsoft 3.5s"
-Analysis: Client might buy or sell
-Direction: TWO-WAY
+EXAMPLE 3:
+Input: "John (ABC Fund): What's your offer on TSLA 5Y? / Frank: 98.5 / John: Thanks, will get back"
+Output: [{"clientName":"ABC Fund","contactPerson":"John","activityType":"Bloomberg Chat","ticker":"TSLA 5Y","direction":"BUY","price":98.5,"status":"QUOTED","notes":"Client enquired about offer, quoted 98.5"}]
 
-Example 4:
-Transcript: "Bosera: Bosera bid 10mm DKS 52\nPaul: @ 100\nBosera: Done"
-Analysis: Bosera STATED their bid (offering to buy at 100)
-Direction: BUY
+Now analyze this transcript:
 
-Example 5:
-Transcript: "Client offers 15mm corporate bonds at 99.5"
-Analysis: Client STATED their offer (offering to sell at 99.5)
-Direction: SELL
-
-NOW ANALYZE THIS TRANSCRIPT:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ${transcript}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Extract all trade-related activities. For each activity, return:
-- clientName (uppercase, e.g. "ABC FUND")
-- bondName or isin (if mentioned)
-- ticker (if mentioned, e.g. "AAPL" for Apple)
-- size (in millions, numeric only, e.g. 10 for "10MM")
-- currency (USD/EUR/GBP etc, default "USD" if not mentioned)
-- direction (BUY/SELL/TWO-WAY - FOLLOW THE RULES ABOVE CAREFULLY!)
-- price (if mentioned, numeric)
-- notes (any market color, pricing comments, or context)
-- confidence (your confidence level: "high", "medium", or "low")
-
-Return ONLY a JSON array with no markdown formatting, like:
-[{"clientName":"ABC FUND","bondName":"Apple 2.5% 2030","isin":"US0378331005","ticker":"AAPL","size":10,"currency":"USD","direction":"SELL","price":98.75,"notes":"Client asking for bid on 10MM","confidence":"high"}]
-
-If no activities found, return empty array: []
-
-REMEMBER: BID = CLIENT IS SELLING, OFFER = CLIENT IS BUYING`;
+Return ONLY the JSON array, no other text.`;
 
     const result = await model.generateContent(prompt);
-    const response = result.response;
-    let text = response.text().trim();
-    
-    // Strip markdown code fences if present
-    text = text.replace(/^```json\n?/i, '').replace(/\n?```$/i, '');
-    
+    const response = await result.response;
+    let text = response.text();
+
+    // Clean up markdown code blocks if present
+    text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+
     // Parse the JSON
     let activities;
     try {
       activities = JSON.parse(text);
-    } catch (parseErr) {
-      console.error('Failed to parse Gemini response:', text);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', text);
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: 'AI returned invalid JSON', raw: text })
+        headers,
+        body: JSON.stringify({ 
+          error: 'Failed to parse AI response',
+          rawResponse: text 
+        })
       };
     }
 
-    if (!Array.isArray(activities)) {
-      activities = [];
-    }
+    // Validate and clean up activities
+    const validActivities = activities.filter(activity => {
+      return activity.clientName && 
+             (activity.ticker || activity.isin) && 
+             activity.direction &&
+             activity.status;
+    }).map(activity => ({
+      clientName: activity.clientName,
+      contactPerson: activity.contactPerson || '',
+      activityType: 'Bloomberg Chat',
+      isin: activity.isin || '',
+      ticker: activity.ticker || '',
+      size: activity.size ? parseFloat(activity.size) : null,
+      currency: 'USD', // Default, can be overridden
+      price: activity.price ? parseFloat(activity.price) : null,
+      direction: activity.direction,
+      status: activity.status,
+      notes: activity.notes || ''
+    }));
 
-    // Validation layer - double-check the direction based on keywords
-    activities = activities.map(activity => {
-      const originalDirection = activity.direction;
-      
-      // Extract just the relevant context for this specific client/activity
-      const activityContext = extractActivityContext(transcript, activity);
-      const validatedDirection = validateDirection(activityContext, activity);
-      
-      // If validation suggests a different direction, flag it
-      if (validatedDirection !== originalDirection && validatedDirection !== 'UNKNOWN') {
-        activity.notes = (activity.notes || '') + ` [Auto-corrected from ${originalDirection} to ${validatedDirection}]`;
-        activity.direction = validatedDirection;
-        activity.confidence = 'medium'; // Lower confidence when we had to correct
-      }
-      
-      return activity;
-    });
+    console.log(`✅ Extracted ${validActivities.length} activities from transcript`);
 
     return {
       statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ activities })
+      headers,
+      body: JSON.stringify({
+        success: true,
+        activities: validActivities,
+        count: validActivities.length
+      })
     };
 
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('Error analyzing transcript:', error);
+    
     return {
       statusCode: 500,
+      headers,
       body: JSON.stringify({ 
-        error: error.message || 'AI analysis failed',
-        details: error.toString()
+        error: error.message,
+        success: false
       })
     };
   }
 };
-
-/**
- * Extracts relevant context for a specific activity from the full transcript
- * This ensures validation checks only the client's specific conversation
- */
-function extractActivityContext(transcript, activity) {
-  if (!activity.clientName) {
-    return transcript; // If no client name, check entire transcript
-  }
-  
-  const lines = transcript.split('\n');
-  const clientName = activity.clientName.toLowerCase();
-  
-  // Find lines that mention this client
-  const relevantLines = lines.filter(line => {
-    const lowerLine = line.toLowerCase();
-    return lowerLine.includes(clientName) || 
-           // Also include the next line after client (dealer's response)
-           lines[lines.indexOf(line) - 1]?.toLowerCase().includes(clientName);
-  });
-  
-  // If we found relevant lines, use those; otherwise use full transcript
-  return relevantLines.length > 0 ? relevantLines.join('\n') : transcript;
-}
-
-/**
- * Validates the direction based on keyword analysis
- * This acts as a safety net if the AI misinterprets
- */
-function validateDirection(transcript, activity) {
-  const lowerTranscript = transcript.toLowerCase();
-  
-  // CRITICAL: Distinguish between ASKING for bid/offer vs MAKING bid/offer
-  
-  // Pattern 1: Client MAKING a bid (stating their price) = BUYING
-  const clientMakingBid = [
-    /\b(i bid|we bid|[a-z]+ bid \d+|client bid)\b/i,
-    /\b(bosera|fidelity|blackrock|efund|vanguard|pimco|jpmorgan|state street|invesco) bid\b/i
-  ];
-  
-  // Pattern 2: Client ASKING for your bid = SELLING
-  const clientAskingForBid = [
-    /\b(what'?s? (is )?your bid|can you bid|give me a bid|show me (a|your) bid)\b/i,
-    /\b(where('?s| is) your bid|need a bid)\b/i
-  ];
-  
-  // Pattern 3: Client MAKING an offer (stating their price) = SELLING
-  const clientMakingOffer = [
-    /\b(i offer|we offer|[a-z]+ offers? \d+|client offers?)\b/i,
-    /\b(bosera|fidelity|blackrock|efund|vanguard|pimco|jpmorgan|state street|invesco) offers?\b/i
-  ];
-  
-  // Pattern 4: Client ASKING for your offer = BUYING
-  const clientAskingForOffer = [
-    /\b(what'?s? (is )?your (offer|ask)|can you offer|give me an offer|offer me)\b/i,
-    /\b(where('?s| is) your (offer|ask)|show me (an|your) (offer|ask))\b/i
-  ];
-  
-  // Two-way indicators
-  const twoWayKeywords = [
-    /\b(two-?way|both sides|bid and offer|bid-offer)\b/i
-  ];
-  
-  // Check for two-way first
-  if (twoWayKeywords.some(regex => regex.test(lowerTranscript))) {
-    return 'TWO-WAY';
-  }
-  
-  // Priority order matters! Check "making bid/offer" BEFORE "asking for bid/offer"
-  // because "I bid" is more specific than general "bid" mentions
-  
-  // Check if client is MAKING a bid (they're buying)
-  if (clientMakingBid.some(regex => regex.test(lowerTranscript))) {
-    return 'BUY';
-  }
-  
-  // Check if client is MAKING an offer (they're selling)
-  if (clientMakingOffer.some(regex => regex.test(lowerTranscript))) {
-    return 'SELL';
-  }
-  
-  // Check if client is ASKING for your bid (they're selling)
-  if (clientAskingForBid.some(regex => regex.test(lowerTranscript))) {
-    return 'SELL';
-  }
-  
-  // Check if client is ASKING for your offer (they're buying)
-  if (clientAskingForOffer.some(regex => regex.test(lowerTranscript))) {
-    return 'BUY';
-  }
-  
-  // If we can't determine, return unknown (keep AI's guess)
-  return 'UNKNOWN';
-}
