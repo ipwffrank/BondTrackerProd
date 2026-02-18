@@ -40,7 +40,7 @@ exports.handler = async (event) => {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
     const prompt = `You are analyzing bond trading chat transcripts from a DEALER's perspective. The dealer (me) is talking to clients.
 
