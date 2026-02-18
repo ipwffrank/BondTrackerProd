@@ -1,123 +1,120 @@
-// netlify/functions/send-invite.js
-export default async (req, context) => {
-  // Only allow POST requests
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405,
-      headers: { 'Content-Type': 'application/json' }
-    });
+const { Resend } = require('resend');
+
+exports.handler = async (event) => {
+  // CORS headers
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS'
+  };
+
+  // Handle preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return {
+      statusCode: 405,
+      headers,
+      body: JSON.stringify({ error: 'Method not allowed' })
+    };
   }
 
   try {
-    const body = await req.json();
-    const { email, organizationName, invitedBy, role } = body;
+    const { email, organizationName, invitedBy, signupUrl } = JSON.parse(event.body);
 
     // Validate required fields
-    if (!email || !organizationName) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
+    if (!email || !organizationName || !invitedBy) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Missing required fields' })
+      };
     }
 
-    // Get Resend API key from environment variables
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    
-    if (!RESEND_API_KEY) {
+    // Check for Resend API key
+    if (!process.env.RESEND_API_KEY) {
       console.error('RESEND_API_KEY not configured');
-      return new Response(JSON.stringify({ error: 'Email service not configured' }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Email service not configured',
+          sent: false
+        })
+      };
     }
 
-    // Your app's signup URL
-    const signupUrl = 'https://bondnie.netlify.app/signup';
+    const resend = new Resend(process.env.RESEND_API_KEY);
 
-    // Send email via Resend API
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Bond Tracker <onboarding@resend.dev>', // Change to your verified domain
-        to: [email],
-        subject: `You're invited to join ${organizationName} on Bond Tracker`,
-        html: `
-          <!DOCTYPE html>
-          <html>
+    // Send email
+    const data = await resend.emails.send({
+      from: 'BondTracker <onboarding@resend.dev>',
+      to: email,
+      subject: `You're invited to join ${organizationName} on BondTracker`,
+      html: `
+        <!DOCTYPE html>
+        <html>
           <head>
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #3B82F6, #8B5CF6); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
-              .header h1 { color: white; margin: 0; font-size: 24px; }
-              .content { background: #f9fafb; padding: 30px; border: 1px solid #e5e7eb; }
-              .button { display: inline-block; background: #3B82F6; color: white; padding: 14px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; margin: 20px 0; }
-              .button:hover { background: #2563EB; }
-              .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }
-              .role-badge { display: inline-block; background: ${role === 'admin' ? '#8B5CF6' : '#6B7280'}; color: white; padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+              .header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+              .button { display: inline-block; background: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+              .button:hover { background: #4f46e5; }
+              .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
             </style>
           </head>
           <body>
             <div class="container">
               <div class="header">
-                <h1>📊 Bond Tracker</h1>
+                <h1>🎉 You're Invited!</h1>
               </div>
               <div class="content">
-                <h2>You're Invited!</h2>
                 <p>Hi there,</p>
-                <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on Bond Tracker as a <span class="role-badge">${role === 'admin' ? 'Admin' : 'Team Member'}</span>.</p>
-                
-                <p>Bond Tracker is an enterprise bond sales tracking platform with:</p>
-                <ul>
-                  <li>📋 Activity tracking with AI transcript analysis</li>
-                  <li>👥 Client CRM management</li>
-                  <li>📊 Pipeline management with Kanban boards</li>
-                  <li>📈 Real-time analytics and reporting</li>
-                </ul>
-                
+                <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on BondTracker.</p>
+                <p>BondTracker helps teams manage bond trading activities, client relationships, and deal pipelines.</p>
                 <p style="text-align: center;">
-                  <a href="${signupUrl}" class="button">Accept Invitation & Sign Up</a>
+                  <a href="${signupUrl || 'https://bondtracker.netlify.app/signup'}" class="button">
+                    Accept Invitation
+                  </a>
                 </p>
-                
-                <p><strong>Important:</strong> Please sign up using this email address (<strong>${email}</strong>) to automatically join ${organizationName}.</p>
-                
-                <p>This invitation expires in 7 days.</p>
-              </div>
-              <div class="footer">
-                <p>© ${new Date().getFullYear()} Bond Tracker. All rights reserved.</p>
-                <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+                <p><strong>Important:</strong> Please use this email address (<strong>${email}</strong>) when signing up to join the organization.</p>
+                <div class="footer">
+                  <p>This invitation was sent from BondTracker</p>
+                  <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+                </div>
               </div>
             </div>
           </body>
-          </html>
-        `
+        </html>
+      `
+    });
+
+    console.log('Email sent successfully:', data);
+
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ 
+        success: true, 
+        sent: true,
+        messageId: data.id 
       })
-    });
-
-    const result = await response.json();
-
-    if (!response.ok) {
-      console.error('Resend API error:', result);
-      return new Response(JSON.stringify({ error: 'Failed to send email', details: result }), {
-        status: 500,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    return new Response(JSON.stringify({ success: true, messageId: result.id }), {
-      status: 200,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    };
 
   } catch (error) {
-    console.error('Error sending invite:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    console.error('Email send error:', error);
+    
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ 
+        error: error.message,
+        sent: false
+      })
+    };
   }
 };

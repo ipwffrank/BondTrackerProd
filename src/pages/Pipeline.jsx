@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
 export default function Pipeline() {
   const { userData } = useAuth();
@@ -26,6 +27,7 @@ export default function Pipeline() {
   });
 
   const [orderBookForm, setOrderBookForm] = useState({
+    issuerName: '',
     clientName: '',
     orderSize: '',
     orderLimit: '',
@@ -149,6 +151,7 @@ export default function Pipeline() {
       const orderBooksRef = collection(db, `organizations/${userData.organizationId}/orderBooks`);
       
       await addDoc(orderBooksRef, {
+        issuerName: orderBookForm.issuerName,
         clientName: orderBookForm.clientName,
         orderSize: parseFloat(orderBookForm.orderSize) || 0,
         orderLimit: orderBookForm.orderLimit,
@@ -160,6 +163,7 @@ export default function Pipeline() {
       alert('Order added successfully!');
       
       setOrderBookForm({
+        issuerName: '',
         clientName: '',
         orderSize: '',
         orderLimit: '',
@@ -196,6 +200,92 @@ export default function Pipeline() {
       console.error('Error deleting order:', error);
       alert('Failed to delete order');
     }
+  }
+
+  // Export functions for New Issues
+  function handleExportNewIssuesExcel() {
+    if (newIssues.length === 0) {
+      alert('No new issues to export!');
+      return;
+    }
+
+    const exportData = newIssues.map(issue => ({
+      ...issue,
+      bookrunners: issue.bookrunners?.join(', ') || '-'
+    }));
+
+    const columns = [
+      { header: 'Date', field: 'createdAt' },
+      { header: 'Issuer Name', field: 'issuerName' },
+      { header: 'Target Size (MM)', field: 'targetIssueSize' },
+      { header: 'Currency', field: 'currency' },
+      { header: 'Bookrunners', field: 'bookrunners' },
+      { header: 'Created By', field: 'createdBy' }
+    ];
+
+    exportToExcel(exportData, columns, 'new-issues-export', 'New Issues');
+  }
+
+  function handleExportNewIssuesPDF() {
+    if (newIssues.length === 0) {
+      alert('No new issues to export!');
+      return;
+    }
+
+    const exportData = newIssues.map(issue => ({
+      ...issue,
+      bookrunners: issue.bookrunners?.join(', ') || '-'
+    }));
+
+    const columns = [
+      { header: 'Date', field: 'createdAt' },
+      { header: 'Issuer Name', field: 'issuerName' },
+      { header: 'Target Size (MM)', field: 'targetIssueSize' },
+      { header: 'Currency', field: 'currency' },
+      { header: 'Bookrunners', field: 'bookrunners' },
+      { header: 'Created By', field: 'createdBy' }
+    ];
+
+    exportToPDF(exportData, columns, 'new-issues-export', 'New Issues Pipeline');
+  }
+
+  // Export functions for Order Book
+  function handleExportOrderBookExcel() {
+    if (orderBooks.length === 0) {
+      alert('No orders to export!');
+      return;
+    }
+
+    const columns = [
+      { header: 'Date', field: 'createdAt' },
+      { header: 'Issue', field: 'issuerName' },
+      { header: 'Client', field: 'clientName' },
+      { header: 'Order Size (MM)', field: 'orderSize' },
+      { header: 'Order Limit', field: 'orderLimit' },
+      { header: 'Notes', field: 'notes' },
+      { header: 'Created By', field: 'createdBy' }
+    ];
+
+    exportToExcel(orderBooks, columns, 'order-book-export', 'Order Book');
+  }
+
+  function handleExportOrderBookPDF() {
+    if (orderBooks.length === 0) {
+      alert('No orders to export!');
+      return;
+    }
+
+    const columns = [
+      { header: 'Date', field: 'createdAt' },
+      { header: 'Issue', field: 'issuerName' },
+      { header: 'Client', field: 'clientName' },
+      { header: 'Order Size (MM)', field: 'orderSize' },
+      { header: 'Order Limit', field: 'orderLimit' },
+      { header: 'Notes', field: 'notes' },
+      { header: 'Created By', field: 'createdBy' }
+    ];
+
+    exportToPDF(orderBooks, columns, 'order-book-export', 'Order Book');
   }
 
   if (loading) {
@@ -256,7 +346,7 @@ export default function Pipeline() {
                       <input
                         type="text"
                         className="form-input"
-                        placeholder="Company Name"
+                        placeholder="e.g., Apple Inc."
                         value={newIssueForm.issuerName}
                         onChange={(e) => setNewIssueForm({...newIssueForm, issuerName: e.target.value})}
                         required
@@ -269,7 +359,7 @@ export default function Pipeline() {
                         type="number"
                         step="0.01"
                         className="form-input"
-                        placeholder="500"
+                        placeholder="e.g., 500"
                         value={newIssueForm.targetIssueSize}
                         onChange={(e) => setNewIssueForm({...newIssueForm, targetIssueSize: e.target.value})}
                         required
@@ -336,10 +426,18 @@ export default function Pipeline() {
               </form>
             </div>
 
-            {/* New Issues List */}
+            {/* New Issues List with Export Buttons */}
             <div className="card" style={{marginTop: '24px'}}>
               <div className="card-header">
                 <span>📋 New Issues ({newIssues.length})</span>
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button onClick={handleExportNewIssuesExcel} className="btn btn-secondary">
+                    📊 Export Excel
+                  </button>
+                  <button onClick={handleExportNewIssuesPDF} className="btn btn-secondary">
+                    📄 Export PDF
+                  </button>
+                </div>
               </div>
               
               <div className="table-container">
@@ -402,6 +500,28 @@ export default function Pipeline() {
                 <div className="form-grid">
                   <div className="field-row">
                     <div className="field-group">
+                      <label className="form-label">Select New Issue *</label>
+                      <select
+                        className="form-select"
+                        value={orderBookForm.issuerName}
+                        onChange={(e) => setOrderBookForm({...orderBookForm, issuerName: e.target.value})}
+                        required
+                      >
+                        <option value="">Select Issue</option>
+                        {newIssues.map(issue => (
+                          <option key={issue.id} value={issue.issuerName}>
+                            {issue.issuerName} - {issue.targetIssueSize}MM {issue.currency}
+                          </option>
+                        ))}
+                      </select>
+                      {newIssues.length === 0 && (
+                        <p style={{fontSize: '12px', color: 'var(--badge-warning-text)', marginTop: '6px'}}>
+                          ⚠️ No new issues available. Create a new issue first in the "New Issues" tab.
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="field-group">
                       <label className="form-label">Client Name *</label>
                       <select
                         className="form-select"
@@ -415,38 +535,41 @@ export default function Pipeline() {
                         ))}
                       </select>
                     </div>
+                  </div>
 
+                  <div className="field-row">
                     <div className="field-group">
                       <label className="form-label">Order Size (MM) *</label>
                       <input
                         type="number"
                         step="0.01"
                         className="form-input"
-                        placeholder="50"
+                        placeholder="e.g., 50"
                         value={orderBookForm.orderSize}
                         onChange={(e) => setOrderBookForm({...orderBookForm, orderSize: e.target.value})}
                         required
+                      />
+                    </div>
+
+                    <div className="field-group">
+                      <label className="form-label">Order Limit</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g., 3.5% or Market"
+                        value={orderBookForm.orderLimit}
+                        onChange={(e) => setOrderBookForm({...orderBookForm, orderLimit: e.target.value})}
                       />
                     </div>
                   </div>
 
                   <div className="field-row">
                     <div className="field-group">
-                      <label className="form-label">Order Limit</label>
-                      <input
-                        type="text"
-                        className="form-input"
-                        placeholder="e.g., 3.5%"
-                        value={orderBookForm.orderLimit}
-                        onChange={(e) => setOrderBookForm({...orderBookForm, orderLimit: e.target.value})}
-                      />
-                    </div>
-
-                    <div className="field-group">
                       <label className="form-label">Notes</label>
                       <textarea
                         className="form-textarea"
                         rows="2"
+                        placeholder="e.g., Limit order, fill or kill"
                         value={orderBookForm.notes}
                         onChange={(e) => setOrderBookForm({...orderBookForm, notes: e.target.value})}
                       />
@@ -462,10 +585,18 @@ export default function Pipeline() {
               </form>
             </div>
 
-            {/* Order Book List */}
+            {/* Order Book List with Export Buttons */}
             <div className="card" style={{marginTop: '24px'}}>
               <div className="card-header">
                 <span>📋 Order Book ({orderBooks.length})</span>
+                <div style={{display: 'flex', gap: '10px'}}>
+                  <button onClick={handleExportOrderBookExcel} className="btn btn-secondary">
+                    📊 Export Excel
+                  </button>
+                  <button onClick={handleExportOrderBookPDF} className="btn btn-secondary">
+                    📄 Export PDF
+                  </button>
+                </div>
               </div>
               
               <div className="table-container">
@@ -473,6 +604,7 @@ export default function Pipeline() {
                   <thead>
                     <tr>
                       <th>Date</th>
+                      <th>Issue</th>
                       <th>Client</th>
                       <th>Order Size</th>
                       <th>Order Limit</th>
@@ -484,7 +616,7 @@ export default function Pipeline() {
                   <tbody>
                     {orderBooks.length === 0 ? (
                       <tr>
-                        <td colSpan="7" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
                           No orders yet. Add your first order above!
                         </td>
                       </tr>
@@ -492,7 +624,8 @@ export default function Pipeline() {
                       orderBooks.map((order) => (
                         <tr key={order.id}>
                           <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
-                          <td style={{fontWeight: 600}}>{order.clientName}</td>
+                          <td style={{fontWeight: 600}}>{order.issuerName}</td>
+                          <td>{order.clientName}</td>
                           <td>{order.orderSize}MM</td>
                           <td>{order.orderLimit || '-'}</td>
                           <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis'}}>{order.notes || '-'}</td>
@@ -675,6 +808,17 @@ export default function Pipeline() {
           cursor: not-allowed;
         }
 
+        .btn-secondary {
+          background: var(--btn-secondary-bg);
+          color: #fff;
+          padding: 8px 14px;
+          font-size: 13px;
+        }
+
+        .btn-secondary:hover {
+          background: var(--btn-secondary-hover);
+        }
+
         .btn-icon {
           background: none;
           border: none;
@@ -761,6 +905,12 @@ export default function Pipeline() {
         @media (max-width: 768px) {
           .field-row {
             grid-template-columns: 1fr;
+          }
+
+          .card-header {
+            flex-direction: column;
+            gap: 12px;
+            align-items: flex-start;
           }
         }
       `}</style>

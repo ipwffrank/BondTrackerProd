@@ -45,6 +45,10 @@
   --toggle-bg: #334155;
   --toggle-knob: #6366f1;
   --logo-color: #6366f1;
+  
+  /* Enhanced Placeholder Variables for Dark Theme */
+  --placeholder-color: #a5b4fc;
+  --placeholder-opacity: 0.75;
 }
 
 :root[data-theme="light"] {
@@ -93,6 +97,10 @@
   --toggle-bg: #d1d5db;
   --toggle-knob: #0066cc;
   --logo-color: #0066cc;
+  
+  /* Enhanced Placeholder Variables for Light Theme */
+  --placeholder-color: #0066cc;
+  --placeholder-opacity: 0.65;
 }
 
 /* Base Styles */
@@ -114,204 +122,231 @@ body {
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
+
 /* ============================================
-   ENHANCED INPUT BOX VISIBILITY
-   Make all form fields clearly visible
+   ENHANCED PLACEHOLDER STYLING
+   Highly visible, harmonized with theme
    ============================================ */
 
-/* Base input styling - highly visible boxes */
-input[type="text"],
-input[type="email"],
-input[type="number"],
-input[type="password"],
-input[type="search"],
-input[type="tel"],
-input[type="url"],
-input[type="date"],
-input[type="time"],
-textarea,
-select {
-  /* Stronger border for visibility */
-  border: 2px solid var(--border) !important;
-  
-  /* Subtle background to make box stand out */
-  background: var(--bg-input) !important;
-  
-  /* Add inner shadow for depth */
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-  
-  /* Ensure padding is visible */
-  padding: 12px 16px !important;
- 
-  /* Round corners for modern look */
-  border-radius: 8px !important;
-  
-  /* Smooth transitions */
-  transition: all 0.2s ease !important;
+/* Standard Input Placeholders */
+input::placeholder,
+textarea::placeholder,
+select::placeholder {
+  color: var(--placeholder-color) !important;
+  opacity: var(--placeholder-opacity) !important;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
 }
 
-/* Dark theme - lighter border for contrast */
-[data-theme="dark"] input[type="text"],
-[data-theme="dark"] input[type="email"],
-[data-theme="dark"] input[type="number"],
-[data-theme="dark"] input[type="password"],
-[data-theme="dark"] input[type="search"],
-[data-theme="dark"] input[type="tel"],
-[data-theme="dark"] input[type="url"],
-[data-theme="dark"] input[type="date"],
-[data-theme="dark"] input[type="time"],
-[data-theme="dark"] textarea,
-[data-theme="dark"] select {
-  border-color: #475569 !important;
-  background: rgba(30, 41, 59, 0.8) !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3),
-              0 0 0 1px rgba(99, 102, 241, 0.1) !important;
+/* Placeholder on Focus - Slightly Dimmed */
+input:focus::placeholder,
+textarea:focus::placeholder,
+select:focus::placeholder {
+  opacity: 0.45 !important;
+  transition: opacity 0.2s ease;
 }
 
-/* Light theme - defined border */
-[data-theme="light"] input[type="text"],
-[data-theme="light"] input[type="email"],
-[data-theme="light"] input[type="number"],
-[data-theme="light"] input[type="password"],
-[data-theme="light"] input[type="search"],
-[data-theme="light"] input[type="tel"],
-[data-theme="light"] input[type="url"],
-[data-theme="light"] input[type="date"],
-[data-theme="light"] input[type="time"],
-[data-theme="light"] textarea,
-[data-theme="light"] select {
-  border-color: #cbd5e1 !important;
-  background: #ffffff !important;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05),
-              0 0 0 1px rgba(0, 102, 204, 0.05) !important;
+/* Enhanced Placeholder for Important Fields (with required attribute) */
+input[required]::placeholder,
+textarea[required]::placeholder,
+select[required]::placeholder {
+  opacity: 0.85 !important;
+  font-weight: 600;
 }
 
-/* Hover state - make border glow */
-input:hover:not(:focus),
-textarea:hover:not(:focus),
-select:hover:not(:focus) {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 3px var(--accent-glow),
-              inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
+/* Specific styling for different input types */
+
+/* Email inputs - emphasize format */
+input[type="email"]::placeholder {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
 }
 
-/* Focus state - strong visual feedback */
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none !important;
-  border-color: var(--accent) !important;
-  background: var(--bg-input-focus) !important;
-  box-shadow: 0 0 0 4px var(--accent-glow-strong),
-              inset 0 2px 4px rgba(0, 0, 0, 0.06) !important;
-  transform: translateY(-1px) !important;
+/* Number inputs - right-align placeholder for better UX */
+input[type="number"]::placeholder {
+  text-align: left;
+  font-weight: 600;
 }
 
-/* Required fields - special border color when empty */
+/* Textarea placeholders - slightly smaller */
+textarea::placeholder {
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ============================================
+   FORM INPUT ENHANCEMENTS
+   Better visibility and user guidance
+   ============================================ */
+
+/* Add subtle background tint to empty fields */
+input:placeholder-shown,
+textarea:placeholder-shown {
+  background: linear-gradient(
+    135deg,
+    var(--bg-input) 0%,
+    rgba(99, 102, 241, 0.02) 100%
+  );
+}
+
+[data-theme="light"] input:placeholder-shown,
+[data-theme="light"] textarea:placeholder-shown {
+  background: linear-gradient(
+    135deg,
+    var(--bg-input) 0%,
+    rgba(0, 102, 204, 0.02) 100%
+  );
+}
+
+/* Highlight empty required fields with subtle border */
 input[required]:placeholder-shown:not(:focus),
 textarea[required]:placeholder-shown:not(:focus),
-select[required]:invalid:not(:focus) {
-  border-color: rgba(99, 102, 241, 0.4) !important;
-  border-left: 4px solid var(--accent) !important;
-  background: linear-gradient(
-    to right,
-    rgba(99, 102, 241, 0.03) 0%,
-    var(--bg-input) 100%
-  ) !important;
+select[required]:placeholder-shown:not(:focus) {
+  border-color: rgba(99, 102, 241, 0.3);
 }
 
 [data-theme="light"] input[required]:placeholder-shown:not(:focus),
 [data-theme="light"] textarea[required]:placeholder-shown:not(:focus),
-[data-theme="light"] select[required]:invalid:not(:focus) {
-  border-color: rgba(0, 102, 204, 0.3) !important;
-  border-left: 4px solid var(--accent) !important;
-  background: linear-gradient(
-    to right,
-    rgba(0, 102, 204, 0.02) 0%,
-    #ffffff 100%
-  ) !important;
+[data-theme="light"] select[required]:placeholder-shown:not(:focus) {
+  border-color: rgba(0, 102, 204, 0.25);
 }
 
-/* File inputs - special styling */
-input[type="file"] {
-  border: 2px dashed var(--border) !important;
-  background: var(--section-label-bg) !important;
-  padding: 16px !important;
-  cursor: pointer !important;
-}
-
-input[type="file"]:hover {
-  border-color: var(--accent) !important;
-  background: var(--accent-glow) !important;
-}
-
-/* Disabled inputs - clear visual state */
-input:disabled,
-textarea:disabled,
-select:disabled {
-  opacity: 0.5 !important;
-  cursor: not-allowed !important;
-  background: var(--btn-muted-bg) !important;
-  border-style: dashed !important;
-}
-
-/* Textareas - make them stand out more */
-textarea {
-  min-height: 80px !important;
-  resize: vertical !important;
-}
-
-/* Select dropdowns - add down arrow indicator */
-
-/* Add subtle animation on value change */
-@keyframes input-filled {
-  0% {
-    background-position: 0% 50%;
+/* Pulse animation for empty required fields (subtle) */
+@keyframes placeholder-pulse {
+  0%, 100% {
+    border-color: rgba(99, 102, 241, 0.3);
   }
   50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
+    border-color: rgba(99, 102, 241, 0.5);
   }
 }
 
-/* Form field container enhancement */
-.field-group {
-  position: relative !important;
-  margin-bottom: 20px !important;
+[data-theme="light"] input[required]:placeholder-shown:not(:focus),
+[data-theme="light"] textarea[required]:placeholder-shown:not(:focus) {
+  animation: none; /* Disable pulse in light mode for cleaner look */
 }
 
-/* Label above inputs - make more visible */
-.form-label {
-  display: block !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  color: var(--text-secondary) !important;
-  margin-bottom: 8px !important;
-  letter-spacing: 0.01em !important;
+/* ============================================
+   FORM LABEL ENHANCEMENTS
+   Coordinate with placeholder visibility
+   ============================================ */
+
+/* Add asterisk styling for required fields */
+label:has(+ input[required])::after,
+label:has(+ select[required])::after,
+label:has(+ textarea[required])::after {
+  content: " *";
+  color: var(--badge-danger-text);
+  font-weight: 700;
+  margin-left: 2px;
 }
 
-/* Success state (when field is filled) */
-input:not(:placeholder-shown):valid,
-textarea:not(:placeholder-shown):valid {
-  border-left: 4px solid var(--badge-success-text) !important;
-  background: linear-gradient(
-    to right,
-    rgba(34, 197, 94, 0.03) 0%,
-    var(--bg-input) 100%
-  ) !important;
+/* ============================================
+   SELECT DROPDOWN PLACEHOLDER
+   Special handling for select elements
+   ============================================ */
+
+/* Style the first disabled option (used as placeholder) */
+select option[value=""]::before {
+  color: var(--placeholder-color);
+  font-style: italic;
 }
 
-/* Error state (for invalid inputs) */
-input:invalid:not(:focus):not(:placeholder-shown),
-textarea:invalid:not(:focus):not(:placeholder-shown),
-select:invalid:not(:focus):not(:placeholder-shown) {
-  border-color: var(--badge-danger-text) !important;
-  border-left: 4px solid var(--badge-danger-text) !important;
-  background: linear-gradient(
-    to right,
-    rgba(239, 68, 68, 0.05) 0%,
-    var(--bg-input) 100%
-  ) !important;
+/* Dim unselected select elements */
+select:invalid {
+  color: var(--placeholder-color);
+  opacity: var(--placeholder-opacity);
+}
+
+select:valid {
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+/* ============================================
+   ACCESSIBILITY - High Contrast Support
+   ============================================ */
+
+@media (prefers-contrast: high) {
+  input::placeholder,
+  textarea::placeholder,
+  select::placeholder {
+    opacity: 1 !important;
+    font-weight: 600;
+    color: var(--accent) !important;
+  }
+}
+
+/* ============================================
+   FILE INPUT SPECIAL STYLING
+   ============================================ */
+
+/* File inputs need different treatment */
+input[type="file"]::file-selector-button {
+  background: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  margin-right: 12px;
+  transition: all 0.2s;
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   HELPER TEXT STYLING
+   Coordinates with placeholder visibility
+   ============================================ */
+
+.form-hint,
+.helper-text {
+  font-size: 12px;
+  color: var(--placeholder-color);
+  margin-top: 4px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+/* ============================================
+   DARK MODE SPECIFIC TWEAKS
+   ============================================ */
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+  text-shadow: 0 0 1px rgba(165, 180, 252, 0.3);
+}
+
+/* ============================================
+   LIGHT MODE SPECIFIC TWEAKS
+   ============================================ */
+
+[data-theme="light"] input::placeholder,
+[data-theme="light"] textarea::placeholder {
+  font-weight: 600;
+}
+
+/* ============================================
+   ANIMATION FOR VISUAL FEEDBACK
+   ============================================ */
+
+/* Subtle glow when hovering over empty fields */
+input:placeholder-shown:hover:not(:focus),
+textarea:placeholder-shown:hover:not(:focus) {
+  border-color: var(--placeholder-color);
+  box-shadow: 0 0 0 1px var(--placeholder-color);
+}
+
+/* Transition for smooth placeholder changes */
+input,
+textarea,
+select {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
