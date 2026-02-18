@@ -1,3 +1,4 @@
+cat > netlify/functions/analyze-transcript.js << 'EOF'
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 exports.handler = async (event) => {
@@ -122,3 +123,4 @@ ${transcript}`;
     };
   }
 };
+EOF
