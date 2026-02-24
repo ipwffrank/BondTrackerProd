@@ -74,14 +74,13 @@ export default function Navigation() {
             >
               AI Assistant
             </Link>
-            {userData?.isAdmin && (
-              <Link 
-                to="/team" 
-                className={`nav-link ${isActive('/team') ? 'active' : ''}`}
-              >
-                Team
-              </Link>
-            )}
+<Link 
+  to="/team" 
+  className={`nav-link ${isActive('/team') ? 'active' : ''}`}
+>
+  <span className="nav-icon">👥</span>
+  Team
+</Link>
           </div>
         </div>
 
