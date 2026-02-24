@@ -42,7 +42,6 @@ export default function Navigation() {
       <div className="nav-container">
         <div className="nav-brand">
           <Link to="/" className="brand-link">
-            <span className="brand-icon"></span>
             <span className="brand-text">Bond Tracker</span>
           </Link>
         </div>
@@ -52,7 +51,6 @@ export default function Navigation() {
             to="/activities" 
             className={`nav-link ${isActive('/activities') ? 'active' : ''}`}
           >
-            <span className="nav-icon"></span>
             Activities
           </Link>
 
@@ -60,7 +58,6 @@ export default function Navigation() {
             to="/clients" 
             className={`nav-link ${isActive('/clients') ? 'active' : ''}`}
           >
-            <span className="nav-icon"></span>
             Clients
           </Link>
 
@@ -68,7 +65,6 @@ export default function Navigation() {
             to="/pipeline" 
             className={`nav-link ${isActive('/pipeline') ? 'active' : ''}`}
           >
-            <span className="nav-icon"></span>
             Pipeline
           </Link>
 
@@ -76,7 +72,6 @@ export default function Navigation() {
             to="/analytics" 
             className={`nav-link ${isActive('/analytics') ? 'active' : ''}`}
           >
-            <span className="nav-icon"></span>
             Analytics
           </Link>
 
@@ -84,7 +79,6 @@ export default function Navigation() {
             to="/ai-assistant" 
             className={`nav-link ${isActive('/ai-assistant') ? 'active' : ''}`}
           >
-            <span className="nav-icon"></span>
             AI Assistant
           </Link>
 
@@ -93,7 +87,6 @@ export default function Navigation() {
               to="/team" 
               className={`nav-link ${isActive('/team') ? 'active' : ''}`}
             >
-              <span className="nav-icon"></span>
               Team
             </Link>
           )}
@@ -105,7 +98,7 @@ export default function Navigation() {
             className="theme-toggle"
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            {theme === 'dark' ? 'Light' : 'Dark'}
           </button>
 
           <div className="user-menu">
@@ -116,7 +109,7 @@ export default function Navigation() {
               )}
             </div>
             <button onClick={handleLogout} className="btn-logout">
-               Logout
+              Logout
             </button>
           </div>
         </div>
@@ -161,10 +154,6 @@ export default function Navigation() {
           opacity: 0.8;
         }
 
-        .brand-icon {
-          font-size: 28px;
-        }
-
         .brand-text {
           background: linear-gradient(135deg, var(--accent), var(--accent-hover));
           -webkit-background-clip: text;
@@ -184,7 +173,7 @@ export default function Navigation() {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 8px 16px;
+          padding: 10px 18px;
           border-radius: 8px;
           text-decoration: none;
           color: var(--text-secondary);
@@ -204,10 +193,6 @@ export default function Navigation() {
           color: #fff;
         }
 
-        .nav-icon {
-          font-size: 18px;
-        }
-
         .nav-actions {
           display: flex;
           align-items: center;
@@ -216,22 +201,21 @@ export default function Navigation() {
         }
 
         .theme-toggle {
-          width: 40px;
-          height: 40px;
-          border-radius: 50%;
-          border: none;
+          padding: 8px 16px;
+          border-radius: 8px;
+          border: 1px solid var(--border);
           background: var(--card-bg);
+          color: var(--text-primary);
           cursor: pointer;
-          font-size: 20px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          font-size: 13px;
+          font-weight: 600;
           transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
         .theme-toggle:hover {
           background: var(--nav-hover);
-          transform: scale(1.1);
+          transform: translateY(-1px);
         }
 
         .user-menu {
@@ -266,11 +250,11 @@ export default function Navigation() {
         }
 
         .btn-logout {
-          padding: 8px 16px;
+          padding: 10px 18px;
           border-radius: 8px;
-          border: none;
-          background: var(--btn-danger-bg);
-          color: #fff;
+          border: 1px solid #ef4444;
+          background: #ef4444;
+          color: #ffffff;
           font-weight: 600;
           font-size: 13px;
           cursor: pointer;
@@ -279,8 +263,10 @@ export default function Navigation() {
         }
 
         .btn-logout:hover {
-          background: var(--btn-danger-hover);
+          background: #dc2626;
+          border-color: #dc2626;
           transform: translateY(-1px);
+          box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
         }
 
         @media (max-width: 1024px) {
@@ -295,7 +281,7 @@ export default function Navigation() {
           }
 
           .brand-text {
-            display: none;
+            font-size: 18px;
           }
         }
 
