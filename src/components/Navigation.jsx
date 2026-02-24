@@ -1,196 +1,250 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { auth } from '../services/firebase';
+import { signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 
 export default function Navigation() {
-  const { userData, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
-  
-  const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('bondtracker-theme') || 'dark';
-  });
+  const { userData } = useAuth();
+  const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('bondtracker-theme', theme);
-  }, [theme]);
+    const savedTheme = localStorage.getItem('bondtracker-theme') || 'dark';
+    setTheme(savedTheme);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+  }, []);
 
   const toggleTheme = () => {
-    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    localStorage.setItem('bondtracker-theme', newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
   };
 
   const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
+    if (window.confirm('Are you sure you want to log out?')) {
+      try {
+        await signOut(auth);
+        navigate('/login');
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Failed to log out');
+      }
     }
   };
 
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="nav">
-      <div className="nav-content">
-        <div className="nav-left">
-          <div className="logo">
-            <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-              <rect width="32" height="32" rx="6" fill="currentColor"/>
-              <text x="16" y="22" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="18" fill="white">B</text>
-            </svg>
-            <span>BondTracker</span>
-          </div>
-          
-          <div className="nav-links">
-            <Link 
-              to="/activities" 
-              className={`nav-link ${isActive('/activities') ? 'active' : ''}`}
-            >
-              Activity Log
-            </Link>
-            <Link 
-              to="/pipeline" 
-              className={`nav-link ${isActive('/pipeline') ? 'active' : ''}`}
-            >
-              Pipeline
-            </Link>
-            <Link 
-              to="/clients" 
-              className={`nav-link ${isActive('/clients') ? 'active' : ''}`}
-            >
-              Clients
-            </Link>
-            <Link 
-              to="/analytics" 
-              className={`nav-link ${isActive('/analytics') ? 'active' : ''}`}
-            >
-              Analytics
-            </Link>
-            <Link 
-              to="/ai-assistant" 
-              className={`nav-link ${isActive('/ai-assistant') ? 'active' : ''}`}
-            >
-              AI Assistant
-            </Link>
-<Link 
-  to="/team" 
-  className={`nav-link ${isActive('/team') ? 'active' : ''}`}
->
-  <span className="nav-icon">👥</span>
-  Team
-</Link>
-          </div>
+    <nav className="navigation">
+      <div className="nav-container">
+        <div className="nav-brand">
+          <Link to="/" className="brand-link">
+            <span className="brand-icon"></span>
+            <span className="brand-text">Bond Tracker</span>
+          </Link>
         </div>
 
-        <div className="nav-right">
-          <button onClick={toggleTheme} className="theme-toggle" title="Toggle theme">
+        <div className="nav-links">
+          <Link 
+            to="/activities" 
+            className={`nav-link ${isActive('/activities') ? 'active' : ''}`}
+          >
+            <span className="nav-icon"></span>
+            Activities
+          </Link>
+
+          <Link 
+            to="/clients" 
+            className={`nav-link ${isActive('/clients') ? 'active' : ''}`}
+          >
+            <span className="nav-icon"></span>
+            Clients
+          </Link>
+
+          <Link 
+            to="/pipeline" 
+            className={`nav-link ${isActive('/pipeline') ? 'active' : ''}`}
+          >
+            <span className="nav-icon"></span>
+            Pipeline
+          </Link>
+
+          <Link 
+            to="/analytics" 
+            className={`nav-link ${isActive('/analytics') ? 'active' : ''}`}
+          >
+            <span className="nav-icon"></span>
+            Analytics
+          </Link>
+
+          <Link 
+            to="/ai-assistant" 
+            className={`nav-link ${isActive('/ai-assistant') ? 'active' : ''}`}
+          >
+            <span className="nav-icon"></span>
+            AI Assistant
+          </Link>
+
+          {userData?.isAdmin && (
+            <Link 
+              to="/team" 
+              className={`nav-link ${isActive('/team') ? 'active' : ''}`}
+            >
+              <span className="nav-icon"></span>
+              Team
+            </Link>
+          )}
+        </div>
+
+        <div className="nav-actions">
+          <button 
+            onClick={toggleTheme}
+            className="theme-toggle"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
             {theme === 'dark' ? '☀️' : '🌙'}
           </button>
-          
-          <div className="user-info">
-            <div className="user-details">
-              <div className="user-name">{userData?.name || 'User'}</div>
-              <div className="user-org">{userData?.organizationName || 'Organization'}</div>
-            </div>
-            {userData?.isAdmin && (
-              <span className="badge badge-primary">Admin</span>
-            )}
-          </div>
 
-          <button onClick={handleLogout} className="btn btn-danger">
-            Logout
-          </button>
+          <div className="user-menu">
+            <div className="user-info">
+              <span className="user-name">{userData?.name || userData?.email}</span>
+              {userData?.isAdmin && (
+                <span className="badge badge-primary">Admin</span>
+              )}
+            </div>
+            <button onClick={handleLogout} className="btn-logout">
+               Logout
+            </button>
+          </div>
         </div>
       </div>
 
       <style jsx>{`
-        .nav {
+        .navigation {
           background: var(--nav-bg);
-          border-bottom: 1px solid var(--nav-border);
-          backdrop-filter: blur(10px);
+          border-bottom: 1px solid var(--border);
           position: sticky;
           top: 0;
-          z-index: 100;
+          z-index: 1000;
+          backdrop-filter: blur(10px);
         }
 
-        .nav-content {
+        .nav-container {
           max-width: 1400px;
           margin: 0 auto;
-          padding: 16px 24px;
+          padding: 0 24px;
           display: flex;
+          align-items: center;
           justify-content: space-between;
-          align-items: center;
+          height: 64px;
         }
 
-        .nav-left {
-          display: flex;
-          align-items: center;
-          gap: 40px;
+        .nav-brand {
+          flex-shrink: 0;
         }
 
-        .logo {
+        .brand-link {
           display: flex;
           align-items: center;
-          gap: 10px;
-          font-size: 20px;
+          gap: 12px;
+          text-decoration: none;
+          color: var(--text-primary);
           font-weight: 700;
-          color: var(--logo-color);
+          font-size: 20px;
+          transition: opacity 0.2s;
+        }
+
+        .brand-link:hover {
+          opacity: 0.8;
+        }
+
+        .brand-icon {
+          font-size: 28px;
+        }
+
+        .brand-text {
+          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
         }
 
         .nav-links {
           display: flex;
-          gap: 24px;
+          gap: 8px;
+          flex: 1;
+          justify-content: center;
+          padding: 0 24px;
         }
 
         .nav-link {
-          color: var(--text-secondary);
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          padding: 8px 16px;
+          border-radius: 8px;
           text-decoration: none;
-          font-weight: 500;
+          color: var(--text-secondary);
+          font-weight: 600;
           font-size: 14px;
-          transition: color 0.2s;
-          padding: 6px 0;
-          border-bottom: 2px solid transparent;
+          transition: all 0.2s ease;
+          white-space: nowrap;
         }
 
         .nav-link:hover {
-          color: var(--accent);
+          background: var(--nav-hover);
+          color: var(--text-primary);
         }
 
         .nav-link.active {
-          color: var(--accent);
-          border-bottom-color: var(--accent);
+          background: var(--accent);
+          color: #fff;
         }
 
-        .nav-right {
+        .nav-icon {
+          font-size: 18px;
+        }
+
+        .nav-actions {
           display: flex;
           align-items: center;
           gap: 16px;
+          flex-shrink: 0;
         }
 
         .theme-toggle {
-          background: var(--toggle-bg);
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
           border: none;
-          padding: 8px 12px;
-          border-radius: 8px;
+          background: var(--card-bg);
           cursor: pointer;
-          font-size: 18px;
-          transition: all 0.2s;
+          font-size: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s ease;
         }
 
         .theme-toggle:hover {
-          background: var(--accent);
+          background: var(--nav-hover);
+          transform: scale(1.1);
         }
 
-        .user-info {
+        .user-menu {
           display: flex;
           align-items: center;
           gap: 12px;
         }
 
-        .user-details {
-          text-align: right;
+        .user-info {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 4px;
         }
 
         .user-name {
@@ -199,17 +253,11 @@ export default function Navigation() {
           color: var(--text-primary);
         }
 
-        .user-org {
-          font-size: 11px;
-          color: var(--text-muted);
-        }
-
         .badge {
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 11px;
+          padding: 2px 8px;
+          border-radius: 12px;
+          font-size: 10px;
           font-weight: 600;
-          display: inline-block;
         }
 
         .badge-primary {
@@ -217,33 +265,62 @@ export default function Navigation() {
           color: var(--badge-primary-text);
         }
 
-        .btn {
-          padding: 10px 18px;
+        .btn-logout {
+          padding: 8px 16px;
           border-radius: 8px;
-          font-weight: 600;
-          font-size: 13.5px;
-          transition: all 0.2s ease;
-          cursor: pointer;
           border: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          font-family: inherit;
+          background: var(--btn-danger-bg);
+          color: #fff;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s ease;
           white-space: nowrap;
         }
 
-        .btn-danger {
-          background: #dc2626;
-          color: #fff;
+        .btn-logout:hover {
+          background: var(--btn-danger-hover);
+          transform: translateY(-1px);
         }
 
-        .btn-danger:hover {
-          background: #b91c1c;
+        @media (max-width: 1024px) {
+          .nav-links {
+            gap: 4px;
+            padding: 0 12px;
+          }
+
+          .nav-link {
+            padding: 8px 12px;
+            font-size: 13px;
+          }
+
+          .brand-text {
+            display: none;
+          }
         }
 
         @media (max-width: 768px) {
+          .nav-container {
+            height: auto;
+            flex-direction: column;
+            padding: 12px 16px;
+            gap: 12px;
+          }
+
           .nav-links {
-            display: none;
+            width: 100%;
+            justify-content: flex-start;
+            overflow-x: auto;
+            padding: 0;
+          }
+
+          .nav-actions {
+            width: 100%;
+            justify-content: space-between;
+          }
+
+          .user-name {
+            font-size: 12px;
           }
         }
       `}</style>
