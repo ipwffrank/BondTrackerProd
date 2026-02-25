@@ -4,12 +4,14 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import AcceptInvite from './pages/AcceptInvite';
 import Activities from './pages/Activities';
 import AIAssistant from './pages/AIAssistant';
 import Clients from './pages/Clients';
 import Analytics from './pages/Analytics';
 import Pipeline from './pages/Pipeline';
 import Team from './pages/Team';
+import LandingPage from './pages/LandingPage';
 
 function LoadingScreen() {
   return (
@@ -38,6 +40,7 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
         
         {/* Main application routes */}
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
@@ -50,10 +53,10 @@ function AppRoutes() {
         {/* Redirect old dashboard route to activities */}
         <Route path="/dashboard" element={<Navigate to="/activities" replace />} />
         
-        {/* Redirect root based on auth status */}
-        <Route 
-          path="/" 
-          element={currentUser ? <Navigate to="/activities" replace /> : <Navigate to="/login" replace />} 
+        {/* Root: landing page for visitors, app for authenticated users */}
+        <Route
+          path="/"
+          element={currentUser ? <Navigate to="/activities" replace /> : <LandingPage />}
         />
         
         {/* Catch all - redirect to activities if logged in, login if not */}
