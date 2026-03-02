@@ -7,14 +7,14 @@
   --bg-input-focus: #0f172a;
   --border: #334155;
   --border-focus: #C8A258;
-  --text-primary: #f1f5f9;
+  --text-primary: #F0EDE8;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
   --accent: #C8A258;
   --accent-hover: #D4B06A;
   --accent-glow: rgba(200, 162, 88, 0.15);
   --accent-glow-strong: rgba(200, 162, 88, 0.3);
-  --card-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --card-bg: linear-gradient(135deg, rgba(22, 43, 68, 0.85) 0%, rgba(10, 25, 41, 0.95) 100%);
   --nav-bg: rgba(15, 23, 42, 0.85);
   --nav-border: #334155;
   --tab-active-color: #C8A258;
@@ -40,7 +40,8 @@
   --btn-muted-hover: #475569;
   --btn-secondary-bg: #0F2137;
   --btn-secondary-hover: #162B44;
-  --modal-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  --modal-bg: linear-gradient(135deg, rgba(22, 43, 68, 0.9) 0%, rgba(10, 25, 41, 0.98) 100%);
+  --card-border-accent: rgba(200, 162, 88, 0.1);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   --toggle-bg: #334155;
   --toggle-knob: #C8A258;
@@ -120,6 +121,11 @@ body {
 
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+[data-theme="dark"] body {
+  background: linear-gradient(160deg, #0A1929 0%, #0F2137 50%, #0B1C35 100%);
+  background-attachment: fixed;
 }
 
 /* ============================================
@@ -376,4 +382,18 @@ select {
   --mkt-shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
   --mkt-shadow-md: 0 8px 32px rgba(0,0,0,0.06);
   --mkt-shadow-lg: 0 16px 48px rgba(0,0,0,0.08);
+}
+
+/* === APP TYPOGRAPHY — Sora for display, Outfit for body === */
+.page-title {
+  font-family: 'Sora', sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.table th {
+  font-family: 'Sora', sans-serif;
+}
+
+[data-theme="dark"] .card-header {
+  border-bottom-color: var(--card-border-accent);
 }
