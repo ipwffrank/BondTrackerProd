@@ -1,0 +1,13 @@
+{
+  "name": "@alteri/ui",
+  "version": "1.0.0",
+  "description": "Axle brand UI primitives — shared across BondTrackerProd and BondTrackerAdmin",
+  "main": "index.js",
+  "exports": {
+    ".": "./index.js",
+    "./src/*": "./src/*"
+  },
+  "peerDependencies": {
+    "react": ">=18"
+  }
+}
