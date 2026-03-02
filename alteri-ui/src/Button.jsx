@@ -1,7 +1,8 @@
-var React = require('react');
-var e = React.createElement;
+import React from 'react';
 
-var BASE = {
+const e = React.createElement;
+
+const BASE = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -15,43 +16,43 @@ var BASE = {
   textDecoration: 'none',
 };
 
-var SIZE_MAP = {
+const SIZE_MAP = {
   sm: { padding: '8px 18px',  fontSize: '13px' },
   md: { padding: '11px 24px', fontSize: '14px' },
   lg: { padding: '14px 32px', fontSize: '16px' },
 };
 
-var VARIANT_MAP = {
+const VARIANT_MAP = {
   gold:  { background: '#C8A258', color: '#0F2137', border: 'none' },
   ghost: { background: 'transparent', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.2)' },
   navy:  { background: '#0F2137', color: '#C8A258', border: 'none' },
 };
 
-var HOVER_MAP = {
+const HOVER_MAP = {
   gold:  { background: '#D4B06A', transform: 'translateY(-1px)' },
   ghost: { color: '#C8A258', borderColor: '#C8A258' },
   navy:  { background: '#162B44' },
 };
 
-function Button(props) {
-  var variant  = props.variant || 'gold';
-  var size     = props.size    || 'md';
-  var children = props.children;
-  var style    = props.style   || {};
-  var onClick  = props.onClick;
-  var disabled = props.disabled;
-  var type     = props.type    || 'button';
+export default function Button(props) {
+  const variant  = props.variant || 'gold';
+  const size     = props.size    || 'md';
+  const children = props.children;
+  const style    = props.style   || {};
+  const onClick  = props.onClick;
+  const disabled = props.disabled;
+  const type     = props.type    || 'button';
 
-  var sizeStyle    = SIZE_MAP[size]       || SIZE_MAP.md;
-  var variantStyle = VARIANT_MAP[variant] || VARIANT_MAP.gold;
+  const sizeStyle    = SIZE_MAP[size]       || SIZE_MAP.md;
+  const variantStyle = VARIANT_MAP[variant] || VARIANT_MAP.gold;
 
-  var mergedStyle = Object.assign({}, BASE, sizeStyle, variantStyle, style,
+  const mergedStyle = Object.assign({}, BASE, sizeStyle, variantStyle, style,
     disabled ? { opacity: 0.5, cursor: 'not-allowed', transform: 'none' } : {}
   );
 
   function handleMouseEnter(ev) {
     if (disabled) return;
-    var hover = HOVER_MAP[variant] || {};
+    const hover = HOVER_MAP[variant] || {};
     if (hover.background)  ev.currentTarget.style.background  = hover.background;
     if (hover.transform)   ev.currentTarget.style.transform   = hover.transform;
     if (hover.color)       ev.currentTarget.style.color       = hover.color;
@@ -75,5 +76,3 @@ function Button(props) {
     onMouseLeave: handleMouseLeave,
   }, children);
 }
-
-module.exports = Button;

@@ -42,4 +42,4 @@ const tokens = {
   SHADOW_LG:      '0 25px 60px rgba(0,0,0,0.5)',
 };
 
-module.exports = { tokens };
+export { tokens };

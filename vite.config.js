@@ -8,7 +8,4 @@ export default defineConfig({
   resolve: {
     preserveSymlinks: true,
   },
-  optimizeDeps: {
-    include: ['@alteri/ui'],
-  },
 })
