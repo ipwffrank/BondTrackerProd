@@ -1,5 +1,5 @@
-// variant: 'gold' | 'ghost' | 'navy'
-// size:    'sm' | 'md' | 'lg'
+var React = require('react');
+var e = React.createElement;
 
 var BASE = {
   display: 'inline-flex',
@@ -22,9 +22,9 @@ var SIZE_MAP = {
 };
 
 var VARIANT_MAP = {
-  gold: { background: '#C8A258', color: '#0F2137', border: 'none' },
+  gold:  { background: '#C8A258', color: '#0F2137', border: 'none' },
   ghost: { background: 'transparent', color: '#FFFFFF', border: '1px solid rgba(255,255,255,0.2)' },
-  navy: { background: '#0F2137', color: '#C8A258', border: 'none' },
+  navy:  { background: '#0F2137', color: '#C8A258', border: 'none' },
 };
 
 var HOVER_MAP = {
@@ -33,11 +33,7 @@ var HOVER_MAP = {
   navy:  { background: '#162B44' },
 };
 
-// React required inside function — peer dep resolved by consuming app at render.
 function Button(props) {
-  var React = require('react');
-  var e = React.createElement;
-
   var variant  = props.variant || 'gold';
   var size     = props.size    || 'md';
   var children = props.children;
