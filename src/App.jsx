@@ -12,21 +12,36 @@ import Analytics from './pages/Analytics';
 import Pipeline from './pages/Pipeline';
 import Team from './pages/Team';
 import LandingPage from './pages/LandingPage';
+import AuthAction from './pages/AuthAction';
 
 function LoadingScreen() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-      <div className="text-center">
-        <div className="mb-8">
-          <div className="inline-block animate-spin rounded-full h-16 w-16 border-4 border-blue-500 border-t-transparent"></div>
+    <div style={{
+      minHeight: '100vh', background: '#0f172a',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    }}>
+      <div style={{ textAlign: 'center' }}>
+        <div style={{ marginBottom: '24px' }}>
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '28px',
+          }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '10px',
+              background: 'linear-gradient(135deg, #10b981, #059669)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontWeight: '800', fontSize: '20px', color: 'white',
+            }}>A</div>
+            <span style={{ fontSize: '22px', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.3px' }}>Axle</span>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-800 mb-2">Bond Tracker</h2>
-        <p className="text-gray-600">Loading your workspace...</p>
-        <div className="mt-4 flex gap-1 justify-center">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-        </div>
+        <div style={{
+          width: '44px', height: '44px', borderRadius: '50%',
+          border: '3px solid #334155', borderTopColor: '#10b981',
+          animation: 'spin 0.8s linear infinite', margin: '0 auto 20px',
+        }} />
+        <p style={{ color: '#64748b', fontSize: '14px' }}>Loading your workspace...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </div>
   );
@@ -41,6 +56,7 @@ function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
+        <Route path="/auth-action" element={<AuthAction />} />
         
         {/* Main application routes */}
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />

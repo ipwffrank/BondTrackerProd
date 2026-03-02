@@ -12,6 +12,8 @@ export default function Activities() {
   const [clients, setClients] = useState([]);
   const [stats, setStats] = useState({ totalActivities:0,totalVolume:0,buyCount:0,sellCount:0,twoWayCount:0 });
   const [editingActivity, setEditingActivity] = useState(null);
+  const [savingStatus, setSavingStatus] = useState({});
+  const [savingPrice, setSavingPrice] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [bondLookupLoading, setBondLookupLoading] = useState(false);
@@ -80,6 +82,32 @@ export default function Activities() {
     window.scrollTo({top:0,behavior:'smooth'});
   }
 
+  async function handleInlineStatusChange(activityId, newStatus) {
+    setSavingStatus(p => ({...p, [activityId]: true}));
+    try {
+      await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, activityId), { status: newStatus });
+    } catch(e) {
+      console.error(e);
+      alert('Failed to update status');
+    } finally {
+      setSavingStatus(p => ({...p, [activityId]: false}));
+    }
+  }
+
+  async function handleInlinePriceUpdate(activityId, newPrice) {
+    setSavingPrice(p => ({...p, [activityId]: true}));
+    try {
+      await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, activityId), {
+        price: newPrice !== '' ? parseFloat(newPrice) : null
+      });
+    } catch(e) {
+      console.error(e);
+      alert('Failed to update price');
+    } finally {
+      setSavingPrice(p => ({...p, [activityId]: false}));
+    }
+  }
+
   function handleExportExcel(){
     if(activities.length===0){alert('No activities to export!');return;}
     exportToExcel(activities,[
@@ -95,7 +123,8 @@ export default function Activities() {
     exportToPDF(activities,[
       {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Type',field:'activityType'},
       {header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},
-      {header:'Direction',field:'direction'},{header:'Status',field:'status'}
+      {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},
+      {header:'Price',field:'price'},{header:'Status',field:'status'},{header:'Notes',field:'notes'}
     ],'activity-log-export','Activity Log');
   }
 
@@ -110,7 +139,7 @@ export default function Activities() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">📋 Activity Log</h1>
+            <h1 className="page-title">Activity Log</h1>
             <p className="page-description">Track client interactions and bond trading activities</p>
           </div>
           <div className="stats-summary">
@@ -224,10 +253,10 @@ export default function Activities() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>Date</th><th>Client</th><th>Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Actions</th></tr>
+                <tr><th>Date</th><th>Client</th><th>Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {activities.length===0?(<tr><td colSpan="10" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No activities yet. Add your first activity above!</td></tr>):(
+                {activities.length===0?(<tr><td colSpan="11" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No activities yet. Add your first activity above!</td></tr>):(
                   activities.map(a=>(
                     <tr key={a.id}>
                       <td>{a.createdAt?new Date(a.createdAt).toLocaleDateString():'-'}</td>
@@ -237,8 +266,35 @@ export default function Activities() {
                       <td>{a.size}MM</td>
                       <td>{a.currency}</td>
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>
-                      <td>{a.price||'-'}</td>
-                      <td><span className={`badge ${stsBadge(a.status)}`}>{a.status}</span></td>
+                      <td>
+                        {['QUOTED','TRADED AWAY','EXECUTED'].includes(a.status) ? (
+                          <input
+                            type="number"
+                            step="0.0001"
+                            defaultValue={a.price||''}
+                            placeholder="Price"
+                            className="inline-price-input"
+                            onBlur={e=>handleInlinePriceUpdate(a.id,e.target.value)}
+                            onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
+                            title={savingPrice[a.id]?'Saving...':'Enter price, then press Enter or click away'}
+                          />
+                        ) : (a.price||'-')}
+                      </td>
+                      <td>
+                        <select
+                          value={a.status}
+                          onChange={e=>handleInlineStatusChange(a.id,e.target.value)}
+                          className={`inline-status-select status-${a.status.replace(/\s+/g,'-').toLowerCase()}`}
+                          disabled={savingStatus[a.id]}
+                        >
+                          <option value="ENQUIRY">Enquiry</option>
+                          <option value="QUOTED">Quoted</option>
+                          <option value="EXECUTED">Executed</option>
+                          <option value="PASSED">Passed</option>
+                          <option value="TRADED AWAY">Traded Away</option>
+                        </select>
+                      </td>
+                      <td style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={a.notes||''}>{a.notes||'-'}</td>
                       <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleEditActivity(a)} title="Edit">✏️</button><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete">🗑️</button></div></td>
                     </tr>
                   ))
@@ -294,6 +350,16 @@ export default function Activities() {
         .badge-danger{background:var(--badge-danger-bg);color:var(--badge-danger-text);}
         .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;}
         @keyframes spin{to{transform:rotate(360deg);}}
+        .inline-status-select{padding:4px 8px;border-radius:20px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--bg-input);color:var(--text-primary);cursor:pointer;font-family:inherit;appearance:auto;}
+        .inline-status-select:focus{outline:none;border-color:var(--border-focus);}
+        .inline-status-select:disabled{opacity:0.6;cursor:wait;}
+        .inline-status-select.status-enquiry{background:var(--badge-primary-bg);color:var(--badge-primary-text);border-color:var(--badge-primary-text);}
+        .inline-status-select.status-quoted{background:var(--badge-warning-bg);color:var(--badge-warning-text);border-color:var(--badge-warning-text);}
+        .inline-status-select.status-executed{background:var(--badge-success-bg);color:var(--badge-success-text);border-color:var(--badge-success-text);}
+        .inline-status-select.status-passed{background:var(--badge-danger-bg);color:var(--badge-danger-text);border-color:var(--badge-danger-text);}
+        .inline-status-select.status-traded-away{background:var(--badge-danger-bg);color:var(--badge-danger-text);border-color:var(--badge-danger-text);}
+        .inline-price-input{width:90px;padding:4px 8px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;font-family:inherit;}
+        .inline-price-input:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);}
         @media(max-width:768px){.field-row{grid-template-columns:1fr;}.stats-summary{width:100%;justify-content:space-between;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}}
       `}</style>
     </div>

@@ -60,12 +60,15 @@ export default function Pipeline() {
         }));
         setNewIssues(data);
         setLoading(false);
+      }, (error) => {
+        console.error('Error loading new issues:', error);
+        setLoading(false);
       });
       unsubscribes.push(newIssuesUnsub);
 
       const orderBooksRef = collection(db, `organizations/${userData.organizationId}/orderBooks`);
       const orderBooksQuery = query(orderBooksRef, orderBy('createdAt', 'desc'));
-      
+
       const orderBooksUnsub = onSnapshot(orderBooksQuery, (snapshot) => {
         const data = snapshot.docs.map(doc => ({
           id: doc.id,
@@ -73,6 +76,8 @@ export default function Pipeline() {
           createdAt: doc.data().createdAt?.toDate()
         }));
         setOrderBooks(data);
+      }, (error) => {
+        console.error('Error loading order books:', error);
       });
       unsubscribes.push(orderBooksUnsub);
 
@@ -83,6 +88,8 @@ export default function Pipeline() {
           ...doc.data()
         }));
         setClients(data);
+      }, (error) => {
+        console.error('Error loading clients:', error);
       });
       unsubscribes.push(clientsUnsub);
 
@@ -309,7 +316,7 @@ export default function Pipeline() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">🚀 Pipeline</h1>
+            <h1 className="page-title">Pipeline</h1>
             <p className="page-description">Manage new bond issues and order books</p>
           </div>
         </div>

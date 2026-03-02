@@ -6,29 +6,29 @@
   --bg-input: #1e293b;
   --bg-input-focus: #0f172a;
   --border: #334155;
-  --border-focus: #6366f1;
+  --border-focus: #C8A258;
   --text-primary: #f1f5f9;
   --text-secondary: #cbd5e1;
   --text-muted: #94a3b8;
-  --accent: #6366f1;
-  --accent-hover: #4f46e5;
-  --accent-glow: rgba(99, 102, 241, 0.15);
-  --accent-glow-strong: rgba(99, 102, 241, 0.3);
+  --accent: #C8A258;
+  --accent-hover: #D4B06A;
+  --accent-glow: rgba(200, 162, 88, 0.15);
+  --accent-glow-strong: rgba(200, 162, 88, 0.3);
   --card-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   --nav-bg: rgba(15, 23, 42, 0.85);
   --nav-border: #334155;
-  --tab-active-color: #6366f1;
-  --section-label-bg: rgba(99, 102, 241, 0.08);
-  --section-label-border: rgba(99, 102, 241, 0.2);
-  --autofill-bg: rgba(99, 102, 241, 0.06);
-  --autofill-border: rgba(99, 102, 241, 0.25);
-  --autofill-text: #a5b4fc;
+  --tab-active-color: #C8A258;
+  --section-label-bg: rgba(200, 162, 88, 0.08);
+  --section-label-border: rgba(200, 162, 88, 0.2);
+  --autofill-bg: rgba(200, 162, 88, 0.06);
+  --autofill-border: rgba(200, 162, 88, 0.25);
+  --autofill-text: #C8A258;
   --table-odd: rgba(30, 41, 59, 0.5);
   --table-even: rgba(15, 23, 42, 0.5);
-  --table-hover: rgba(99, 102, 241, 0.08);
+  --table-hover: rgba(200, 162, 88, 0.06);
   --table-header-bg: #1e293b;
-  --badge-primary-bg: rgba(99, 102, 241, 0.15);
-  --badge-primary-text: #a5b4fc;
+  --badge-primary-bg: rgba(200, 162, 88, 0.15);
+  --badge-primary-text: #C8A258;
   --badge-success-bg: rgba(34, 197, 94, 0.15);
   --badge-success-text: #86efac;
   --badge-warning-bg: rgba(251, 146, 60, 0.15);
@@ -38,17 +38,17 @@
   --btn-muted-bg: #334155;
   --btn-muted-text: #e2e8f0;
   --btn-muted-hover: #475569;
-  --btn-secondary-bg: #1e40af;
-  --btn-secondary-hover: #1e3a8a;
+  --btn-secondary-bg: #0F2137;
+  --btn-secondary-hover: #162B44;
   --modal-bg: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
   --toggle-bg: #334155;
-  --toggle-knob: #6366f1;
-  --logo-color: #6366f1;
-  
-  /* Enhanced Placeholder Variables for Dark Theme */
-  --placeholder-color: #a5b4fc;
-  --placeholder-opacity: 0.75;
+  --toggle-knob: #C8A258;
+  --logo-color: #C8A258;
+
+  /* Placeholder Variables for Dark Theme */
+  --placeholder-color: #C8A258;
+  --placeholder-opacity: 0.55;
 }
 
 :root[data-theme="light"] {
@@ -110,8 +110,7 @@
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-base);
@@ -186,7 +185,7 @@ textarea:placeholder-shown {
   background: linear-gradient(
     135deg,
     var(--bg-input) 0%,
-    rgba(99, 102, 241, 0.02) 100%
+    rgba(200, 162, 88, 0.02) 100%
   );
 }
 
@@ -203,7 +202,7 @@ textarea:placeholder-shown {
 input[required]:placeholder-shown:not(:focus),
 textarea[required]:placeholder-shown:not(:focus),
 select[required]:placeholder-shown:not(:focus) {
-  border-color: rgba(99, 102, 241, 0.3);
+  border-color: rgba(200, 162, 88, 0.2);
 }
 
 [data-theme="light"] input[required]:placeholder-shown:not(:focus),
@@ -215,10 +214,10 @@ select[required]:placeholder-shown:not(:focus) {
 /* Pulse animation for empty required fields (subtle) */
 @keyframes placeholder-pulse {
   0%, 100% {
-    border-color: rgba(99, 102, 241, 0.3);
+    border-color: rgba(200, 162, 88, 0.2);
   }
   50% {
-    border-color: rgba(99, 102, 241, 0.5);
+    border-color: rgba(200, 162, 88, 0.35);
   }
 }
 
@@ -349,4 +348,32 @@ input,
 textarea,
 select {
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+/* ============================================
+   MARKETING DESIGN SYSTEM
+   Used by marketing pages only — isolated from app theme
+   ============================================ */
+:root {
+  --color-navy: #0F2137;
+  --color-navy-light: #162B44;
+  --color-steel: #1C3A5E;
+  --color-gold: #C8A258;
+  --color-gold-hover: #D4B06A;
+  --color-gold-dim: rgba(200,162,88,0.12);
+  --color-ivory: #F0EDE8;
+  --color-linen: #F4F2ED;
+  --color-card: #FFFFFF;
+  --color-ink: #0C1017;
+  --color-carbon: #2C2C2C;
+  --color-stone: #8A8680;
+  --color-border: #E4E0DA;
+  --color-success: #2E7D5B;
+  --color-error: #B54A4A;
+  --mkt-radius-sm: 6px;
+  --mkt-radius-md: 8px;
+  --mkt-radius-lg: 12px;
+  --mkt-shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+  --mkt-shadow-md: 0 8px 32px rgba(0,0,0,0.06);
+  --mkt-shadow-lg: 0 16px 48px rgba(0,0,0,0.08);
 }

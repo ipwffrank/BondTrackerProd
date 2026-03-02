@@ -1,41 +1,68 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
+
     // ============================================
     // HELPER FUNCTIONS
     // ============================================
-    
+
     function isAuthenticated() {
       return request.auth != null;
     }
-    
+
     function getUserData() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
     }
-    
+
     function isSameOrg(orgId) {
       return isAuthenticated() && getUserData().organizationId == orgId;
     }
-    
+
     function isAdminInOrg(orgId) {
       return isSameOrg(orgId) && getUserData().isAdmin == true;
     }
-    
+
+    function isHostAdmin() {
+      return isAuthenticated() &&
+        exists(/databases/$(database)/documents/hostAdmins/$(request.auth.uid));
+    }
+
+    // ============================================
+    // HOST ADMINS COLLECTION
+    // ============================================
+
+    match /hostAdmins/{uid} {
+      // Host admins can verify their own status
+      allow read: if isAuthenticated() && request.auth.uid == uid;
+      // Only manageable via Firebase console
+      allow write: if false;
+    }
+
+    // ============================================
+    // DEMO REQUESTS COLLECTION
+    // ============================================
+
+    match /demoRequests/{requestId} {
+      // Public form submissions (unauthenticated)
+      allow create: if true;
+      // Only host admins can read, update, delete
+      allow read, update, delete: if isHostAdmin();
+    }
+
     // ============================================
     // ORGANIZATIONS COLLECTION
     // ============================================
-    
+
     match /organizations/{orgId} {
-      // Org members can read their organization
-      allow read: if isSameOrg(orgId);
-      
+      // Org members or host admins can read
+      allow read: if isSameOrg(orgId) || isHostAdmin();
+
       // Any authenticated user can create an organization (for first-time signup)
       allow create: if isAuthenticated();
-      
-      // Only admins can update organization settings
-      allow update: if isAdminInOrg(orgId);
-      
+
+      // Only admins or host admins can update organization settings
+      allow update: if isAdminInOrg(orgId) || isHostAdmin();
+
       // Prevent deletion of organizations
       allow delete: if false;
     }
@@ -45,8 +72,8 @@ service cloud.firestore {
     // ============================================
     
     match /users/{userId} {
-      // Any authenticated user can read users (needed for team list)
-      allow read: if isAuthenticated();
+      // Any authenticated user or host admin can read users
+      allow read: if isAuthenticated() || isHostAdmin();
       
       // Users can create their own profile during signup
       allow create: if isAuthenticated() && request.auth.uid == userId;
@@ -55,30 +82,60 @@ service cloud.firestore {
       allow update: if request.auth.uid == userId;
       
       // Admins can update other users in their organization (for role changes)
-      allow update: if isAuthenticated() 
-        && getUserData().isAdmin == true 
+      allow update: if isAuthenticated()
+        && getUserData().isAdmin == true
         && get(/databases/$(database)/documents/users/$(userId)).data.organizationId == getUserData().organizationId;
-      
+
+      // Host admins can update any user (role/org changes from admin portal)
+      allow update: if isHostAdmin();
+
       // Admins can delete other users in their organization (but not themselves)
-      allow delete: if isAuthenticated() 
-        && getUserData().isAdmin == true 
+      allow delete: if isAuthenticated()
+        && getUserData().isAdmin == true
         && get(/databases/$(database)/documents/users/$(userId)).data.organizationId == getUserData().organizationId
         && userId != request.auth.uid;
     }
     
     // ============================================
+    // ORGANIZATION USERS SUB-COLLECTION
+    // ============================================
+
+    match /organizations/{orgId}/users/{userId} {
+      // Users can read their own profile
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+
+      // Org members or host admins can read all users in org
+      allow read: if isSameOrg(orgId) || isHostAdmin();
+
+      // Users can create their own profile during signup
+      allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Users can update their own profile
+      allow update: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admins can update other users in their organization
+      allow update: if isAdminInOrg(orgId);
+
+      // Admins can delete other users (but not themselves)
+      allow delete: if isAdminInOrg(orgId) && userId != request.auth.uid;
+    }
+
+    // ============================================
     // ACTIVITIES SUB-COLLECTION
     // ============================================
-    
+
     match /organizations/{orgId}/activities/{activityId} {
-      // Org members can read all activities
-      allow read: if isSameOrg(orgId);
-      
+      // Org members or host admins can read all activities
+      allow read: if isSameOrg(orgId) || isHostAdmin();
+
       // Org members can create activities
       allow create: if isSameOrg(orgId);
-      
-      // Only admins can update or delete activities
-      allow update, delete: if isAdminInOrg(orgId);
+
+      // Org members can update activities (for inline status/price edits)
+      allow update: if isSameOrg(orgId);
+
+      // Only admins can delete activities
+      allow delete: if isAdminInOrg(orgId);
     }
     
     // ============================================
@@ -97,9 +154,31 @@ service cloud.firestore {
     }
     
     // ============================================
+    // NEW ISSUES SUB-COLLECTION (Pipeline)
+    // ============================================
+
+    match /organizations/{orgId}/newIssues/{issueId} {
+      allow read: if isSameOrg(orgId);
+      allow create: if isSameOrg(orgId);
+      allow update: if isSameOrg(orgId);
+      allow delete: if isAdminInOrg(orgId);
+    }
+
+    // ============================================
+    // ORDER BOOKS SUB-COLLECTION (Pipeline)
+    // ============================================
+
+    match /organizations/{orgId}/orderBooks/{orderId} {
+      allow read: if isSameOrg(orgId);
+      allow create: if isSameOrg(orgId);
+      allow update: if isSameOrg(orgId);
+      allow delete: if isAdminInOrg(orgId);
+    }
+
+    // ============================================
     // PIPELINE SUB-COLLECTION
     // ============================================
-    
+
     match /organizations/{orgId}/pipeline/{issueId} {
       // Org members can read all pipeline issues
       allow read: if isSameOrg(orgId);
@@ -117,17 +196,19 @@ service cloud.firestore {
     // ============================================
     // INVITATIONS SUB-COLLECTION (Team Management)
     // ============================================
-    
+
     match /organizations/{orgId}/invitations/{invitationId} {
-      // Org members can read invitations
-      allow read: if isSameOrg(orgId);
-      
+      // Anyone can read a specific invitation by ID (needed for accepting invitations)
+      // The invitation ID acts as a secret token - without it, you can't access the invitation
+      allow read: if true;
+
       // Only admins can create invitations
       allow create: if isAdminInOrg(orgId);
-      
-      // Only admins can update invitations (cancel, resend, mark as used)
-      allow update: if isAdminInOrg(orgId);
-      
+
+      // Admins can update invitations, OR authenticated users can mark their own invitation as accepted
+      allow update: if isAdminInOrg(orgId) ||
+        (isAuthenticated() && resource.data.email == request.auth.token.email);
+
       // Only admins can delete invitations
       allow delete: if isAdminInOrg(orgId);
     }

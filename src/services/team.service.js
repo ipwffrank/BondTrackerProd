@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, updateDoc, deleteDoc, query, where, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
 export const teamService = {
@@ -102,6 +102,10 @@ export const teamService = {
       
       // Send invitation email via Netlify Function
       try {
+        // Build the signup URL with invitation token
+        const baseUrl = window.location.origin;
+        const signupUrl = `${baseUrl}/accept-invite?token=${invitation.id}&org=${organizationId}`;
+
         const response = await fetch('/.netlify/functions/send-invite', {
           method: 'POST',
           headers: {
@@ -111,7 +115,8 @@ export const teamService = {
             email: email.toLowerCase(),
             organizationName,
             invitedBy,
-            role: role || 'user'
+            role: role || 'user',
+            signupUrl
           })
         });
         
@@ -195,6 +200,40 @@ export const teamService = {
     }
   },
 
+  // Get invitation by token (invitation ID)
+  async getInvitationByToken(organizationId, invitationId) {
+    try {
+      const invitationRef = doc(db, `organizations/${organizationId}/invitations/${invitationId}`);
+      const invitationDoc = await getDoc(invitationRef);
+
+      if (!invitationDoc.exists()) {
+        return null;
+      }
+
+      return {
+        id: invitationDoc.id,
+        ...invitationDoc.data()
+      };
+    } catch (error) {
+      console.error('Error fetching invitation:', error);
+      throw error;
+    }
+  },
+
+  // Accept invitation (mark as accepted)
+  async acceptInvitation(organizationId, invitationId) {
+    try {
+      const invitationRef = doc(db, `organizations/${organizationId}/invitations/${invitationId}`);
+      await updateDoc(invitationRef, {
+        status: 'accepted',
+        acceptedAt: new Date()
+      });
+    } catch (error) {
+      console.error('Error accepting invitation:', error);
+      throw error;
+    }
+  },
+
   // Resend invitation (update expiry and resend email)
   async resendInvitation(organizationId, invitationId, invitationData) {
     try {
@@ -209,6 +248,10 @@ export const teamService = {
       // Resend email if invitation data is provided
       if (invitationData) {
         try {
+          // Build the signup URL with invitation token
+          const baseUrl = window.location.origin;
+          const signupUrl = `${baseUrl}/accept-invite?token=${invitationId}&org=${organizationId}`;
+
           const response = await fetch('/.netlify/functions/send-invite', {
             method: 'POST',
             headers: {
@@ -218,7 +261,8 @@ export const teamService = {
               email: invitationData.email,
               organizationName: invitationData.organizationName,
               invitedBy: invitationData.invitedBy,
-              role: invitationData.role
+              role: invitationData.role,
+              signupUrl
             })
           });
           

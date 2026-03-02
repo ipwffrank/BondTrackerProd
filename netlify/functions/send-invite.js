@@ -50,9 +50,9 @@ exports.handler = async (event) => {
 
     // Send email
     const data = await resend.emails.send({
-      from: 'BondTracker <onboarding@resend.dev>',
+      from: 'Axle <onboarding@resend.dev>',
       to: email,
-      subject: `You're invited to join ${organizationName} on BondTracker`,
+      subject: `You're invited to join ${organizationName} on Axle`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -60,30 +60,30 @@ exports.handler = async (event) => {
             <style>
               body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
               .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .header { background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
+              .header { background: linear-gradient(135deg, #0f172a, #1e293b); color: white; padding: 30px; text-align: center; border-radius: 8px 8px 0 0; }
               .content { background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
-              .button { display: inline-block; background: #6366f1; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
-              .button:hover { background: #4f46e5; }
+              .button { display: inline-block; background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; font-weight: bold; margin: 20px 0; }
+              .button:hover { background: #059669; }
               .footer { text-align: center; margin-top: 30px; font-size: 12px; color: #6b7280; }
             </style>
           </head>
           <body>
             <div class="container">
               <div class="header">
-                <h1>🎉 You're Invited!</h1>
+                <h1>You're Invited to Axle</h1>
               </div>
               <div class="content">
                 <p>Hi there,</p>
-                <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on BondTracker.</p>
-                <p>BondTracker helps teams manage bond trading activities, client relationships, and deal pipelines.</p>
+                <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on Axle.</p>
+                <p>Axle is the central intelligence platform for bond sales desks — managing activities, client relationships, and deal pipelines.</p>
                 <p style="text-align: center;">
-                  <a href="${signupUrl || 'https://bondtracker.netlify.app/signup'}" class="button">
+                  <a href="${signupUrl || 'https://app.axle.finance/signup'}" class="button">
                     Accept Invitation
                   </a>
                 </p>
                 <p><strong>Important:</strong> Please use this email address (<strong>${email}</strong>) when signing up to join the organization.</p>
                 <div class="footer">
-                  <p>This invitation was sent from BondTracker</p>
+                  <p>This invitation was sent from Axle</p>
                   <p>If you didn't expect this invitation, you can safely ignore this email.</p>
                 </div>
               </div>

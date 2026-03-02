@@ -77,7 +77,7 @@ export default function Clients() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">👥 Clients</h1>
+            <h1 className="page-title">Clients</h1>
             <p className="page-description">Manage your client database</p>
           </div>
         </div>

@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
+import { AxleLogo } from '@alteri/ui';
 
 export default function Navigation() {
   const location = useLocation();
@@ -11,7 +12,7 @@ export default function Navigation() {
   const [theme, setTheme] = useState('dark');
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('bondtracker-theme') || 'dark';
+    const savedTheme = localStorage.getItem('axle-theme') || 'dark';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);
@@ -19,7 +20,7 @@ export default function Navigation() {
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(newTheme);
-    localStorage.setItem('bondtracker-theme', newTheme);
+    localStorage.setItem('axle-theme', newTheme);
     document.documentElement.setAttribute('data-theme', newTheme);
   };
 
@@ -42,7 +43,7 @@ export default function Navigation() {
       <div className="nav-container">
         <div className="nav-brand">
           <Link to="/" className="brand-link">
-            <span className="brand-text">Bond Tracker</span>
+            <AxleLogo size="sm" variant="dark" />
           </Link>
         </div>
 
@@ -142,23 +143,12 @@ export default function Navigation() {
         .brand-link {
           display: flex;
           align-items: center;
-          gap: 12px;
           text-decoration: none;
-          color: var(--text-primary);
-          font-weight: 700;
-          font-size: 20px;
           transition: opacity 0.2s;
         }
 
         .brand-link:hover {
-          opacity: 0.8;
-        }
-
-        .brand-text {
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          opacity: 0.85;
         }
 
         .nav-links {
@@ -189,8 +179,9 @@ export default function Navigation() {
         }
 
         .nav-link.active {
-          background: var(--accent);
-          color: #fff;
+          background: rgba(200, 162, 88, 0.12);
+          color: #C8A258;
+          border: 1px solid rgba(200, 162, 88, 0.2);
         }
 
         .nav-actions {

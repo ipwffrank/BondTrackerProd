@@ -194,7 +194,7 @@ export default function Team() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">👥 Team Management</h1>
+            <h1 className="page-title">Team Management</h1>
             <p className="page-description">Invite members, assign roles, and manage your team</p>
           </div>
           {/* PROMINENT INVITE BUTTON IN HEADER */}
@@ -290,7 +290,7 @@ export default function Team() {
                             color: 'white',
                             fontWeight: 'bold',
                             fontSize: '16px',
-                            background: '#6366f1'
+                            background: '#C8A258'
                           }}
                         >
                           {getInitials(member.name)}
@@ -485,7 +485,7 @@ export default function Team() {
                             color: 'white',
                             fontWeight: 'bold',
                             fontSize: '14px',
-                            background: '#6366f1'
+                            background: '#C8A258'
                           }}
                         >
                           {getInitials(stat.name)}
@@ -659,8 +659,8 @@ export default function Team() {
         }
 
         .btn-invite-hero {
-          background: linear-gradient(135deg, #10b981, #059669);
-          color: white;
+          background: #C8A258;
+          color: #0F2137;
           padding: 14px 28px;
           border-radius: 10px;
           font-weight: 700;
@@ -669,13 +669,14 @@ export default function Team() {
           cursor: pointer;
           display: inline-flex;
           align-items: center;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+          box-shadow: 0 4px 12px rgba(200, 162, 88, 0.3);
           transition: all 0.2s ease;
         }
 
         .btn-invite-hero:hover {
+          background: #D4B06A;
           transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.5);
+          box-shadow: 0 6px 16px rgba(200, 162, 88, 0.4);
         }
 
         .sub-tabs {

@@ -10,7 +10,7 @@ export default function Dashboard() {
   
   // Theme state
   const [theme, setTheme] = useState(() => {
-    return localStorage.getItem('bondtracker-theme') || 'dark';
+    return localStorage.getItem('axle-theme') || 'dark';
   });
 
   // Active tab state
@@ -95,7 +95,7 @@ export default function Dashboard() {
   // Theme toggle
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('bondtracker-theme', theme);
+    localStorage.setItem('axle-theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -663,9 +663,9 @@ export default function Dashboard() {
             <div className="logo">
               <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                 <rect width="32" height="32" rx="6" fill="currentColor"/>
-                <text x="16" y="22" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="18" fill="white">B</text>
+                <text x="16" y="22" textAnchor="middle" fontFamily="sans-serif" fontWeight="700" fontSize="18" fill="white">A</text>
               </svg>
-              <span>BondTracker</span>
+              <span>Axle</span>
             </div>
             
             <div className="nav-links">

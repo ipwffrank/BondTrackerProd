@@ -1,5 +1,5 @@
 {
-  "name": "bondtracker",
+  "name": "axle",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@alteri/ui": "file:../alteri-ui",
     "@google/generative-ai": "^0.21.0",
     "firebase": "^10.7.1",
     "jspdf": "^2.5.1",

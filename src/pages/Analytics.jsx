@@ -16,7 +16,7 @@ export default function Analytics() {
     enquiryCount:0,quotedCount:0,executedCount:0,passedCount:0,tradedAwayCount:0,
     topClients:[],topUsers:[],currencyBreakdown:{},
     activityTypeBreakdown:{},regionBreakdown:{},conversionRate:0,
-    executedVolume:0,avgDealSize:0
+    executedVolume:0,avgTicketSize:0
   });
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function Analytics() {
     const tradedAwayCount = data.filter(a=>a.status==='TRADED AWAY').length;
     const executedVolume = data.filter(a=>a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
     const conversionRate = totalActivities>0 ? ((executedCount/totalActivities)*100).toFixed(1) : 0;
-    const avgDealSize = executedCount>0 ? (executedVolume/executedCount).toFixed(2) : 0;
+    const avgTicketSize = executedCount>0 ? (executedVolume/executedCount).toFixed(2) : 0;
 
     // Top clients by volume
     const clientVolumes = {};
@@ -73,7 +73,7 @@ export default function Analytics() {
     const regionBreakdown = {};
     data.forEach(a=>{ const r=a.clientRegion||'Unknown'; if(!regionBreakdown[r]) regionBreakdown[r]=0; regionBreakdown[r]++; });
 
-    setStats({ totalActivities,totalVolume:totalVolume.toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:executedVolume.toFixed(2),avgDealSize });
+    setStats({ totalActivities,totalVolume:totalVolume.toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:executedVolume.toFixed(2),avgTicketSize });
   }
 
   // Export Summary PDF
@@ -88,10 +88,10 @@ export default function Analytics() {
       { metric:'Executed Trades', value:stats.executedCount },
       { metric:'Executed Volume (MM)', value:`$${stats.executedVolume}MM` },
       { metric:'Conversion Rate', value:`${stats.conversionRate}%` },
-      { metric:'Avg Deal Size (MM)', value:`$${stats.avgDealSize}MM` },
-      { metric:'BUY Orders', value:stats.buyCount },
-      { metric:'SELL Orders', value:stats.sellCount },
-      { metric:'TWO-WAY Orders', value:stats.twoWayCount },
+      { metric:'Avg Ticket Size (MM)', value:`$${stats.avgTicketSize}MM` },
+      { metric:'Buy Inquiries', value:stats.buyCount },
+      { metric:'Sell Inquiries', value:stats.sellCount },
+      { metric:'Two Way Inquiries', value:stats.twoWayCount },
       { metric:'Enquiries', value:stats.enquiryCount },
       { metric:'Quoted', value:stats.quotedCount },
       { metric:'Executed', value:stats.executedCount },
@@ -139,28 +139,27 @@ export default function Analytics() {
         {/* Header with export buttons */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">📊 Analytics</h1>
+            <h1 className="page-title">Analytics</h1>
             <p className="page-description">Business intelligence and performance metrics</p>
           </div>
           <div style={{display:'flex',gap:'10px'}}>
-            <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
-            <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
+            <button onClick={handleExportExcel} className="btn btn-secondary">Export Excel</button>
+            <button onClick={handleExportPDF} className="btn btn-secondary">Export PDF</button>
           </div>
         </div>
 
         {/* Overview Stats Cards */}
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'16px',marginBottom:'24px'}}>
           {[
-            {icon:'📋',value:stats.totalActivities,label:'Total Activities'},
-            {icon:'💰',value:`$${stats.totalVolume}MM`,label:'Total Volume'},
-            {icon:'👥',value:stats.totalClients,label:'Active Clients'},
-            {icon:'✅',value:stats.executedCount,label:'Executed Trades'},
-            {icon:'💵',value:`$${stats.executedVolume}MM`,label:'Executed Volume'},
-            {icon:'📈',value:`${stats.conversionRate}%`,label:'Conversion Rate'},
-            {icon:'📏',value:`$${stats.avgDealSize}MM`,label:'Avg Deal Size'},
+            {value:stats.totalActivities,label:'Total Activities'},
+            {value:`$${stats.totalVolume}MM`,label:'Total Volume'},
+            {value:stats.totalClients,label:'Active Clients'},
+            {value:stats.executedCount,label:'Executed Trades'},
+            {value:`$${stats.executedVolume}MM`,label:'Executed Volume'},
+            {value:`${stats.conversionRate}%`,label:'Conversion Rate'},
+            {value:`$${stats.avgTicketSize}MM`,label:'Avg Ticket Size'},
           ].map((s,i)=>(
             <div key={i} className="stat-card">
-              <div style={{fontSize:'28px',marginBottom:'8px'}}>{s.icon}</div>
               <div className="stat-value">{s.value}</div>
               <div className="stat-label">{s.label}</div>
             </div>
@@ -170,7 +169,7 @@ export default function Analytics() {
         {/* Direction + Status Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>📈 Direction Breakdown</span></div>
+            <div className="card-header"><span>Direction Breakdown</span></div>
             <div style={{padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
               <div className="breakdown-box" style={{background:'var(--badge-success-bg)'}}>
                 <div style={{fontSize:'28px',fontWeight:'bold',color:'var(--badge-success-text)'}}>{stats.buyCount}</div>
@@ -191,7 +190,7 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>🎯 Status Breakdown</span></div>
+            <div className="card-header"><span>Status Breakdown</span></div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {[
                 {label:'Enquiry',count:stats.enquiryCount,color:'var(--badge-primary-text)',bg:'var(--badge-primary-bg)'},
@@ -218,7 +217,7 @@ export default function Analytics() {
         {/* Top Clients + Top Users Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>🏆 Top Clients by Volume</span></div>
+            <div className="card-header"><span>Top Clients by Volume</span></div>
             <div style={{padding:'24px'}}>
               {stats.topClients.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
@@ -235,7 +234,7 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>👤 Most Active Users</span></div>
+            <div className="card-header"><span>Most Active Users</span></div>
             <div style={{padding:'24px'}}>
               {stats.topUsers.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
@@ -255,7 +254,7 @@ export default function Analytics() {
         {/* Activity Type + Region Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>📞 Activity Type Breakdown</span></div>
+            <div className="card-header"><span>Activity Type Breakdown</span></div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.activityTypeBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 Object.entries(stats.activityTypeBreakdown).sort((a,b)=>b[1]-a[1]).map(([type,count],i)=>(
@@ -272,7 +271,7 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>🌍 Region Breakdown</span></div>
+            <div className="card-header"><span>Region Breakdown</span></div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.regionBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 Object.entries(stats.regionBreakdown).sort((a,b)=>b[1]-a[1]).map(([region,count],i)=>(
@@ -292,7 +291,7 @@ export default function Analytics() {
 
         {/* Currency Breakdown */}
         <div className="card" style={{marginBottom:'24px'}}>
-          <div className="card-header"><span>💱 Currency Breakdown</span></div>
+          <div className="card-header"><span>Currency Breakdown</span></div>
           <div className="table-container">
             <table className="table">
               <thead>
