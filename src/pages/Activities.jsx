@@ -27,7 +27,7 @@ export default function Activities() {
         const data = snapshot.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()}));
         setActivities(data);
         const totalVolume = data.reduce((s,a)=>s+(parseFloat(a.size)||0),0);
-        setStats({ totalActivities:data.length,totalVolume:(totalVolume/1000000).toFixed(2),buyCount:data.filter(a=>a.direction==='BUY').length,sellCount:data.filter(a=>a.direction==='SELL').length,twoWayCount:data.filter(a=>a.direction==='TWO-WAY').length });
+        setStats({ totalActivities:data.length,totalVolume:totalVolume.toFixed(2),buyCount:data.filter(a=>a.direction==='BUY').length,sellCount:data.filter(a=>a.direction==='SELL').length,twoWayCount:data.filter(a=>a.direction==='TWO-WAY').length });
         setLoading(false);
       }));
       unsubscribes.push(onSnapshot(query(collection(db,`organizations/${userData.organizationId}/clients`),orderBy('name','asc')),(snapshot) => {
@@ -263,7 +263,7 @@ export default function Activities() {
                       <td style={{fontWeight:600}}>{a.clientName}</td>
                       <td><span className="badge badge-primary">{a.activityType}</span></td>
                       <td>{a.isin||a.ticker||'-'}</td>
-                      <td>{(a.size/1000000).toFixed(2)}MM</td>
+                      <td>{a.size}MM</td>
                       <td>{a.currency}</td>
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>
                       <td>

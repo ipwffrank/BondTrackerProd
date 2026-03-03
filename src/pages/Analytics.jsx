@@ -49,12 +49,12 @@ export default function Analytics() {
     const tradedAwayCount = data.filter(a=>a.status==='TRADED AWAY').length;
     const executedVolume = data.filter(a=>a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
     const conversionRate = totalActivities>0 ? ((executedCount/totalActivities)*100).toFixed(1) : 0;
-    const avgTicketSize = executedCount>0 ? (executedVolume/executedCount/1000000).toFixed(2) : 0;
+    const avgTicketSize = executedCount>0 ? (executedVolume/executedCount).toFixed(2) : 0;
 
     // Top clients by volume
     const clientVolumes = {};
     data.forEach(a=>{ if(!clientVolumes[a.clientName]) clientVolumes[a.clientName]=0; clientVolumes[a.clientName]+=parseFloat(a.size)||0; });
-    const topClients = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,volume])=>({name,volume:(volume/1000000).toFixed(2)}));
+    const topClients = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,volume])=>({name,volume:volume.toFixed(2)}));
 
     // Top users by count
     const userCounts = {};
@@ -73,7 +73,7 @@ export default function Analytics() {
     const regionBreakdown = {};
     data.forEach(a=>{ const r=a.clientRegion||'Unknown'; if(!regionBreakdown[r]) regionBreakdown[r]=0; regionBreakdown[r]++; });
 
-    setStats({ totalActivities,totalVolume:(totalVolume/1000000).toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:(executedVolume/1000000).toFixed(2),avgTicketSize });
+    setStats({ totalActivities,totalVolume:totalVolume.toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:executedVolume.toFixed(2),avgTicketSize });
   }
 
   // Export Summary PDF
@@ -302,13 +302,13 @@ export default function Analytics() {
               <tbody>
                 {Object.keys(stats.currencyBreakdown).length===0?(<tr><td colSpan="5" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No data yet</td></tr>):(
                   Object.entries(stats.currencyBreakdown).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,data])=>{
-                    const pct = ((data.volume/1000000/parseFloat(stats.totalVolume))*100).toFixed(1);
+                    const pct = ((data.volume/parseFloat(stats.totalVolume))*100).toFixed(1);
                     return(
                       <tr key={currency}>
                         <td><span className="badge badge-primary">{currency}</span></td>
                         <td>{data.count}</td>
-                        <td style={{fontWeight:600}}>${(data.volume/1000000).toFixed(2)}MM</td>
-                        <td>${(activities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0)/1000000).toFixed(2)}MM</td>
+                        <td style={{fontWeight:600}}>${data.volume.toFixed(2)}MM</td>
+                        <td>${activities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2)}MM</td>
                         <td>
                           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                             <div style={{flex:1,height:'8px',background:'var(--border)',borderRadius:'4px',overflow:'hidden'}}>

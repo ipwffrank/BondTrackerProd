@@ -51,6 +51,7 @@ RULES:
    - "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
    - Price was quoted but no final outcome → QUOTED
    - Enquiry only, no price given → ENQUIRY
+5. SIZE must always be in millions (MM). Examples: "15MM" → 15, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size mentioned, return null.
 
 Return JSON array only (no markdown):
 [{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]

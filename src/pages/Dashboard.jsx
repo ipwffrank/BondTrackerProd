@@ -143,7 +143,7 @@ export default function Dashboard() {
         const sellCount = data.filter(a => a.direction === 'SELL').length;
         const twoWayCount = data.filter(a => a.direction === 'TWO-WAY').length;
         
-        setStats({ totalActivities, totalVolume: (totalVolume/1000000).toFixed(2), buyCount, sellCount, twoWayCount });
+        setStats({ totalActivities, totalVolume: totalVolume.toFixed(2), buyCount, sellCount, twoWayCount });
         setLoading(false);
       });
       unsubscribes.push(activitiesUnsub);
@@ -1021,7 +1021,7 @@ export default function Dashboard() {
                             <td style={{fontWeight: 600}}>{activity.clientName}</td>
                             <td><span className="badge badge-primary">{activity.activityType}</span></td>
                             <td>{activity.isin || activity.ticker || '-'}</td>
-                            <td>{(activity.size/1000000).toFixed(2)}MM</td>
+                            <td>{activity.size}MM</td>
                             <td>{activity.currency}</td>
                             <td><span className={`badge ${getDirectionBadge(activity.direction)}`}>{activity.direction}</span></td>
                             <td>{activity.price || '-'}</td>
@@ -1606,7 +1606,7 @@ export default function Dashboard() {
                                 <td style={{fontWeight: 600}}>{result.clientName}</td>
                                 <td>{result.isin || '-'}</td>
                                 <td>{result.ticker || '-'}</td>
-                                <td>{(result.size/1000000).toFixed(2)}MM</td>
+                                <td>{result.size}MM</td>
                                 <td><span className="badge badge-primary">{result.currency}</span></td>
                                 <td><span className={`badge ${getDirectionBadge(result.direction)}`}>{result.direction}</span></td>
                                 <td>{result.price || '-'}</td>
