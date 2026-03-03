@@ -64,14 +64,13 @@ export default function AIAssistant() {
           currency: activity.currency || 'USD',
           price: parseFloat(activity.price) || null,
           direction: activity.direction || '',
-          status: 'ENQUIRY',
+          status: activity.status || 'ENQUIRY',
           notes: activity.notes || 'Imported from AI analysis',
           createdAt: serverTimestamp(),
           createdBy: `${userData.name || userData.email} (AI Import)`
         });
       }
 
-      alert(`Imported ${aiResults.length} activities successfully!`);
       setAiResults([]);
       setAiFile(null);
     } catch (error) {
@@ -89,6 +88,17 @@ export default function AIAssistant() {
       'TWO-WAY': 'badge-warning'
     };
     return badges[direction] || 'badge-primary';
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      'EXECUTED': 'badge-success',
+      'TRADED AWAY': 'badge-danger',
+      'PASSED': 'badge-danger',
+      'QUOTED': 'badge-warning',
+      'ENQUIRY': 'badge-primary'
+    };
+    return badges[status] || 'badge-primary';
   };
 
   return (
@@ -204,12 +214,11 @@ export default function AIAssistant() {
                 <thead>
                   <tr>
                     <th>Client</th>
-                    <th>ISIN</th>
                     <th>Ticker</th>
                     <th>Size</th>
-                    <th>Currency</th>
                     <th>Direction</th>
                     <th>Price</th>
+                    <th>Status</th>
                     <th>Notes</th>
                   </tr>
                 </thead>
@@ -217,12 +226,11 @@ export default function AIAssistant() {
                   {aiResults.map((result, idx) => (
                     <tr key={idx}>
                       <td style={{fontWeight: 600}}>{result.clientName}</td>
-                      <td>{result.isin || '-'}</td>
-                      <td>{result.ticker || '-'}</td>
-                      <td>{result.size}MM</td>
-                      <td><span className="badge badge-primary">{result.currency}</span></td>
+                      <td>{result.ticker || result.isin || '-'}</td>
+                      <td>{result.size ? `${result.size}MM` : '-'}</td>
                       <td><span className={`badge ${getDirectionBadge(result.direction)}`}>{result.direction}</span></td>
                       <td>{result.price || '-'}</td>
+                      <td><span className={`badge ${getStatusBadge(result.status)}`}>{result.status}</span></td>
                       <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis'}}>{result.notes || '-'}</td>
                     </tr>
                   ))}

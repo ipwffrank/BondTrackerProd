@@ -65,7 +65,7 @@ export default function MarketingFooter() {
                 color: 'rgba(255,255,255,0.4)', lineHeight: '1.7',
                 maxWidth: '260px', margin: '0 0 20px',
               }}>
-                The central intelligence platform for bond sales desks across APAC.
+                The central intelligence platform for bond sales desks.
               </p>
               <a href="mailto:hello@axle.finance" style={{
                 fontFamily: "'Outfit', sans-serif", fontSize: '14px',

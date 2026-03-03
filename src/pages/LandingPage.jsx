@@ -207,6 +207,213 @@ function SectionLabel({ children }) {
   );
 }
 
+// ─── Comparison cell renderer ─────────────────────────────────────────────────────
+function renderCell(val, isAxle) {
+  if (val === 'yes') {
+    return (
+      <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:'24px', height:'24px', borderRadius:'50%', background: isAxle ? 'rgba(200,162,88,0.12)' : 'rgba(34,197,94,0.1)' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={isAxle ? '#C8A258' : '#22c55e'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 6 9 17 4 12" />
+        </svg>
+      </span>
+    );
+  }
+  if (val === 'no') {
+    return (
+      <span style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', width:'24px', height:'24px', borderRadius:'50%', background:'rgba(0,0,0,0.04)' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#C0BDB8" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </span>
+    );
+  }
+  const LABELS = { custom: 'Custom setup', addon: 'Add-on', limited: 'Limited' };
+  const label = LABELS[val] || val;
+  const isPartial = val === 'custom' || val === 'addon' || val === 'limited';
+  return <span style={{ fontSize:'12px', color: isPartial ? '#B89346' : '#8A8680', fontWeight: isPartial ? 500 : 400 }}>{label}</span>;
+}
+
+// ─── Dark badge helper ────────────────────────────────────────────────────────────
+function DarkBadge({ text, color, bg }) {
+  return (
+    <span style={{ padding:'2px 8px', borderRadius:'12px', background:bg, color, fontSize:'10px', fontWeight:600, fontFamily:"'Outfit',sans-serif", whiteSpace:'nowrap' }}>
+      {text}
+    </span>
+  );
+}
+
+// ─── Product preview sub-components ──────────────────────────────────────────────
+function ActivityCRMPreview() {
+  const rows = [
+    { date:'03 Mar', client:'Temasek Holdings', type:'Phone Call', isin:'US4592001014', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'98.75' },
+    { date:'03 Mar', client:'Fullerton Fund Mgmt', type:'Bloomberg Chat', isin:'SG2134587890', dir:'SELL', dirClr:'#f87171', dirBg:'rgba(248,113,113,0.12)', sts:'QUOTED', stsClr:'#fbbf24', stsBg:'rgba(251,191,36,0.12)', price:'101.25' },
+    { date:'02 Mar', client:'Lion Global Investors', type:'Email', isin:'US5949181045', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
+  ];
+  return (
+    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+      <div style={{ display:'flex', gap:'12px', marginBottom:'16px', flexWrap:'wrap' }}>
+        {[{label:'Total',val:'47',clr:'#C8A258'},{label:'Volume',val:'$234.5MM',clr:'#C8A258'},{label:'Buy',val:'28',clr:'#22c55e'},{label:'Sell',val:'19',clr:'#f87171'}].map(s=>(
+          <div key={s.label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:'8px', padding:'10px 14px', border:'1px solid rgba(255,255,255,0.07)', minWidth:'80px' }}>
+            <div style={{ fontSize:'18px', fontWeight:700, color:s.clr }}>{s.val}</div>
+            <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.35)', textTransform:'uppercase', letterSpacing:'0.05em', marginTop:'2px' }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+          <thead>
+            <tr>{['Date','Client','Type','ISIN','Direction','Status','Price'].map(h=>(
+              <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'rgba(255,255,255,0.3)', fontWeight:600, fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.07em', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {rows.map((r,i)=>(
+              <tr key={i} style={{ background:i%2===0?'rgba(255,255,255,0.02)':'transparent', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.4)', whiteSpace:'nowrap' }}>{r.date}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.9)', fontWeight:600, whiteSpace:'nowrap' }}>{r.client}</td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.type} color='#C8A258' bg='rgba(200,162,88,0.12)' /></td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)', fontFamily:'monospace', fontSize:'11px' }}>{r.isin}</td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.dir} color={r.dirClr} bg={r.dirBg} /></td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.sts} color={r.stsClr} bg={r.stsBg} /></td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.6)' }}>{r.price}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function PipelinePreview() {
+  const issues = [
+    { date:'03 Mar', issuer:'Sembcorp Industries', size:'500', ccy:'USD', runners:'JPM, GS, HSBC' },
+    { date:'02 Mar', issuer:'CapitaLand Investments', size:'300', ccy:'SGD', runners:'HSBC, SCB' },
+    { date:'01 Mar', issuer:'DBS Bank', size:'750', ccy:'USD', runners:'JPM, MS, GS' },
+  ];
+  return (
+    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+      <div style={{ display:'flex', gap:'4px', marginBottom:'16px', borderBottom:'1px solid rgba(255,255,255,0.06)', paddingBottom:'0' }}>
+        {['New Issues (3)', 'Order Book'].map((t,i)=>(
+          <div key={t} style={{ padding:'8px 16px', fontSize:'12px', fontWeight:600, cursor:'pointer', color:i===0?'#C8A258':'rgba(255,255,255,0.35)', borderBottom:i===0?'2px solid #C8A258':'2px solid transparent', marginBottom:'-1px' }}>{t}</div>
+        ))}
+      </div>
+      <div style={{ overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+          <thead>
+            <tr>{['Date','Issuer','Target Size','Currency','Bookrunners'].map(h=>(
+              <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'rgba(255,255,255,0.3)', fontWeight:600, fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.07em', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {issues.map((r,i)=>(
+              <tr key={i} style={{ background:i%2===0?'rgba(255,255,255,0.02)':'transparent', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.4)', whiteSpace:'nowrap' }}>{r.date}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.9)', fontWeight:600 }}>{r.issuer}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.7)' }}>{r.size}MM</td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.ccy} color='#C8A258' bg='rgba(200,162,88,0.12)' /></td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)' }}>{r.runners}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsPreview() {
+  const clients = [
+    { name:'Temasek Holdings', vol:85, pct:'85%' },
+    { name:'Lion Global Investors', vol:68, pct:'68%' },
+    { name:'Fullerton Fund Mgmt', vol:54, pct:'54%' },
+    { name:'Eastspring Investments', vol:41, pct:'41%' },
+    { name:'Aberdeen Asset Mgmt', vol:29, pct:'29%' },
+  ];
+  return (
+    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+      <div style={{ display:'flex', gap:'12px', marginBottom:'20px', flexWrap:'wrap' }}>
+        {[{label:'Hit Rate',val:'34.2%',sub:'of enquiries executed'},{label:'Total Volume',val:'$1.2B',sub:'this quarter'},{label:'Avg Ticket Size',val:'$47.3MM',sub:'per trade'}].map(s=>(
+          <div key={s.label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:'8px', padding:'12px 16px', border:'1px solid rgba(255,255,255,0.07)', flex:'1', minWidth:'120px' }}>
+            <div style={{ fontSize:'20px', fontWeight:700, color:'#C8A258', marginBottom:'4px' }}>{s.val}</div>
+            <div style={{ fontSize:'11px', fontWeight:600, color:'rgba(255,255,255,0.7)', marginBottom:'2px' }}>{s.label}</div>
+            <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)' }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ marginBottom:'18px' }}>
+        <div style={{ fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:'10px' }}>Top 5 Clients by Volume</div>
+        {clients.map(c=>(
+          <div key={c.name} style={{ display:'flex', alignItems:'center', gap:'10px', marginBottom:'7px' }}>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.55)', width:'160px', flexShrink:0, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{c.name}</span>
+            <div style={{ flex:1, background:'rgba(255,255,255,0.06)', borderRadius:'3px', height:'5px' }}>
+              <div style={{ width:c.pct, background:'linear-gradient(90deg,#C8A258,#D4B06A)', borderRadius:'3px', height:'100%' }} />
+            </div>
+            <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.35)', width:'38px', textAlign:'right' }}>{c.vol}MM</span>
+          </div>
+        ))}
+      </div>
+      <div>
+        <div style={{ fontSize:'10px', fontWeight:600, color:'rgba(255,255,255,0.3)', textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:'8px' }}>Direction Split</div>
+        <div style={{ display:'flex', height:'7px', borderRadius:'4px', overflow:'hidden', gap:'2px' }}>
+          <div style={{ width:'52%', background:'rgba(34,197,94,0.55)' }} />
+          <div style={{ width:'31%', background:'rgba(248,113,113,0.55)' }} />
+          <div style={{ width:'17%', background:'rgba(251,191,36,0.55)' }} />
+        </div>
+        <div style={{ display:'flex', gap:'16px', marginTop:'7px' }}>
+          {[{label:'Buy',pct:'52%',clr:'#22c55e'},{label:'Sell',pct:'31%',clr:'#f87171'},{label:'Two-Way',pct:'17%',clr:'#fbbf24'}].map(d=>(
+            <div key={d.label} style={{ display:'flex', alignItems:'center', gap:'5px' }}>
+              <div style={{ width:'8px', height:'8px', borderRadius:'2px', background:d.clr, opacity:0.6 }} />
+              <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.4)' }}>{d.label}: {d.pct}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AIPreview() {
+  const results = [
+    { client:'GIC Private Ltd', isin:'US0231351067', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'50', ccy:'USD', notes:'Client interested in 3Y maturity' },
+    { client:'Ping An Asset Mgmt', isin:'US38141G1040', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'75', ccy:'USD', notes:'Preferring AT1 structure' },
+  ];
+  return (
+    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+      <div style={{ padding:'14px 18px', background:'rgba(255,255,255,0.03)', borderRadius:'8px', border:'1px solid rgba(200,162,88,0.2)', marginBottom:'18px', display:'flex', alignItems:'center', gap:'14px' }}>
+        <div style={{ width:'34px', height:'34px', borderRadius:'8px', background:'rgba(200,162,88,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        </div>
+        <div style={{ flex:1 }}>
+          <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.8)' }}>bloomberg_chat_0303.txt</div>
+          <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:'2px' }}>✓ Analysed — 2 activities detected</div>
+        </div>
+        <div style={{ padding:'6px 14px', borderRadius:'6px', background:'linear-gradient(135deg,#C8A258,#D4B06A)', color:'#0F2137', fontSize:'11px', fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>Import All</div>
+      </div>
+      <div style={{ overflowX:'auto' }}>
+        <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
+          <thead>
+            <tr>{['Client','ISIN','Size','Direction','Notes'].map(h=>(
+              <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'rgba(255,255,255,0.3)', fontWeight:600, fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.07em', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{h}</th>
+            ))}</tr>
+          </thead>
+          <tbody>
+            {results.map((r,i)=>(
+              <tr key={i} style={{ background:i%2===0?'rgba(255,255,255,0.02)':'transparent', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.9)', fontWeight:600 }}>{r.client}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)', fontFamily:'monospace', fontSize:'11px' }}>{r.isin}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.7)' }}>{r.size}MM {r.ccy}</td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.dir} color={r.dirClr} bg={r.dirBg} /></td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.4)', maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.notes}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 // ─── Contact Form Section ────────────────────────────────────────────────────────
 function ContactSection() {
   const [form, setForm] = useState({
@@ -366,6 +573,7 @@ function ContactSection() {
 
 // ─── Main Component ──────────────────────────────────────────────────────────────
 export default function LandingPage() {
+  const [activePreview, setActivePreview] = useState('crm');
   return (
     <div className="lp2">
       <style>{STYLES}</style>
@@ -567,6 +775,63 @@ export default function LandingPage() {
               </AnimatedSection>
             ))}
           </div>
+
+          {/* ── Product Preview ── */}
+          <AnimatedSection style={{ marginTop: '64px' }}>
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 8px' }}>
+                See it in action
+              </h3>
+              <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '15px', color: '#8A8680', margin: 0 }}>
+                A purpose-built workspace designed for the pace of bond sales
+              </p>
+            </div>
+
+            {/* Preview tabs */}
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '24px' }}>
+              {[
+                { id: 'crm', label: 'Activity CRM' },
+                { id: 'pipeline', label: 'Deal Pipeline' },
+                { id: 'analytics', label: 'Analytics' },
+                { id: 'ai', label: 'AI Analysis' },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActivePreview(tab.id)}
+                  style={{
+                    padding: '8px 20px', borderRadius: '100px', cursor: 'pointer',
+                    border: activePreview === tab.id ? '1px solid #C8A258' : '1px solid #E4E0DA',
+                    background: activePreview === tab.id ? 'rgba(200,162,88,0.1)' : 'transparent',
+                    color: activePreview === tab.id ? '#C8A258' : '#8A8680',
+                    fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600,
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Dark app frame */}
+            <div style={{ background: '#0A1929', borderRadius: '16px', border: '1px solid rgba(200,162,88,0.2)', overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.18)' }}>
+              {/* Mock browser bar */}
+              <div style={{ background: '#0F2137', borderBottom: '1px solid rgba(200,162,88,0.1)', padding: '10px 16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {[1,2,3].map(d => <div key={d} style={{ width:'9px', height:'9px', borderRadius:'50%', background:'rgba(255,255,255,0.08)' }} />)}
+                <div style={{ flex:1, background:'rgba(255,255,255,0.05)', borderRadius:'4px', height:'22px', marginLeft:'8px', display:'flex', alignItems:'center', paddingLeft:'10px' }}>
+                  <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', fontFamily:'monospace' }}>
+                    app.axle.finance/{activePreview === 'crm' ? 'activities' : activePreview === 'pipeline' ? 'pipeline' : activePreview === 'analytics' ? 'analytics' : 'ai-assistant'}
+                  </span>
+                </div>
+              </div>
+              {/* Preview content */}
+              <div style={{ padding: '24px', minHeight: '300px' }}>
+                {activePreview === 'crm' && <ActivityCRMPreview />}
+                {activePreview === 'pipeline' && <PipelinePreview />}
+                {activePreview === 'analytics' && <AnalyticsPreview />}
+                {activePreview === 'ai' && <AIPreview />}
+              </div>
+            </div>
+          </AnimatedSection>
         </div>
       </section>
 
@@ -623,7 +888,72 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── 6. TESTIMONIALS ──────────────────────────────────────────────────────── */}
+      {/* ── 6. COMPARISON TABLE ──────────────────────────────────────────────────── */}
+      <section id="compare" style={{ background: '#FFFFFF', padding: '100px 24px' }}>
+        <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
+          <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <SectionLabel>Why Axle</SectionLabel>
+            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '620px', lineHeight: '1.2' }}>
+              Built for bond sales. Not adapted for it.
+            </h2>
+            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
+              General-purpose CRMs require months of customisation to approximate what Axle delivers out of the box.
+            </p>
+          </AnimatedSection>
+
+          <AnimatedSection delay={100} style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid #E4E0DA', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'Outfit', sans-serif", minWidth: '640px' }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: '16px 24px', textAlign: 'left', background: '#F4F2ED', color: '#8A8680', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid #E4E0DA', width: '36%' }}>Feature</th>
+                  <th style={{ padding: '16px 20px', textAlign: 'center', background: 'rgba(200,162,88,0.07)', borderBottom: '2px solid #C8A258', borderLeft: '1px solid rgba(200,162,88,0.2)', borderRight: '1px solid rgba(200,162,88,0.2)' }}>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '15px', fontWeight: 700, color: '#0C1017' }}>Axle</span>
+                    <div style={{ fontSize: '11px', color: '#8A8680', fontWeight: 400, marginTop: '2px' }}>by Alteri Group</div>
+                  </th>
+                  {['Salesforce', 'HubSpot', 'Generic CRM'].map(col => (
+                    <th key={col} style={{ padding: '16px 20px', textAlign: 'center', background: '#F4F2ED', color: '#5A5654', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E4E0DA', borderLeft: '1px solid #E4E0DA' }}>{col}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'Purpose-built for bond sales', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'Activity & trade log', axle:'yes', sf:'custom', hub:'limited', gen:'limited' },
+                  { label: 'ISIN / Ticker tracking', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'Inline status & price editing', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'New issues pipeline', axle:'yes', sf:'custom', hub:'no', gen:'no' },
+                  { label: 'Order book management', axle:'yes', sf:'custom', hub:'no', gen:'no' },
+                  { label: 'AI transcript analysis', axle:'yes', sf:'addon', hub:'no', gen:'no' },
+                  { label: 'Real-time analytics', axle:'yes', sf:'limited', hub:'limited', gen:'no' },
+                  { label: 'PDF & Excel export', axle:'yes', sf:'addon', hub:'addon', gen:'limited' },
+                  { label: 'Bloomberg integration', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'Onboarding time', axle:'1 day', sf:'3–6 months', hub:'1–3 months', gen:'2–4 weeks' },
+                ].map((row, i) => (
+                  <tr key={row.label} style={{ background: i % 2 === 0 ? '#FFFFFF' : '#FAFAF8' }}>
+                    <td style={{ padding: '13px 24px', color: '#2C2C2C', fontSize: '14px', fontWeight: 500, borderBottom: '1px solid #F0EDE8' }}>{row.label}</td>
+                    <td style={{ padding: '13px 20px', textAlign: 'center', background: 'rgba(200,162,88,0.04)', borderLeft: '1px solid rgba(200,162,88,0.12)', borderRight: '1px solid rgba(200,162,88,0.12)', borderBottom: '1px solid rgba(200,162,88,0.08)' }}>
+                      {renderCell(row.axle, true)}
+                    </td>
+                    {[row.sf, row.hub, row.gen].map((val, j) => (
+                      <td key={j} style={{ padding: '13px 20px', textAlign: 'center', borderLeft: '1px solid #F0EDE8', borderBottom: '1px solid #F0EDE8' }}>
+                        {renderCell(val, false)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </AnimatedSection>
+
+          <AnimatedSection delay={150} style={{ textAlign: 'center', marginTop: '40px' }}>
+            <button onClick={() => scrollTo('contact')} className="lp2-btn-gold" style={{ fontSize: '15px', padding: '14px 32px' }}>
+              See Axle in action
+            </button>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ── 7. TESTIMONIALS ──────────────────────────────────────────────────────── */}
       <section id="about" style={{
         background: 'linear-gradient(160deg, #0A1929 0%, #0F2137 60%, #162B44 100%)',
         padding: '100px 24px',

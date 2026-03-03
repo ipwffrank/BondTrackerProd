@@ -65,8 +65,8 @@ export default function Activities() {
     setSubmitLoading(true);
     try{
       const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:activityForm.price?parseFloat(activityForm.price):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
-      if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);alert('Activity updated!');}
-      else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);alert('Activity added!');}
+      if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
+      else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
       setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:''});
     }catch(e){console.error(e);alert('Failed to save activity');}finally{setSubmitLoading(false);}
   }

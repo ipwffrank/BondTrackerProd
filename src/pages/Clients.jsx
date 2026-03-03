@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -12,6 +12,9 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvNotification, setCsvNotification] = useState(null);
+  const csvInputRef = useRef(null);
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -27,8 +30,8 @@ export default function Clients() {
     setSubmitLoading(true);
     try {
       const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
-      if(editingClient){ await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),data); setEditingClient(null); alert('Client updated!'); }
-      else{ await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data); alert('Client added!'); }
+      if(editingClient){ await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),data); setEditingClient(null); }
+      else{ await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data); }
       setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
     }catch(e){ console.error(e); alert('Failed to save client'); }finally{ setSubmitLoading(false); }
   }
@@ -44,6 +47,61 @@ export default function Clients() {
     setClientForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||''});
     setEditingClient(c.id);
     window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  async function handleCsvUpload(e) {
+    const file = e.target.files[0];
+    if (!file || !userData?.organizationId) return;
+    setCsvUploading(true);
+    setCsvNotification(null);
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length === 0) { setCsvNotification({ type: 'error', message: 'CSV file is empty.' }); return; }
+
+      // Detect and skip header row
+      let startIdx = 0;
+      const firstLineLower = lines[0].toLowerCase();
+      if (firstLineLower.includes('name') || firstLineLower.includes('client') || firstLineLower.includes('type')) startIdx = 1;
+
+      const VALID_TYPES = ['FUND','BANK','INSURANCE','PENSION','SOVEREIGN'];
+      const VALID_REGIONS = ['APAC','EMEA','AMERICAS'];
+
+      const rows = lines.slice(startIdx).map(line => {
+        const cols = line.split(',').map(c => c.trim().replace(/^["']|["']$/g, ''));
+        return {
+          name: cols[0] || '',
+          type: VALID_TYPES.includes((cols[1] || '').toUpperCase()) ? cols[1].toUpperCase() : 'FUND',
+          region: VALID_REGIONS.includes((cols[2] || '').toUpperCase()) ? cols[2].toUpperCase() : 'APAC',
+          salesCoverage: cols[3] || '',
+        };
+      }).filter(r => r.name);
+
+      if (rows.length === 0) { setCsvNotification({ type: 'error', message: 'No valid rows found in CSV.' }); return; }
+
+      // Match against existing clients by name (case-insensitive)
+      const existingNames = new Set(clients.map(c => c.name.toLowerCase()));
+      const toAdd = rows.filter(r => !existingNames.has(r.name.toLowerCase()));
+      const skipped = rows.length - toAdd.length;
+
+      for (const row of toAdd) {
+        await addDoc(collection(db, `organizations/${userData.organizationId}/clients`), {
+          name: row.name, type: row.type, region: row.region, salesCoverage: row.salesCoverage,
+          createdAt: serverTimestamp(), createdBy: userData.name || userData.email,
+        });
+      }
+
+      setCsvNotification({
+        type: 'success',
+        message: `Added ${toAdd.length} client${toAdd.length !== 1 ? 's' : ''}${skipped > 0 ? `, skipped ${skipped} duplicate${skipped !== 1 ? 's' : ''} already in directory` : ''}.`,
+      });
+    } catch (err) {
+      console.error(err);
+      setCsvNotification({ type: 'error', message: 'Failed to parse CSV. Check file format.' });
+    } finally {
+      setCsvUploading(false);
+      e.target.value = '';
+    }
   }
 
   // Export functions
@@ -133,11 +191,26 @@ export default function Clients() {
         <div className="card" style={{marginTop:'24px'}}>
           <div className="card-header">
             <span>📋 Client Directory ({clients.length})</span>
-            <div style={{display:'flex',gap:'10px'}}>
+            <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
               <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
               <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
+              <button onClick={() => csvInputRef.current?.click()} className="btn btn-secondary" disabled={csvUploading}>
+                {csvUploading ? '⏳ Uploading...' : '📤 Upload CSV'}
+              </button>
+              <input ref={csvInputRef} type="file" accept=".csv" style={{display:'none'}} onChange={handleCsvUpload} />
             </div>
           </div>
+          {csvNotification && (
+            <div style={{
+              padding:'12px 24px', display:'flex', justifyContent:'space-between', alignItems:'center',
+              borderBottom:'1px solid var(--border)', fontSize:'13px', fontWeight:500,
+              background: csvNotification.type === 'success' ? 'var(--badge-success-bg)' : 'var(--badge-danger-bg)',
+              color: csvNotification.type === 'success' ? 'var(--badge-success-text)' : 'var(--badge-danger-text)',
+            }}>
+              <span>{csvNotification.type === 'success' ? '✓ ' : '⚠ '}{csvNotification.message}</span>
+              <button onClick={() => setCsvNotification(null)} style={{background:'none',border:'none',cursor:'pointer',color:'inherit',fontSize:'18px',padding:'0 4px',lineHeight:1}}>×</button>
+            </div>
+          )}
           <div className="table-container">
             <table className="table">
               <thead>
@@ -173,6 +246,12 @@ export default function Clients() {
             <li>Only admins can delete clients</li>
             <li>Clients are automatically available in Activity Log and Order Book forms</li>
           </ul>
+        </div>
+        <div style={{marginTop:'16px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
+          <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>📋 CSV Bulk Upload Format</h4>
+          <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, salesCoverage</strong> (header row optional)</p>
+          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'0 0 4px'}}>Valid types: FUND, BANK, INSURANCE, PENSION, SOVEREIGN</p>
+          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>Valid regions: APAC, EMEA, AMERICAS · Example row: <em>Temasek Holdings,FUND,APAC,Jane Doe</em></p>
         </div>
       </main>
       <style jsx>{`

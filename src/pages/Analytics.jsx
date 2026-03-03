@@ -149,7 +149,8 @@ export default function Analytics() {
         </div>
 
         {/* Overview Stats Cards */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:'16px',marginBottom:'24px'}}>
+        <div style={{overflowX:'auto',marginBottom:'24px'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(140px,1fr))',gap:'16px',minWidth:'700px'}}>
           {[
             {value:stats.totalActivities,label:'Total Activities'},
             {value:`$${stats.totalVolume}MM`,label:'Total Volume'},
@@ -164,6 +165,7 @@ export default function Analytics() {
               <div className="stat-label">{s.label}</div>
             </div>
           ))}
+        </div>
         </div>
 
         {/* Direction + Status Row */}

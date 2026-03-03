@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AxleLogo from './components/marketing/AxleLogo';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import Login from './pages/Login';
@@ -17,31 +18,15 @@ import AuthAction from './pages/AuthAction';
 function LoadingScreen() {
   return (
     <div style={{
-      minHeight: '100vh', background: '#0f172a',
+      minHeight: '100vh', background: '#0F2137',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+      fontFamily: "'Outfit', -apple-system, sans-serif",
     }}>
       <div style={{ textAlign: 'center' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{
-            display: 'inline-flex', alignItems: 'center', gap: '10px', marginBottom: '28px',
-          }}>
-            <div style={{
-              width: '40px', height: '40px', borderRadius: '10px',
-              background: 'linear-gradient(135deg, #10b981, #059669)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontWeight: '800', fontSize: '20px', color: 'white',
-            }}>A</div>
-            <span style={{ fontSize: '22px', fontWeight: '700', color: '#f8fafc', letterSpacing: '-0.3px' }}>Axle</span>
-          </div>
+        <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'center' }}>
+          <AxleLogo variant="dark" size="lg" />
         </div>
-        <div style={{
-          width: '44px', height: '44px', borderRadius: '50%',
-          border: '3px solid #334155', borderTopColor: '#10b981',
-          animation: 'spin 0.8s linear infinite', margin: '0 auto 20px',
-        }} />
-        <p style={{ color: '#64748b', fontSize: '14px' }}>Loading your workspace...</p>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <p style={{ color: 'rgba(240,237,232,0.45)', fontSize: '14px', fontFamily: "'Outfit', sans-serif", margin: 0 }}>Loading your workplace</p>
       </div>
     </div>
   );

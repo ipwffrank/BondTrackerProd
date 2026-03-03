@@ -123,8 +123,6 @@ export default function Pipeline() {
         createdBy: userData.name || userData.email
       });
 
-      alert('New issue added successfully!');
-      
       setNewIssueForm({
         issuerName: '',
         targetIssueSize: '',
@@ -167,8 +165,6 @@ export default function Pipeline() {
         createdBy: userData.name || userData.email
       });
 
-      alert('Order added successfully!');
-      
       setOrderBookForm({
         issuerName: '',
         clientName: '',

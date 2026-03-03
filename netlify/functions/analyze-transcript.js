@@ -42,12 +42,18 @@ exports.handler = async (event) => {
     const prompt = `Analyze bond trading chat from DEALER perspective.
 
 RULES:
-1. Client asks "Your bid?" = SELL
-2. Client asks "Offer?" = BUY
-3. Extract company from "(From Company)"
+1. Client asks "Your bid?" = SELL (client wants to sell, dealer buys)
+2. Client asks "Offer?" or "Yours?" = BUY (client wants to buy, dealer sells)
+3. Extract company from "(From Company)" or context
+4. Determine status from outcome:
+   - "done", "yours", "mine", "executed", "filled", "traded", "confirmed" → EXECUTED
+   - "traded away", "done away", "lost to", "competitor got it" → TRADED AWAY
+   - "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
+   - Price was quoted but no final outcome → QUOTED
+   - Enquiry only, no price given → ENQUIRY
 
-Return JSON array:
-[{"clientName":"Company","contactPerson":"Name","ticker":"Bond","size":null,"direction":"BUY/SELL","price":null,"status":"EXECUTED/QUOTED/PASSED/ENQUIRY","notes":"summary"}]
+Return JSON array only (no markdown):
+[{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]
 
 Transcript: ${transcript}`;
 
