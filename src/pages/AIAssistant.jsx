@@ -12,6 +12,8 @@ export default function AIAssistant() {
   const [aiResults, setAiResults] = useState([]);
   const [aiError, setAiError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [analysisTimestamp, setAnalysisTimestamp] = useState(null);
+  const [analysisFileName, setAnalysisFileName] = useState('');
 
   async function handleAiAnalysis() {
     if (!aiFile) return;
@@ -19,6 +21,7 @@ export default function AIAssistant() {
     setAiAnalyzing(true);
     setAiError('');
     setAiResults([]);
+    setAnalysisFileName(aiFile.name);
 
     try {
       const text = await aiFile.text();
@@ -36,6 +39,7 @@ export default function AIAssistant() {
       }
 
       setAiResults(result.activities || []);
+      setAnalysisTimestamp(new Date());
       if (result.activities?.length === 0) {
         setAiError('No activities detected in the transcript');
       }
@@ -187,7 +191,14 @@ export default function AIAssistant() {
         {aiResults.length > 0 && (
           <div className="card" style={{marginTop: '24px'}}>
             <div className="card-header">
-              <span>Detected Activities ({aiResults.length})</span>
+              <div>
+                <span>Detected Activities ({aiResults.length})</span>
+                {analysisTimestamp && (
+                  <div style={{fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', marginTop: '4px'}}>
+                    {analysisFileName} · Analyzed {analysisTimestamp.toLocaleDateString()} at {analysisTimestamp.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleImportAiResults}
                 className="btn btn-secondary"
