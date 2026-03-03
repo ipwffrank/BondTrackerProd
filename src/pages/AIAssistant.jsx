@@ -227,7 +227,7 @@ export default function AIAssistant() {
                     <tr key={idx}>
                       <td style={{fontWeight: 600}}>{result.clientName}</td>
                       <td>{result.ticker || result.isin || '-'}</td>
-                      <td>{result.size ? `${result.size}MM` : '-'}</td>
+                      <td>{result.size ? `${(result.size/1000000).toFixed(2)}MM` : '-'}</td>
                       <td><span className={`badge ${getDirectionBadge(result.direction)}`}>{result.direction}</span></td>
                       <td>{result.price || '-'}</td>
                       <td><span className={`badge ${getStatusBadge(result.status)}`}>{result.status}</span></td>

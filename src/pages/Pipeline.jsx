@@ -468,7 +468,7 @@ export default function Pipeline() {
                         <tr key={issue.id}>
                           <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '-'}</td>
                           <td style={{fontWeight: 600}}>{issue.issuerName}</td>
-                          <td>{issue.targetIssueSize}MM</td>
+                          <td>{(issue.targetIssueSize/1000000).toFixed(2)}MM</td>
                           <td><span className="badge badge-primary">{issue.currency}</span></td>
                           <td>{issue.bookrunners?.join(', ') || '-'}</td>
                           <td>{issue.createdBy}</td>
@@ -513,7 +513,7 @@ export default function Pipeline() {
                         <option value="">Select Issue</option>
                         {newIssues.map(issue => (
                           <option key={issue.id} value={issue.issuerName}>
-                            {issue.issuerName} - {issue.targetIssueSize}MM {issue.currency}
+                            {issue.issuerName} - {(issue.targetIssueSize/1000000).toFixed(2)}MM {issue.currency}
                           </option>
                         ))}
                       </select>
@@ -629,7 +629,7 @@ export default function Pipeline() {
                           <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
                           <td style={{fontWeight: 600}}>{order.issuerName}</td>
                           <td>{order.clientName}</td>
-                          <td>{order.orderSize}MM</td>
+                          <td>{(order.orderSize/1000000).toFixed(2)}MM</td>
                           <td>{order.orderLimit || '-'}</td>
                           <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis'}}>{order.notes || '-'}</td>
                           <td>{order.createdBy}</td>
