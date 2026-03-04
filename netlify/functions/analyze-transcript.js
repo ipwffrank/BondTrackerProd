@@ -96,6 +96,7 @@ Transcript: ${transcript}`;
     }
 
     const aiResponse = JSON.parse(response.data);
+    const usage = aiResponse.usage || {};
     let text = aiResponse.choices[0].message.content.trim();
     text = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
 
@@ -126,7 +127,12 @@ Transcript: ${transcript}`;
       body: JSON.stringify({
         success: true,
         activities: validActivities,
-        count: validActivities.length
+        count: validActivities.length,
+        usage: {
+          promptTokens: usage.prompt_tokens || 0,
+          completionTokens: usage.completion_tokens || 0,
+          totalTokens: usage.total_tokens || 0
+        }
       })
     };
 

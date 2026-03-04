@@ -10,6 +10,8 @@ export default function Analytics() {
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [stats, setStats] = useState({
     totalActivities:0,totalVolume:0,totalClients:0,
     buyCount:0,sellCount:0,twoWayCount:0,
@@ -26,7 +28,6 @@ export default function Analytics() {
       unsubscribes.push(onSnapshot(query(collection(db,`organizations/${userData.organizationId}/activities`),orderBy('createdAt','desc')),(snapshot)=>{
         const data = snapshot.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()}));
         setActivities(data);
-        calculateStats(data);
         setLoading(false);
       }));
       unsubscribes.push(onSnapshot(collection(db,`organizations/${userData.organizationId}/clients`),(snapshot)=>{
@@ -35,6 +36,20 @@ export default function Analytics() {
     } catch(e){ console.error(e); setLoading(false); }
     return ()=>unsubscribes.forEach(u=>u());
   },[userData?.organizationId]);
+
+  // Derive filteredActivities from activities + date range
+  const filteredActivities = activities.filter(a => {
+    const d = a.createdAt;
+    if (!d) return true;
+    if (startDate && d < new Date(startDate)) return false;
+    if (endDate && d > new Date(endDate + 'T23:59:59')) return false;
+    return true;
+  });
+
+  // Recalculate stats whenever activities or dates change
+  useEffect(() => {
+    calculateStats(filteredActivities);
+  }, [startDate, endDate, activities]);
 
   function calculateStats(data) {
     const totalActivities = data.length;
@@ -51,36 +66,29 @@ export default function Analytics() {
     const conversionRate = totalActivities>0 ? ((executedCount/totalActivities)*100).toFixed(1) : 0;
     const avgTicketSize = executedCount>0 ? (executedVolume/executedCount).toFixed(2) : 0;
 
-    // Top clients by volume
     const clientVolumes = {};
     data.forEach(a=>{ if(!clientVolumes[a.clientName]) clientVolumes[a.clientName]=0; clientVolumes[a.clientName]+=parseFloat(a.size)||0; });
     const topClients = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,volume])=>({name,volume:volume.toFixed(2)}));
 
-    // Top users by count
     const userCounts = {};
     data.forEach(a=>{ if(!userCounts[a.createdBy]) userCounts[a.createdBy]=0; userCounts[a.createdBy]++; });
     const topUsers = Object.entries(userCounts).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([name,count])=>({name,count}));
 
-    // Currency breakdown
     const currencyBreakdown = {};
     data.forEach(a=>{ if(!currencyBreakdown[a.currency]) currencyBreakdown[a.currency]={count:0,volume:0}; currencyBreakdown[a.currency].count++; currencyBreakdown[a.currency].volume+=parseFloat(a.size)||0; });
 
-    // Activity type breakdown
     const activityTypeBreakdown = {};
     data.forEach(a=>{ if(!activityTypeBreakdown[a.activityType]) activityTypeBreakdown[a.activityType]=0; activityTypeBreakdown[a.activityType]++; });
 
-    // Region breakdown
     const regionBreakdown = {};
     data.forEach(a=>{ const r=a.clientRegion||'Unknown'; if(!regionBreakdown[r]) regionBreakdown[r]=0; regionBreakdown[r]++; });
 
     setStats({ totalActivities,totalVolume:totalVolume.toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:executedVolume.toFixed(2),avgTicketSize });
   }
 
-  // Export Summary PDF
+  // Export handlers
   function handleExportPDF() {
-    if(activities.length===0){ alert('No data to export!'); return; }
-
-    // Build flat summary data for export
+    if(filteredActivities.length===0){ alert('No data to export!'); return; }
     const summaryData = [
       { metric:'Total Activities', value:stats.totalActivities },
       { metric:'Total Volume (MM)', value:`$${stats.totalVolume}MM` },
@@ -98,35 +106,79 @@ export default function Analytics() {
       { metric:'Passed', value:stats.passedCount },
       { metric:'Traded Away', value:stats.tradedAwayCount },
     ];
-
-    exportToPDF(summaryData,[
-      {header:'Metric',field:'metric'},
-      {header:'Value',field:'value'}
-    ],'analytics-summary','Analytics Summary Report');
+    exportToPDF(summaryData,[{header:'Metric',field:'metric'},{header:'Value',field:'value'}],'analytics-summary','Analytics Summary Report');
   }
 
-  // Export Full Activity Data to Excel (multi-sheet summary)
   function handleExportExcel() {
-    if(activities.length===0){ alert('No data to export!'); return; }
-
-    // Export activities with all fields
-    exportToExcel(activities,[
-      {header:'Date',field:'createdAt'},
-      {header:'Client',field:'clientName'},
-      {header:'Client Type',field:'clientType'},
-      {header:'Region',field:'clientRegion'},
-      {header:'Sales Coverage',field:'salesCoverage'},
-      {header:'Activity Type',field:'activityType'},
-      {header:'ISIN',field:'isin'},
-      {header:'Ticker',field:'ticker'},
-      {header:'Size (MM)',field:'size'},
-      {header:'Currency',field:'currency'},
-      {header:'Price',field:'price'},
-      {header:'Direction',field:'direction'},
-      {header:'Status',field:'status'},
-      {header:'Notes',field:'notes'},
+    if(filteredActivities.length===0){ alert('No data to export!'); return; }
+    exportToExcel(filteredActivities,[
+      {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Client Type',field:'clientType'},
+      {header:'Region',field:'clientRegion'},{header:'Sales Coverage',field:'salesCoverage'},
+      {header:'Activity Type',field:'activityType'},{header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},
+      {header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},{header:'Price',field:'price'},
+      {header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Notes',field:'notes'},
       {header:'Created By',field:'createdBy'}
     ],'analytics-full-export','Analytics');
+  }
+
+  // Per-card CSV export handlers
+  function handleExportDirectionCSV() {
+    const data = [
+      { direction: 'BUY', count: stats.buyCount, pct: stats.totalActivities>0?((stats.buyCount/stats.totalActivities)*100).toFixed(1)+'%':'0%' },
+      { direction: 'SELL', count: stats.sellCount, pct: stats.totalActivities>0?((stats.sellCount/stats.totalActivities)*100).toFixed(1)+'%':'0%' },
+      { direction: 'TWO-WAY', count: stats.twoWayCount, pct: stats.totalActivities>0?((stats.twoWayCount/stats.totalActivities)*100).toFixed(1)+'%':'0%' },
+    ];
+    exportToExcel(data,[{header:'Direction',field:'direction'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}],'direction-breakdown','Direction');
+  }
+
+  function handleExportStatusCSV() {
+    const data = [
+      { status:'ENQUIRY', count:stats.enquiryCount },
+      { status:'QUOTED', count:stats.quotedCount },
+      { status:'EXECUTED', count:stats.executedCount },
+      { status:'PASSED', count:stats.passedCount },
+      { status:'TRADED AWAY', count:stats.tradedAwayCount },
+    ].map(r => ({...r, pct: stats.totalActivities>0?((r.count/stats.totalActivities)*100).toFixed(1)+'%':'0%'}));
+    exportToExcel(data,[{header:'Status',field:'status'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}],'status-breakdown','Status');
+  }
+
+  function handleExportClientsCSV() {
+    const clientVolumes = {};
+    const clientCounts = {};
+    filteredActivities.forEach(a => {
+      if(!clientVolumes[a.clientName]) { clientVolumes[a.clientName]=0; clientCounts[a.clientName]=0; }
+      clientVolumes[a.clientName]+=parseFloat(a.size)||0;
+      clientCounts[a.clientName]++;
+    });
+    const data = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).map(([name,volume])=>({name, totalVolume:volume.toFixed(2), activityCount:clientCounts[name]}));
+    exportToExcel(data,[{header:'Client',field:'name'},{header:'Total Volume (MM)',field:'totalVolume'},{header:'Activity Count',field:'activityCount'}],'top-clients','Clients');
+  }
+
+  function handleExportUsersCSV() {
+    const data = stats.topUsers.map(u=>({name:u.name, count:u.count}));
+    exportToExcel(data,[{header:'User',field:'name'},{header:'Activity Count',field:'count'}],'active-users','Users');
+  }
+
+  function handleExportActivityTypeCSV() {
+    const total = stats.totalActivities;
+    const data = Object.entries(stats.activityTypeBreakdown).sort((a,b)=>b[1]-a[1]).map(([type,count])=>({type, count, pct: total>0?((count/total)*100).toFixed(1)+'%':'0%'}));
+    exportToExcel(data,[{header:'Activity Type',field:'type'},{header:'Count',field:'count'},{header:'%',field:'pct'}],'activity-type-breakdown','Activity Types');
+  }
+
+  function handleExportRegionCSV() {
+    const total = stats.totalActivities;
+    const data = Object.entries(stats.regionBreakdown).sort((a,b)=>b[1]-a[1]).map(([region,count])=>({region, count, pct: total>0?((count/total)*100).toFixed(1)+'%':'0%'}));
+    exportToExcel(data,[{header:'Region',field:'region'},{header:'Count',field:'count'},{header:'%',field:'pct'}],'region-breakdown','Regions');
+  }
+
+  function handleExportCurrencyCSV() {
+    const total = parseFloat(stats.totalVolume)||1;
+    const data = Object.entries(stats.currencyBreakdown).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d])=>({
+      currency, count:d.count, volume:d.volume.toFixed(2),
+      executedVolume: filteredActivities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2),
+      pct: ((d.volume/total)*100).toFixed(1)+'%'
+    }));
+    exportToExcel(data,[{header:'Currency',field:'currency'},{header:'Count',field:'count'},{header:'Volume (MM)',field:'volume'},{header:'Executed Volume (MM)',field:'executedVolume'},{header:'% of Total',field:'pct'}],'currency-breakdown','Currency');
   }
 
   if(loading) return(<div className="app-container"><Navigation/><div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'50vh'}}><div style={{textAlign:'center'}}><div className="spinner" style={{width:'40px',height:'40px',margin:'0 auto 16px'}}></div><div style={{color:'var(--text-primary)'}}>Loading analytics...</div></div></div></div>);
@@ -148,30 +200,54 @@ export default function Analytics() {
           </div>
         </div>
 
+        {/* Date Range Filter */}
+        <div className="card" style={{marginBottom:'24px'}}>
+          <div style={{padding:'16px 24px',display:'flex',alignItems:'center',gap:'16px',flexWrap:'wrap'}}>
+            <span style={{fontSize:'13px',fontWeight:600,color:'var(--text-secondary)'}}>Date Range:</span>
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+              <label style={{fontSize:'12px',color:'var(--text-muted)'}}>From</label>
+              <input type="date" className="form-input" style={{padding:'6px 10px',fontSize:'13px',width:'150px'}} value={startDate} onChange={e=>setStartDate(e.target.value)}/>
+            </div>
+            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+              <label style={{fontSize:'12px',color:'var(--text-muted)'}}>To</label>
+              <input type="date" className="form-input" style={{padding:'6px 10px',fontSize:'13px',width:'150px'}} value={endDate} onChange={e=>setEndDate(e.target.value)}/>
+            </div>
+            {(startDate||endDate) && (
+              <button className="btn btn-muted" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>{setStartDate('');setEndDate('');}}>Reset</button>
+            )}
+            <span style={{fontSize:'13px',color:'var(--text-muted)',marginLeft:'auto'}}>
+              {(startDate||endDate) ? `Showing ${filteredActivities.length} of ${activities.length} activities` : `${activities.length} activities`}
+            </span>
+          </div>
+        </div>
+
         {/* Overview Stats Cards */}
         <div style={{overflowX:'auto',marginBottom:'24px'}}>
-        <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(140px,1fr))',gap:'16px',minWidth:'700px'}}>
-          {[
-            {value:stats.totalActivities,label:'Total Activities'},
-            {value:`$${stats.totalVolume}MM`,label:'Total Volume'},
-            {value:stats.totalClients,label:'Active Clients'},
-            {value:stats.executedCount,label:'Executed Trades'},
-            {value:`$${stats.executedVolume}MM`,label:'Executed Volume'},
-            {value:`${stats.conversionRate}%`,label:'Conversion Rate'},
-            {value:`$${stats.avgTicketSize}MM`,label:'Avg Ticket Size'},
-          ].map((s,i)=>(
-            <div key={i} className="stat-card">
-              <div className="stat-value">{s.value}</div>
-              <div className="stat-label">{s.label}</div>
-            </div>
-          ))}
-        </div>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(140px,1fr))',gap:'16px',minWidth:'700px'}}>
+            {[
+              {value:stats.totalActivities,label:'Total Activities'},
+              {value:`$${stats.totalVolume}MM`,label:'Total Volume'},
+              {value:stats.totalClients,label:'Active Clients'},
+              {value:stats.executedCount,label:'Executed Trades'},
+              {value:`$${stats.executedVolume}MM`,label:'Executed Volume'},
+              {value:`${stats.conversionRate}%`,label:'Conversion Rate'},
+              {value:`$${stats.avgTicketSize}MM`,label:'Avg Ticket Size'},
+            ].map((s,i)=>(
+              <div key={i} className="stat-card">
+                <div className="stat-value">{s.value}</div>
+                <div className="stat-label">{s.label}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Direction + Status Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>Direction Breakdown</span></div>
+            <div className="card-header">
+              <span>Direction Breakdown</span>
+              <button onClick={handleExportDirectionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
               <div className="breakdown-box" style={{background:'var(--badge-success-bg)'}}>
                 <div style={{fontSize:'28px',fontWeight:'bold',color:'var(--badge-success-text)'}}>{stats.buyCount}</div>
@@ -192,7 +268,10 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>Status Breakdown</span></div>
+            <div className="card-header">
+              <span>Status Breakdown</span>
+              <button onClick={handleExportStatusCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {[
                 {label:'Enquiry',count:stats.enquiryCount,color:'var(--badge-primary-text)',bg:'var(--badge-primary-bg)'},
@@ -219,7 +298,10 @@ export default function Analytics() {
         {/* Top Clients + Top Users Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>Top Clients by Volume</span></div>
+            <div className="card-header">
+              <span>Top Clients by Volume</span>
+              <button onClick={handleExportClientsCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px'}}>
               {stats.topClients.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
@@ -236,7 +318,10 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>Most Active Users</span></div>
+            <div className="card-header">
+              <span>Most Active Users</span>
+              <button onClick={handleExportUsersCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px'}}>
               {stats.topUsers.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
@@ -256,7 +341,10 @@ export default function Analytics() {
         {/* Activity Type + Region Row */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
-            <div className="card-header"><span>Activity Type Breakdown</span></div>
+            <div className="card-header">
+              <span>Activity Type Breakdown</span>
+              <button onClick={handleExportActivityTypeCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.activityTypeBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 Object.entries(stats.activityTypeBreakdown).sort((a,b)=>b[1]-a[1]).map(([type,count],i)=>(
@@ -273,7 +361,10 @@ export default function Analytics() {
           </div>
 
           <div className="card">
-            <div className="card-header"><span>Region Breakdown</span></div>
+            <div className="card-header">
+              <span>Region Breakdown</span>
+              <button onClick={handleExportRegionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.regionBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 Object.entries(stats.regionBreakdown).sort((a,b)=>b[1]-a[1]).map(([region,count],i)=>(
@@ -293,7 +384,10 @@ export default function Analytics() {
 
         {/* Currency Breakdown */}
         <div className="card" style={{marginBottom:'24px'}}>
-          <div className="card-header"><span>Currency Breakdown</span></div>
+          <div className="card-header">
+            <span>Currency Breakdown</span>
+            <button onClick={handleExportCurrencyCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+          </div>
           <div className="table-container">
             <table className="table">
               <thead>
@@ -308,7 +402,7 @@ export default function Analytics() {
                         <td><span className="badge badge-primary">{currency}</span></td>
                         <td>{data.count}</td>
                         <td style={{fontWeight:600}}>${data.volume.toFixed(2)}MM</td>
-                        <td>${activities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2)}MM</td>
+                        <td>${filteredActivities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2)}MM</td>
                         <td>
                           <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
                             <div style={{flex:1,height:'8px',background:'var(--border)',borderRadius:'4px',overflow:'hidden'}}>
@@ -342,6 +436,10 @@ export default function Analytics() {
         .btn{padding:10px 18px;border-radius:8px;font-weight:600;font-size:13.5px;transition:all 0.2s ease;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;white-space:nowrap;}
         .btn-secondary{background:var(--btn-secondary-bg);color:#fff;padding:8px 14px;font-size:13px;}
         .btn-secondary:hover{background:var(--btn-secondary-hover);}
+        .btn-muted{background:var(--btn-muted-bg);color:var(--btn-muted-text);}
+        .btn-muted:hover{background:var(--btn-muted-hover);}
+        .form-input{width:100%;padding:10px 14px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;transition:all 0.2s ease;font-family:inherit;}
+        .form-input:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);box-shadow:0 0 0 3px var(--accent-glow);}
         .table-container{overflow-x:auto;}
         .table{width:100%;border-collapse:collapse;font-size:14px;}
         .table thead{background:var(--table-header-bg);}

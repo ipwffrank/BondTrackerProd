@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
 export default function AIAssistant() {
   const { userData } = useAuth();
-  
+
   const [aiFile, setAiFile] = useState(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResults, setAiResults] = useState([]);
@@ -14,34 +14,91 @@ export default function AIAssistant() {
   const [submitLoading, setSubmitLoading] = useState(false);
   const [analysisTimestamp, setAnalysisTimestamp] = useState(null);
   const [analysisFileName, setAnalysisFileName] = useState('');
+  const [tokensUsed, setTokensUsed] = useState(null); // { promptTokens, completionTokens, totalTokens }
+
+  // Clients list (for new client detection)
+  const [clients, setClients] = useState([]);
+
+  // New client registration forms: { [clientName]: { type, region, salesCoverage } }
+  const [newClientForms, setNewClientForms] = useState({});
+
+  // Upload history
+  const [uploadHistory, setUploadHistory] = useState([]);
+
+  useEffect(() => {
+    if (!userData?.organizationId) return;
+    const unsubscribes = [];
+
+    unsubscribes.push(onSnapshot(
+      query(collection(db, `organizations/${userData.organizationId}/clients`), orderBy('name', 'asc')),
+      (snap) => setClients(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    ));
+
+    unsubscribes.push(onSnapshot(
+      query(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), orderBy('analyzedAt', 'desc'), limit(50)),
+      (snap) => setUploadHistory(snap.docs.map(d => ({ id: d.id, ...d.data(), analyzedAt: d.data().analyzedAt?.toDate() })))
+    ));
+
+    return () => unsubscribes.forEach(u => u());
+  }, [userData?.organizationId]);
+
+  // Detect new clients whenever aiResults or clients change
+  useEffect(() => {
+    if (aiResults.length === 0) { setNewClientForms({}); return; }
+    const existingNames = new Set(clients.map(c => c.name.toLowerCase().trim()));
+    const unique = [...new Set(aiResults.map(r => r.clientName).filter(Boolean))];
+    const newNames = unique.filter(n => !existingNames.has(n.toLowerCase().trim()));
+    setNewClientForms(prev => {
+      const next = {};
+      newNames.forEach(name => {
+        next[name] = prev[name] || { type: '', region: '', salesCoverage: '' };
+      });
+      return next;
+    });
+  }, [aiResults, clients]);
+
+  const newClientNames = Object.keys(newClientForms);
+  const allFormsValid = newClientNames.every(n => newClientForms[n].type && newClientForms[n].region);
+  const importBlocked = newClientNames.length > 0 && !allFormsValid;
 
   async function handleAiAnalysis() {
     if (!aiFile) return;
-
     setAiAnalyzing(true);
     setAiError('');
     setAiResults([]);
+    setTokensUsed(null);
     setAnalysisFileName(aiFile.name);
 
     try {
       const text = await aiFile.text();
-      
       const response = await fetch('/.netlify/functions/analyze-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ transcript: text })
       });
-
       const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'AI analysis failed');
 
-      if (!response.ok) {
-        throw new Error(result.error || 'AI analysis failed');
-      }
-
+      const ts = new Date();
       setAiResults(result.activities || []);
-      setAnalysisTimestamp(new Date());
+      setAnalysisTimestamp(ts);
+      setTokensUsed(result.usage || null);
+
       if (result.activities?.length === 0) {
         setAiError('No activities detected in the transcript');
+      }
+
+      // Save upload history record
+      if (userData?.organizationId) {
+        await addDoc(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), {
+          fileName: aiFile.name,
+          analyzedAt: serverTimestamp(),
+          analyzedBy: userData.name || userData.email,
+          activitiesDetected: result.activities?.length || 0,
+          tokensUsed: result.usage?.totalTokens || 0,
+          promptTokens: result.usage?.promptTokens || 0,
+          completionTokens: result.usage?.completionTokens || 0
+        });
       }
     } catch (error) {
       console.error('AI analysis error:', error);
@@ -53,14 +110,38 @@ export default function AIAssistant() {
 
   async function handleImportAiResults() {
     if (!userData?.organizationId || aiResults.length === 0) return;
-
     setSubmitLoading(true);
     try {
       const activitiesRef = collection(db, `organizations/${userData.organizationId}/activities`);
-      
+      const clientsRef = collection(db, `organizations/${userData.organizationId}/clients`);
+
+      // Register new clients first
+      const registeredClients = {}; // name → { type, region, salesCoverage }
+      for (const [name, form] of Object.entries(newClientForms)) {
+        await addDoc(clientsRef, {
+          name,
+          type: form.type,
+          region: form.region,
+          salesCoverage: form.salesCoverage || '',
+          createdAt: serverTimestamp(),
+          createdBy: userData.name || userData.email
+        });
+        registeredClients[name] = form;
+      }
+
+      // Build lookup of existing clients
+      const existingClientMap = {};
+      clients.forEach(c => { existingClientMap[c.name] = c; });
+
+      // Import activities, enriching with client data
       for (const activity of aiResults) {
+        const clientName = activity.clientName || 'UNKNOWN';
+        const clientData = registeredClients[clientName] || existingClientMap[clientName] || {};
         await addDoc(activitiesRef, {
-          clientName: activity.clientName || 'UNKNOWN',
+          clientName,
+          clientType: clientData.type || '',
+          clientRegion: clientData.region || '',
+          salesCoverage: clientData.salesCoverage || '',
           activityType: 'Bloomberg Chat',
           isin: activity.isin || '',
           ticker: activity.ticker || '',
@@ -77,6 +158,7 @@ export default function AIAssistant() {
 
       setAiResults([]);
       setAiFile(null);
+      setNewClientForms({});
     } catch (error) {
       console.error('Import error:', error);
       alert('Failed to import activities');
@@ -85,30 +167,15 @@ export default function AIAssistant() {
     }
   }
 
-  const getDirectionBadge = (direction) => {
-    const badges = {
-      'BUY': 'badge-success',
-      'SELL': 'badge-danger',
-      'TWO-WAY': 'badge-warning'
-    };
-    return badges[direction] || 'badge-primary';
-  };
+  const getDirectionBadge = (d) => ({ 'BUY': 'badge-success', 'SELL': 'badge-danger', 'TWO-WAY': 'badge-warning' }[d] || 'badge-primary');
+  const getStatusBadge = (s) => ({ 'EXECUTED': 'badge-success', 'TRADED AWAY': 'badge-danger', 'PASSED': 'badge-danger', 'QUOTED': 'badge-warning', 'ENQUIRY': 'badge-primary' }[s] || 'badge-primary');
 
-  const getStatusBadge = (status) => {
-    const badges = {
-      'EXECUTED': 'badge-success',
-      'TRADED AWAY': 'badge-danger',
-      'PASSED': 'badge-danger',
-      'QUOTED': 'badge-warning',
-      'ENQUIRY': 'badge-primary'
-    };
-    return badges[status] || 'badge-primary';
-  };
+  const CLIENT_TYPES = ['Asset Manager', 'Hedge Fund', 'Insurance', 'Pension Fund', 'Bank', 'Sovereign', 'Family Office', 'Other'];
+  const REGIONS = ['APAC', 'EMEA', 'Americas', 'Global'];
 
   return (
     <div className="app-container">
       <Navigation />
-      
       <main className="main-content">
         <div className="page-header">
           <h1 className="page-title"> AI Assistant</h1>
@@ -135,49 +202,22 @@ export default function AIAssistant() {
               )}
             </div>
 
-            <button
-              onClick={handleAiAnalysis}
-              className="btn btn-primary"
-              disabled={!aiFile || aiAnalyzing}
-            >
+            <button onClick={handleAiAnalysis} className="btn btn-primary" disabled={!aiFile || aiAnalyzing}>
               {aiAnalyzing ? (
-                <>
-                  <span className="spinner"></span>
-                  Analyzing...
-                </>
+                <><span className="spinner"></span>Analyzing...</>
               ) : (
-                <>
-                  <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-                  </svg>
-                  Analyze Transcript
-                </>
+                <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>Analyze Transcript</>
               )}
             </button>
 
             {aiError && (
-              <div style={{
-                marginTop: '20px',
-                padding: '16px',
-                background: 'var(--badge-danger-bg)',
-                color: 'var(--badge-danger-text)',
-                borderRadius: '8px',
-                border: '1px solid var(--badge-danger-text)'
-              }}>
+              <div style={{marginTop: '20px', padding: '16px', background: 'var(--badge-danger-bg)', color: 'var(--badge-danger-text)', borderRadius: '8px', border: '1px solid var(--badge-danger-text)'}}>
                 ⚠️ {aiError}
               </div>
             )}
 
-            <div style={{
-              marginTop: '24px',
-              padding: '16px',
-              background: 'var(--badge-primary-bg)',
-              borderRadius: '8px',
-              border: '1px solid var(--badge-primary-text)'
-            }}>
-              <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>
-                💡 How AI Analysis Works
-              </h4>
+            <div style={{marginTop: '24px', padding: '16px', background: 'var(--badge-primary-bg)', borderRadius: '8px', border: '1px solid var(--badge-primary-text)'}}>
+              <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>💡 How AI Analysis Works</h4>
               <ul style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
                 <li>Upload your Bloomberg chat or trading transcript</li>
                 <li>AI automatically detects client names, ISINs, tickers, sizes, and directions</li>
@@ -195,32 +235,77 @@ export default function AIAssistant() {
                 <span>Detected Activities ({aiResults.length})</span>
                 {analysisTimestamp && (
                   <div style={{fontSize: '12px', fontWeight: 400, color: 'var(--text-muted)', marginTop: '4px'}}>
-                    {analysisFileName} · Analyzed {analysisTimestamp.toLocaleDateString()} at {analysisTimestamp.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}
+                    {analysisFileName} · Analyzed {analysisTimestamp.toLocaleDateString()} at {analysisTimestamp.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit', second: '2-digit'})}{tokensUsed ? ` · ${tokensUsed.totalTokens.toLocaleString()} tokens` : ''}
                   </div>
                 )}
               </div>
-              <button
-                onClick={handleImportAiResults}
-                className="btn btn-secondary"
-                disabled={submitLoading}
-              >
+              <button onClick={handleImportAiResults} className="btn btn-secondary" disabled={submitLoading || importBlocked} title={importBlocked ? 'Complete new client registration below before importing' : ''}>
                 {submitLoading ? (
-                  <>
-                    <span className="spinner"></span>
-                    Importing...
-                  </>
+                  <><span className="spinner"></span>Importing...</>
                 ) : (
-                  <>
-                    <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
-                    </svg>
-                    Import All to Activity Log
-                  </>
+                  <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>Import All to Activity Log</>
                 )}
               </button>
             </div>
 
-            <div className="table-container">
+            {/* New Client Registration Section */}
+            {newClientNames.length > 0 && (
+              <div style={{margin: '0 24px 0 24px', padding: '16px', background: '#7c3a001a', border: '1px solid #d97706', borderRadius: '8px', marginTop: '20px'}}>
+                <div style={{fontWeight: 700, fontSize: '14px', color: '#d97706', marginBottom: '12px'}}>
+                  ⚠️ New Client Registration Required ({newClientNames.length} new {newClientNames.length === 1 ? 'client' : 'clients'})
+                </div>
+                <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px'}}>
+                  The following clients are not in your database. Please fill in their details before importing.
+                </p>
+                {newClientNames.map(name => (
+                  <div key={name} style={{display: 'grid', gridTemplateColumns: '200px 160px 160px 1fr', gap: '12px', alignItems: 'center', padding: '12px', background: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border)'}}>
+                    <div>
+                      <div style={{fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)'}}>{name}</div>
+                      <span style={{fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW CLIENT</span>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{fontSize: '11px'}}>Type *</label>
+                      <select
+                        className="form-select"
+                        value={newClientForms[name].type}
+                        onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], type: e.target.value}}))}
+                      >
+                        <option value="">Select type</option>
+                        {CLIENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{fontSize: '11px'}}>Region *</label>
+                      <select
+                        className="form-select"
+                        value={newClientForms[name].region}
+                        onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], region: e.target.value}}))}
+                      >
+                        <option value="">Select region</option>
+                        {REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{fontSize: '11px'}}>Sales Coverage</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        placeholder="e.g., John Smith"
+                        value={newClientForms[name].salesCoverage}
+                        onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], salesCoverage: e.target.value}}))}
+                      />
+                    </div>
+                  </div>
+                ))}
+                {importBlocked && (
+                  <div style={{fontSize: '12px', color: '#d97706', marginTop: '8px'}}>
+                    Complete all required fields (Type and Region) to enable import.
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="table-container" style={{marginTop: newClientNames.length > 0 ? '16px' : '0'}}>
               <table className="table">
                 <thead>
                   <tr>
@@ -236,7 +321,12 @@ export default function AIAssistant() {
                 <tbody>
                   {aiResults.map((result, idx) => (
                     <tr key={idx}>
-                      <td style={{fontWeight: 600}}>{result.clientName}</td>
+                      <td style={{fontWeight: 600}}>
+                        {result.clientName}
+                        {newClientForms[result.clientName] !== undefined && (
+                          <span style={{marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW</span>
+                        )}
+                      </td>
                       <td>{result.ticker || result.isin || '-'}</td>
                       <td>{result.size ? `${result.size}MM` : '-'}</td>
                       <td><span className={`badge ${getDirectionBadge(result.direction)}`}>{result.direction}</span></td>
@@ -250,206 +340,86 @@ export default function AIAssistant() {
             </div>
           </div>
         )}
+
+        {/* Upload History */}
+        <div className="card" style={{marginTop: '24px'}}>
+          <div className="card-header">
+            <span>Upload History</span>
+          </div>
+          <div className="table-container">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>File Name</th>
+                  <th>Analyzed By</th>
+                  <th>Timestamp</th>
+                  <th>Activities Detected</th>
+                  <th>Tokens Used</th>
+                </tr>
+              </thead>
+              <tbody>
+                {uploadHistory.length === 0 ? (
+                  <tr><td colSpan="5" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>No uploads yet</td></tr>
+                ) : (
+                  <>
+                    {uploadHistory.map(h => (
+                      <tr key={h.id}>
+                        <td style={{fontWeight: 600}}>{h.fileName}</td>
+                        <td>{h.analyzedBy}</td>
+                        <td>{h.analyzedAt ? `${h.analyzedAt.toLocaleDateString()} ${h.analyzedAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}` : '-'}</td>
+                        <td>{h.activitiesDetected}</td>
+                        <td>
+                          <span title={`Prompt: ${(h.promptTokens||0).toLocaleString()} · Completion: ${(h.completionTokens||0).toLocaleString()}`} style={{cursor: 'help', borderBottom: '1px dotted var(--text-muted)'}}>
+                            {(h.tokensUsed||0).toLocaleString()}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={{background: 'var(--table-header-bg)', fontWeight: 700}}>
+                      <td colSpan="4" style={{textAlign: 'right', color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Total Tokens Used</td>
+                      <td style={{color: 'var(--accent)'}}>{uploadHistory.reduce((s, h) => s + (h.tokensUsed || 0), 0).toLocaleString()}</td>
+                    </tr>
+                  </>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
       </main>
 
       <style jsx>{`
-        .app-container {
-          min-height: 100vh;
-          background: var(--bg-base);
-          color: var(--text-primary);
-        }
-
-        .main-content {
-          max-width: 1400px;
-          margin: 0 auto;
-          padding: 32px 24px;
-        }
-
-        .page-header {
-          margin-bottom: 32px;
-        }
-
-        .page-title {
-          font-size: 32px;
-          font-weight: 700;
-          color: var(--text-primary);
-          margin-bottom: 8px;
-        }
-
-        .page-description {
-          font-size: 16px;
-          color: var(--text-secondary);
-        }
-
-        .card {
-          background: var(--card-bg);
-          border: 1px solid var(--border);
-          border-radius: 12px;
-          box-shadow: var(--shadow);
-        }
-
-        .card-header {
-          font-size: 17px;
-          font-weight: 700;
-          color: var(--text-primary);
-          padding: 20px 24px;
-          border-bottom: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
-
-        .form-label {
-          display: block;
-          font-size: 13px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          margin-bottom: 5px;
-        }
-
-        .form-input {
-          width: 100%;
-          padding: 10px 14px;
-          background: var(--bg-input);
-          border: 1.5px solid var(--border);
-          border-radius: 8px;
-          color: var(--text-primary);
-          font-size: 14px;
-          transition: all 0.2s ease;
-          font-family: inherit;
-        }
-
-        .form-input:focus {
-          outline: none;
-          border-color: var(--border-focus);
-          background: var(--bg-input-focus);
-          box-shadow: 0 0 0 3px var(--accent-glow);
-        }
-
-        .btn {
-          padding: 10px 18px;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 13.5px;
-          transition: all 0.2s ease;
-          cursor: pointer;
-          border: none;
-          display: inline-flex;
-          align-items: center;
-          gap: 7px;
-          font-family: inherit;
-          white-space: nowrap;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, var(--accent), var(--accent-hover));
-          color: #fff;
-          box-shadow: 0 2px 8px var(--accent-glow-strong);
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px var(--accent-glow-strong);
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .btn-secondary {
-          background: var(--btn-secondary-bg);
-          color: #fff;
-        }
-
-        .btn-secondary:hover:not(:disabled) {
-          background: var(--btn-secondary-hover);
-        }
-
-        .spinner {
-          display: inline-block;
-          width: 10px;
-          height: 10px;
-          border: 2px solid currentColor;
-          border-top-color: transparent;
-          border-radius: 50%;
-          animation: spin 0.6s linear infinite;
-        }
-
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        .table-container {
-          overflow-x: auto;
-        }
-
-        .table {
-          width: 100%;
-          border-collapse: collapse;
-          font-size: 14px;
-        }
-
-        .table thead {
-          background: var(--table-header-bg);
-        }
-
-        .table th {
-          padding: 12px 16px;
-          text-align: left;
-          font-weight: 600;
-          color: var(--text-secondary);
-          font-size: 12px;
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .table td {
-          padding: 14px 16px;
-          border-bottom: 1px solid var(--border);
-          color: var(--text-primary);
-        }
-
-        .table tbody tr:nth-child(odd) {
-          background: var(--table-odd);
-        }
-
-        .table tbody tr:nth-child(even) {
-          background: var(--table-even);
-        }
-
-        .table tbody tr:hover {
-          background: var(--table-hover);
-        }
-
-        .badge {
-          padding: 4px 10px;
-          border-radius: 20px;
-          font-size: 11px;
-          font-weight: 600;
-          display: inline-block;
-        }
-
-        .badge-primary {
-          background: var(--badge-primary-bg);
-          color: var(--badge-primary-text);
-        }
-
-        .badge-success {
-          background: var(--badge-success-bg);
-          color: var(--badge-success-text);
-        }
-
-        .badge-warning {
-          background: var(--badge-warning-bg);
-          color: var(--badge-warning-text);
-        }
-
-        .badge-danger {
-          background: var(--badge-danger-bg);
-          color: var(--badge-danger-text);
-        }
+        .app-container{min-height:100vh;background:var(--bg-base);color:var(--text-primary);}
+        .main-content{max-width:1400px;margin:0 auto;padding:32px 24px;}
+        .page-header{margin-bottom:32px;}
+        .page-title{font-size:32px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
+        .page-description{font-size:16px;color:var(--text-secondary);}
+        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
+        .card-header{font-size:17px;font-weight:700;color:var(--text-primary);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+        .form-label{display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;}
+        .form-input,.form-select{width:100%;padding:10px 14px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;transition:all 0.2s ease;font-family:inherit;}
+        .form-input:focus,.form-select:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);box-shadow:0 0 0 3px var(--accent-glow);}
+        .btn{padding:10px 18px;border-radius:8px;font-weight:600;font-size:13.5px;transition:all 0.2s ease;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;white-space:nowrap;}
+        .btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-hover));color:#fff;box-shadow:0 2px 8px var(--accent-glow-strong);}
+        .btn-primary:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px var(--accent-glow-strong);}
+        .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+        .btn-secondary{background:var(--btn-secondary-bg);color:#fff;}
+        .btn-secondary:hover:not(:disabled){background:var(--btn-secondary-hover);}
+        .btn-secondary:disabled{opacity:0.5;cursor:not-allowed;}
+        .spinner{display:inline-block;width:10px;height:10px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;}
+        @keyframes spin{to{transform:rotate(360deg);}}
+        .table-container{overflow-x:auto;}
+        .table{width:100%;border-collapse:collapse;font-size:14px;}
+        .table thead{background:var(--table-header-bg);}
+        .table th{padding:12px 16px;text-align:left;font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);}
+        .table td{padding:14px 16px;border-bottom:1px solid var(--border);color:var(--text-primary);}
+        .table tbody tr:nth-child(odd){background:var(--table-odd);}
+        .table tbody tr:nth-child(even){background:var(--table-even);}
+        .table tbody tr:hover{background:var(--table-hover);}
+        .badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;display:inline-block;}
+        .badge-primary{background:var(--badge-primary-bg);color:var(--badge-primary-text);}
+        .badge-success{background:var(--badge-success-bg);color:var(--badge-success-text);}
+        .badge-warning{background:var(--badge-warning-bg);color:var(--badge-warning-text);}
+        .badge-danger{background:var(--badge-danger-bg);color:var(--badge-danger-text);}
       `}</style>
     </div>
   );

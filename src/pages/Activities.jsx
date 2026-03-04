@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
@@ -17,12 +17,17 @@ export default function Activities() {
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [bondLookupLoading, setBondLookupLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 20;
+  const [actSearch, setActSearch] = useState('');
+  const [actFilterDir, setActFilterDir] = useState('');
+  const [actFilterStatus, setActFilterStatus] = useState('');
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
     const unsubscribes = [];
     try {
-      const activitiesQuery = query(collection(db,`organizations/${userData.organizationId}/activities`),orderBy('createdAt','desc'),limit(100));
+      const activitiesQuery = query(collection(db,`organizations/${userData.organizationId}/activities`),orderBy('createdAt','desc'));
       unsubscribes.push(onSnapshot(activitiesQuery,(snapshot) => {
         const data = snapshot.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()}));
         setActivities(data);
@@ -36,6 +41,8 @@ export default function Activities() {
     } catch(e){ console.error(e); setLoading(false); }
     return ()=>unsubscribes.forEach(u=>u());
   },[userData?.organizationId]);
+
+  useEffect(() => { setCurrentPage(1); }, [activities, actSearch, actFilterDir, actFilterStatus]);
 
   useEffect(() => {
     if (editingActivity) return;
@@ -127,6 +134,23 @@ export default function Activities() {
       {header:'Price',field:'price'},{header:'Status',field:'status'},{header:'Notes',field:'notes'}
     ],'activity-log-export','Activity Log');
   }
+
+  const filteredActivities = activities.filter(a => {
+    if (actFilterDir && a.direction !== actFilterDir) return false;
+    if (actFilterStatus && a.status !== actFilterStatus) return false;
+    if (actSearch) {
+      const q = actSearch.toLowerCase();
+      return (
+        a.clientName?.toLowerCase().includes(q) ||
+        a.isin?.toLowerCase().includes(q) ||
+        a.ticker?.toLowerCase().includes(q) ||
+        a.notes?.toLowerCase().includes(q) ||
+        a.createdBy?.toLowerCase().includes(q) ||
+        a.activityType?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   const dirBadge=(d)=>({'BUY':'badge-success','SELL':'badge-danger','TWO-WAY':'badge-warning'}[d]||'badge-primary');
   const stsBadge=(s)=>({'ENQUIRY':'badge-primary','QUOTED':'badge-warning','EXECUTED':'badge-success','PASSED':'badge-danger','TRADED AWAY':'badge-danger'}[s]||'badge-primary');
@@ -244,23 +268,49 @@ export default function Activities() {
         {/* Activity History - Export buttons IN the card header */}
         <div className="card" style={{marginTop:'24px'}}>
           <div className="card-header">
-            <span>📊 Activity History ({stats.totalActivities})</span>
+            <span>📊 Activity History ({filteredActivities.length < activities.length ? `${filteredActivities.length} of ${activities.length}` : activities.length})</span>
             <div style={{display:'flex',gap:'10px'}}>
               <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
               <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
             </div>
           </div>
+          {/* Filter bar */}
+          <div className="filter-bar">
+            <div className="filter-search-wrap">
+              <svg className="filter-search-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" className="filter-input" placeholder="Search client, ISIN, ticker, notes…" value={actSearch} onChange={e=>setActSearch(e.target.value)}/>
+              {actSearch&&<button className="filter-clear-x" onClick={()=>setActSearch('')}>×</button>}
+            </div>
+            <select className="filter-select" value={actFilterDir} onChange={e=>setActFilterDir(e.target.value)}>
+              <option value="">All Directions</option>
+              <option value="BUY">Buy</option>
+              <option value="SELL">Sell</option>
+              <option value="TWO-WAY">Two-Way</option>
+            </select>
+            <select className="filter-select" value={actFilterStatus} onChange={e=>setActFilterStatus(e.target.value)}>
+              <option value="">All Statuses</option>
+              <option value="ENQUIRY">Enquiry</option>
+              <option value="QUOTED">Quoted</option>
+              <option value="EXECUTED">Executed</option>
+              <option value="PASSED">Passed</option>
+              <option value="TRADED AWAY">Traded Away</option>
+            </select>
+            {(actSearch||actFilterDir||actFilterStatus)&&(
+              <button className="btn btn-muted" style={{padding:'6px 10px',fontSize:'12px'}} onClick={()=>{setActSearch('');setActFilterDir('');setActFilterStatus('');}}>Clear</button>
+            )}
+          </div>
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>Date</th><th>Client</th><th>Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
+                <tr><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {activities.length===0?(<tr><td colSpan="11" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No activities yet. Add your first activity above!</td></tr>):(
-                  activities.map(a=>(
+                {filteredActivities.length===0?(<tr><td colSpan="12" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(
+                  filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map(a=>(
                     <tr key={a.id}>
                       <td>{a.createdAt?new Date(a.createdAt).toLocaleDateString():'-'}</td>
                       <td style={{fontWeight:600}}>{a.clientName}</td>
+                      <td>{a.clientType?<span className="badge badge-primary">{a.clientType}</span>:'-'}</td>
                       <td><span className="badge badge-primary">{a.activityType}</span></td>
                       <td>{a.isin||a.ticker||'-'}</td>
                       <td>{a.size}MM</td>
@@ -302,6 +352,17 @@ export default function Activities() {
               </tbody>
             </table>
           </div>
+          {filteredActivities.length > ITEMS_PER_PAGE && (
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'16px 24px',borderTop:'1px solid var(--border)'}}>
+              <span style={{fontSize:'13px',color:'var(--text-muted)'}}>
+                Page {currentPage} of {Math.ceil(filteredActivities.length/ITEMS_PER_PAGE)} · Showing {(currentPage-1)*ITEMS_PER_PAGE+1}–{Math.min(currentPage*ITEMS_PER_PAGE,filteredActivities.length)} of {filteredActivities.length} entries
+              </span>
+              <div style={{display:'flex',gap:'8px'}}>
+                <button className="btn btn-secondary" onClick={()=>setCurrentPage(p=>p-1)} disabled={currentPage===1} style={{fontSize:'12px',padding:'6px 12px'}}>← Prev</button>
+                <button className="btn btn-secondary" onClick={()=>setCurrentPage(p=>p+1)} disabled={currentPage>=Math.ceil(filteredActivities.length/ITEMS_PER_PAGE)} style={{fontSize:'12px',padding:'6px 12px'}}>Next →</button>
+              </div>
+            </div>
+          )}
         </div>
       </main>
       <style jsx>{`
@@ -360,7 +421,16 @@ export default function Activities() {
         .inline-status-select.status-traded-away{background:var(--badge-danger-bg);color:var(--badge-danger-text);border-color:var(--badge-danger-text);}
         .inline-price-input{width:90px;padding:4px 8px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:6px;color:var(--text-primary);font-size:13px;font-family:inherit;}
         .inline-price-input:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);}
-        @media(max-width:768px){.field-row{grid-template-columns:1fr;}.stats-summary{width:100%;justify-content:space-between;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}}
+        .filter-bar{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--table-header-bg);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+        .filter-search-wrap{position:relative;flex:1;min-width:180px;}
+        .filter-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+        .filter-input{width:100%;padding:7px 32px 7px 30px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;transition:border-color 0.2s;}
+        .filter-input:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-glow);}
+        .filter-clear-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;}
+        .filter-clear-x:hover{color:var(--text-primary);}
+        .filter-select{padding:7px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;cursor:pointer;transition:border-color 0.2s;}
+        .filter-select:focus{outline:none;border-color:var(--border-focus);}
+        @media(max-width:768px){.field-row{grid-template-columns:1fr;}.stats-summary{width:100%;justify-content:space-between;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}.filter-bar{flex-direction:column;align-items:stretch;}.filter-search-wrap{min-width:100%;}}
       `}</style>
     </div>
   );

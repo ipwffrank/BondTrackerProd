@@ -39,6 +39,8 @@ export default function Pipeline() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [issueSearch, setIssueSearch] = useState('');
+  const [filterIssueCurrency, setFilterIssueCurrency] = useState('');
 
   useEffect(() => {
     if (!userData?.organizationId) {
@@ -204,6 +206,19 @@ export default function Pipeline() {
       alert('Failed to delete order');
     }
   }
+
+  const filteredNewIssues = newIssues.filter(i => {
+    if (filterIssueCurrency && i.currency !== filterIssueCurrency) return false;
+    if (issueSearch) {
+      const q = issueSearch.toLowerCase();
+      return (
+        i.issuerName?.toLowerCase().includes(q) ||
+        i.bookrunners?.join(' ').toLowerCase().includes(q) ||
+        i.createdBy?.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   // Export functions for New Issues
   function handleExportNewIssuesExcel() {
@@ -432,7 +447,7 @@ export default function Pipeline() {
             {/* New Issues List with Export Buttons */}
             <div className="card" style={{marginTop: '24px'}}>
               <div className="card-header">
-                <span>📋 New Issues ({newIssues.length})</span>
+                <span>📋 New Issues ({filteredNewIssues.length < newIssues.length ? `${filteredNewIssues.length} of ${newIssues.length}` : newIssues.length})</span>
                 <div style={{display: 'flex', gap: '10px'}}>
                   <button onClick={handleExportNewIssuesExcel} className="btn btn-secondary">
                     📊 Export Excel
@@ -442,7 +457,29 @@ export default function Pipeline() {
                   </button>
                 </div>
               </div>
-              
+
+              {/* Filter bar */}
+              <div className="filter-bar">
+                <div className="filter-search-wrap">
+                  <svg className="filter-search-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                  <input type="text" className="filter-input" placeholder="Search issuer, bookrunners…" value={issueSearch} onChange={e=>setIssueSearch(e.target.value)}/>
+                  {issueSearch&&<button className="filter-clear-x" onClick={()=>setIssueSearch('')}>×</button>}
+                </div>
+                <select className="filter-select" value={filterIssueCurrency} onChange={e=>setFilterIssueCurrency(e.target.value)}>
+                  <option value="">All Currencies</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="GBP">GBP</option>
+                  <option value="AUD">AUD</option>
+                  <option value="HKD">HKD</option>
+                  <option value="SGD">SGD</option>
+                  <option value="CNH">CNH</option>
+                </select>
+                {(issueSearch||filterIssueCurrency)&&(
+                  <button className="btn btn-secondary" style={{padding:'6px 10px',fontSize:'12px',background:'var(--btn-muted-bg)',color:'var(--btn-muted-text)'}} onClick={()=>{setIssueSearch('');setFilterIssueCurrency('');}}>Clear</button>
+                )}
+              </div>
+
               <div className="table-container">
                 <table className="table">
                   <thead>
@@ -457,14 +494,14 @@ export default function Pipeline() {
                     </tr>
                   </thead>
                   <tbody>
-                    {newIssues.length === 0 ? (
+                    {filteredNewIssues.length === 0 ? (
                       <tr>
                         <td colSpan="7" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
-                          No new issues yet. Add your first issue above!
+                          {newIssues.length === 0 ? 'No new issues yet. Add your first issue above!' : 'No issues match your filters.'}
                         </td>
                       </tr>
                     ) : (
-                      newIssues.map((issue) => (
+                      filteredNewIssues.map((issue) => (
                         <tr key={issue.id}>
                           <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '-'}</td>
                           <td style={{fontWeight: 600}}>{issue.issuerName}</td>
@@ -905,6 +942,83 @@ export default function Pipeline() {
           to { transform: rotate(360deg); }
         }
 
+        .filter-bar {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 12px 24px;
+          background: var(--table-header-bg);
+          border-bottom: 1px solid var(--border);
+          flex-wrap: wrap;
+        }
+
+        .filter-search-wrap {
+          position: relative;
+          flex: 1;
+          min-width: 180px;
+        }
+
+        .filter-search-icon {
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-muted);
+          pointer-events: none;
+        }
+
+        .filter-input {
+          width: 100%;
+          padding: 7px 32px 7px 30px;
+          background: var(--bg-input);
+          border: 1.5px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 13px;
+          font-family: inherit;
+          transition: border-color 0.2s;
+        }
+
+        .filter-input:focus {
+          outline: none;
+          border-color: var(--border-focus);
+          box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+
+        .filter-clear-x {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          background: none;
+          border: none;
+          cursor: pointer;
+          color: var(--text-muted);
+          font-size: 16px;
+          line-height: 1;
+          padding: 0;
+          display: flex;
+          align-items: center;
+        }
+
+        .filter-clear-x:hover { color: var(--text-primary); }
+
+        .filter-select {
+          padding: 7px 10px;
+          background: var(--bg-input);
+          border: 1.5px solid var(--border);
+          border-radius: 8px;
+          color: var(--text-primary);
+          font-size: 13px;
+          font-family: inherit;
+          cursor: pointer;
+        }
+
+        .filter-select:focus {
+          outline: none;
+          border-color: var(--border-focus);
+        }
+
         @media (max-width: 768px) {
           .field-row {
             grid-template-columns: 1fr;
@@ -914,6 +1028,15 @@ export default function Pipeline() {
             flex-direction: column;
             gap: 12px;
             align-items: flex-start;
+          }
+
+          .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+
+          .filter-search-wrap {
+            min-width: 100%;
           }
         }
       `}</style>

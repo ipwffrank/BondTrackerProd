@@ -15,6 +15,9 @@ export default function Clients() {
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvNotification, setCsvNotification] = useState(null);
   const csvInputRef = useRef(null);
+  const [clientSearch, setClientSearch] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [filterRegion, setFilterRegion] = useState('');
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -104,6 +107,16 @@ export default function Clients() {
     }
   }
 
+  const filteredClients = clients.filter(c => {
+    if (filterType && c.type !== filterType) return false;
+    if (filterRegion && c.region !== filterRegion) return false;
+    if (clientSearch) {
+      const q = clientSearch.toLowerCase();
+      return c.name?.toLowerCase().includes(q) || c.salesCoverage?.toLowerCase().includes(q) || c.createdBy?.toLowerCase().includes(q);
+    }
+    return true;
+  });
+
   // Export functions
   function handleExportExcel() {
     if(clients.length===0){ alert('No clients to export!'); return; }
@@ -190,7 +203,7 @@ export default function Clients() {
         {/* Client Directory - Export buttons IN the card header */}
         <div className="card" style={{marginTop:'24px'}}>
           <div className="card-header">
-            <span>📋 Client Directory ({clients.length})</span>
+            <span>📋 Client Directory ({filteredClients.length < clients.length ? `${filteredClients.length} of ${clients.length}` : clients.length})</span>
             <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
               <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
               <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
@@ -199,6 +212,31 @@ export default function Clients() {
               </button>
               <input ref={csvInputRef} type="file" accept=".csv" style={{display:'none'}} onChange={handleCsvUpload} />
             </div>
+          </div>
+          {/* Filter bar */}
+          <div className="filter-bar">
+            <div className="filter-search-wrap">
+              <svg className="filter-search-icon" width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+              <input type="text" className="filter-input" placeholder="Search name, sales coverage…" value={clientSearch} onChange={e=>setClientSearch(e.target.value)}/>
+              {clientSearch&&<button className="filter-clear-x" onClick={()=>setClientSearch('')}>×</button>}
+            </div>
+            <select className="filter-select" value={filterType} onChange={e=>setFilterType(e.target.value)}>
+              <option value="">All Types</option>
+              <option value="FUND">Fund</option>
+              <option value="BANK">Bank</option>
+              <option value="INSURANCE">Insurance</option>
+              <option value="PENSION">Pension</option>
+              <option value="SOVEREIGN">Sovereign</option>
+            </select>
+            <select className="filter-select" value={filterRegion} onChange={e=>setFilterRegion(e.target.value)}>
+              <option value="">All Regions</option>
+              <option value="APAC">APAC</option>
+              <option value="EMEA">EMEA</option>
+              <option value="AMERICAS">Americas</option>
+            </select>
+            {(clientSearch||filterType||filterRegion)&&(
+              <button className="btn btn-muted" style={{padding:'6px 10px',fontSize:'12px'}} onClick={()=>{setClientSearch('');setFilterType('');setFilterRegion('');}}>Clear</button>
+            )}
           </div>
           {csvNotification && (
             <div style={{
@@ -217,8 +255,8 @@ export default function Clients() {
                 <tr><th>Name</th><th>Type</th><th>Region</th><th>Sales Coverage</th><th>Created By</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {clients.length===0?(<tr><td colSpan="6" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No clients yet. Add your first client above!</td></tr>):(
-                  clients.map(c=>(
+                {filteredClients.length===0?(<tr><td colSpan="6" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(
+                  filteredClients.map(c=>(
                     <tr key={c.id}>
                       <td style={{fontWeight:600}}>{c.name}</td>
                       <td><span className="badge badge-primary">{c.type}</span></td>
@@ -291,7 +329,16 @@ export default function Clients() {
         .badge-success{background:var(--badge-success-bg);color:var(--badge-success-text);}
         .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;}
         @keyframes spin{to{transform:rotate(360deg);}}
-        @media(max-width:768px){.field-row{grid-template-columns:1fr;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}}
+        .filter-bar{display:flex;align-items:center;gap:10px;padding:12px 24px;background:var(--table-header-bg);border-bottom:1px solid var(--border);flex-wrap:wrap;}
+        .filter-search-wrap{position:relative;flex:1;min-width:180px;}
+        .filter-search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;}
+        .filter-input{width:100%;padding:7px 32px 7px 30px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;transition:border-color 0.2s;}
+        .filter-input:focus{outline:none;border-color:var(--border-focus);box-shadow:0 0 0 3px var(--accent-glow);}
+        .filter-clear-x{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;padding:0;display:flex;align-items:center;}
+        .filter-clear-x:hover{color:var(--text-primary);}
+        .filter-select{padding:7px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;cursor:pointer;}
+        .filter-select:focus{outline:none;border-color:var(--border-focus);}
+        @media(max-width:768px){.field-row{grid-template-columns:1fr;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}.filter-bar{flex-direction:column;align-items:stretch;}.filter-search-wrap{min-width:100%;}}
       `}</style>
     </div>
   );
