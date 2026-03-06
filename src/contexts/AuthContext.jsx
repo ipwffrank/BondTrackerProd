@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
 const AuthContext = createContext({});
@@ -197,9 +197,18 @@ export function AuthProvider({ children }) {
   // Listen to auth state changes and load user data
   useEffect(() => {
     console.log('🔵 Setting up auth state listener');
-    
+
+    let orgUserUnsubscribe = null;
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('🔵 Auth state changed:', user ? user.email : 'No user');
+
+      // Clean up previous org doc listener when user changes
+      if (orgUserUnsubscribe) {
+        orgUserUnsubscribe();
+        orgUserUnsubscribe = null;
+      }
+
       setCurrentUser(user);
 
       if (user) {
@@ -213,80 +222,86 @@ export function AuthProvider({ children }) {
           const userMappingSnap = await getDoc(userMappingRef);
 
           if (userMappingSnap.exists()) {
-            // User has a mapping - use mapped organization
             orgId = userMappingSnap.data().organizationId;
             console.log('🔍 Found user mapping, using organization:', orgId);
           } else {
             console.log('🔍 No user mapping found, will create one');
           }
 
-          console.log('🔍 Loading user data from:', `organizations/${orgId}/users/${user.uid}`);
+          console.log('🔍 Subscribing to user data at:', `organizations/${orgId}/users/${user.uid}`);
 
-          // Get user document from Firestore
+          // Subscribe to the org user doc so role changes reflect immediately without re-login
           const userDocRef = doc(db, `organizations/${orgId}/users/${user.uid}`);
-          const userDocSnap = await getDoc(userDocRef);
+          let isFirstSnapshot = true;
 
-          if (userDocSnap.exists()) {
-            const data = userDocSnap.data();
+          orgUserUnsubscribe = onSnapshot(userDocRef, async (userDocSnap) => {
+            if (userDocSnap.exists()) {
+              const data = userDocSnap.data();
 
-            // Build complete user data object
-            const completeUserData = {
-              uid: user.uid,
-              email: user.email,
-              name: data.name || user.displayName || user.email,
-              organizationId: orgId,
-              organizationName: data.organizationName || domain,
-              isAdmin: data.isAdmin || false,
-              role: data.role || 'user',
-              createdAt: data.createdAt,
-              lastLogin: data.lastLogin
-            };
+              const completeUserData = {
+                uid: user.uid,
+                email: user.email,
+                name: data.name || user.displayName || user.email,
+                organizationId: orgId,
+                organizationName: data.organizationName || domain,
+                isAdmin: data.isAdmin || false,
+                role: data.role || 'user',
+                createdAt: data.createdAt,
+                lastLogin: data.lastLogin
+              };
 
-            // Create user mapping if it doesn't exist (backwards compatibility for existing users)
-            if (!userMappingSnap.exists()) {
-              console.log('🔵 Creating user mapping for existing user');
-              try {
-                await setDoc(userMappingRef, {
-                  organizationId: orgId,
-                  email: user.email,
-                  name: completeUserData.name,
-                  isAdmin: completeUserData.isAdmin,
-                  role: completeUserData.role,
-                  createdAt: serverTimestamp()
-                });
-                console.log('✅ User mapping created successfully');
-              } catch (mappingError) {
-                console.error('⚠️ Failed to create user mapping:', mappingError);
-                // Continue anyway - the user can still use the app
+              // Create user mapping on first load if it doesn't exist
+              if (isFirstSnapshot && !userMappingSnap.exists()) {
+                console.log('🔵 Creating user mapping for existing user');
+                try {
+                  await setDoc(userMappingRef, {
+                    organizationId: orgId,
+                    email: user.email,
+                    name: completeUserData.name,
+                    isAdmin: completeUserData.isAdmin,
+                    role: completeUserData.role,
+                    createdAt: serverTimestamp()
+                  });
+                  console.log('✅ User mapping created successfully');
+                } catch (mappingError) {
+                  console.error('⚠️ Failed to create user mapping:', mappingError);
+                }
               }
+              isFirstSnapshot = false;
+
+              console.log('✅ User data updated:', {
+                email: completeUserData.email,
+                organizationId: completeUserData.organizationId,
+                isAdmin: completeUserData.isAdmin
+              });
+
+              setUserData(completeUserData);
+            } else {
+              console.error('❌ User document not found at:', `organizations/${orgId}/users/${user.uid}`);
+              setUserData(null);
             }
-
-            console.log('✅ User data loaded successfully:', {
-              email: completeUserData.email,
-              organizationId: completeUserData.organizationId,
-              isAdmin: completeUserData.isAdmin
-            });
-
-            setUserData(completeUserData);
-          } else {
-            console.error('❌ User document not found at:', `organizations/${orgId}/users/${user.uid}`);
-            console.error('❌ Please check Firestore to ensure the document exists');
+            setLoading(false);
+          }, (error) => {
+            console.error('❌ Error in user doc snapshot:', error);
             setUserData(null);
-          }
+            setLoading(false);
+          });
+
         } catch (error) {
           console.error('❌ Error loading user data:', error);
           setUserData(null);
+          setLoading(false);
         }
       } else {
         console.log('🔵 No user logged in, clearing user data');
         setUserData(null);
+        setLoading(false);
       }
-      
-      setLoading(false);
     });
 
     return () => {
       console.log('🔵 Cleaning up auth state listener');
+      if (orgUserUnsubscribe) orgUserUnsubscribe();
       unsubscribe();
     };
   }, []);

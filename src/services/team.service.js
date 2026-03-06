@@ -36,14 +36,22 @@ export const teamService = {
     }
   },
 
-  // Update user role (promote/demote)
-  async updateRole(userId, isAdmin) {
+  // Update user role (promote/demote) — writes to both root users doc and org-specific doc
+  async updateRole(userId, isAdmin, organizationId) {
     try {
-      const userRef = doc(db, 'users', userId);
-      await updateDoc(userRef, {
+      const updates = {
         isAdmin,
+        role: isAdmin ? 'admin' : 'user',
         updatedAt: new Date()
-      });
+      };
+
+      const userRef = doc(db, 'users', userId);
+      await updateDoc(userRef, updates);
+
+      if (organizationId) {
+        const orgUserRef = doc(db, `organizations/${organizationId}/users/${userId}`);
+        await updateDoc(orgUserRef, updates);
+      }
     } catch (error) {
       console.error('Error updating user role:', error);
       throw error;

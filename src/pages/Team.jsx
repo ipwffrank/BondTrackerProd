@@ -84,7 +84,7 @@ export default function Team() {
     const newIsAdmin = newRole === 'admin';
 
     try {
-      await teamService.updateRole(memberId, newIsAdmin);
+      await teamService.updateRole(memberId, newIsAdmin, userData.organizationId);
       alert(`User role updated to ${newRole === 'admin' ? 'Admin' : 'User'} successfully!`);
     } catch (error) {
       console.error('Error updating role:', error);

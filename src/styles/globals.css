@@ -384,6 +384,17 @@ select {
   --mkt-shadow-lg: 0 16px 48px rgba(0,0,0,0.08);
 }
 
+/* === SIDEBAR LAYOUT === */
+:root {
+  --sidebar-width: 220px;
+}
+
+.app-container {
+  padding-left: var(--sidebar-width);
+  transition: padding-left 0.3s ease;
+  min-height: 100vh;
+}
+
 /* === APP TYPOGRAPHY — Sora for display, Outfit for body === */
 .page-title {
   font-family: 'Sora', sans-serif;
