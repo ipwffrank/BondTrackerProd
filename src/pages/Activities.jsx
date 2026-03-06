@@ -16,6 +16,7 @@ export default function Activities() {
   const [savingPrice, setSavingPrice] = useState({});
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const [bondLookupLoading, setBondLookupLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 20;
@@ -67,13 +68,24 @@ export default function Activities() {
   const getSelectedClient=()=>clients.find(c=>c.name===activityForm.clientName);
 
   async function handleActivitySubmit(e){
-    e.preventDefault(); if(!userData?.organizationId) return;
+    e.preventDefault();
+    setFormError('');
+    const missing = [];
+    if(!activityForm.clientName) missing.push('Client Name');
+    if(!activityForm.activityType) missing.push('Activity Type');
+    if(!activityForm.size) missing.push('Size');
+    if(!activityForm.direction) missing.push('Direction');
+    if(!activityForm.status) missing.push('Status');
+    if(activityForm.currency==='OTHER' && !activityForm.otherCurrency) missing.push('Currency');
+    if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
     const sc=getSelectedClient();
     setSubmitLoading(true);
     try{
       const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:activityForm.price?parseFloat(activityForm.price):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
       else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
+      setFormError('');
       setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:''});
     }catch(e){console.error(e);alert('Failed to save activity');}finally{setSubmitLoading(false);}
   }
@@ -184,7 +196,7 @@ export default function Activities() {
               <div className="field-row">
                 <div className="field-group">
                   <label className="form-label">Client Name *</label>
-                  <select className="form-select" value={activityForm.clientName} onChange={e=>setActivityForm({...activityForm,clientName:e.target.value})} required>
+                  <select className="form-select" value={activityForm.clientName} onChange={e=>setActivityForm({...activityForm,clientName:e.target.value})}>
                     <option value="">Select Client</option>
                     {clients.map(c=><option key={c.id} value={c.name}>{c.name}</option>)}
                   </select>
@@ -192,7 +204,7 @@ export default function Activities() {
                 </div>
                 <div className="field-group">
                   <label className="form-label">Activity Type *</label>
-                  <select className="form-select" value={activityForm.activityType} onChange={e=>setActivityForm({...activityForm,activityType:e.target.value})} required>
+                  <select className="form-select" value={activityForm.activityType} onChange={e=>setActivityForm({...activityForm,activityType:e.target.value})}>
                     <option value="">Select Type</option>
                     <option value="Phone Call">Phone Call</option>
                     <option value="Email">Email</option>
@@ -216,11 +228,11 @@ export default function Activities() {
               <div className="field-row">
                 <div className="field-group">
                   <label className="form-label">Size (MM) *</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="e.g., 50" value={activityForm.size} onChange={e=>setActivityForm({...activityForm,size:e.target.value})} required/>
+                  <input type="number" step="0.01" className="form-input" placeholder="e.g., 50" value={activityForm.size} onChange={e=>setActivityForm({...activityForm,size:e.target.value})}/>
                 </div>
                 <div className="field-group">
                   <label className="form-label">Currency *</label>
-                  <select className="form-select" value={activityForm.currency} onChange={e=>setActivityForm({...activityForm,currency:e.target.value})} required>
+                  <select className="form-select" value={activityForm.currency} onChange={e=>setActivityForm({...activityForm,currency:e.target.value})}>
                     <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
                     <option value="AUD">AUD</option><option value="HKD">HKD</option><option value="SGD">SGD</option>
                     <option value="CNH">CNH</option><option value="OTHER">Other</option>
@@ -235,7 +247,7 @@ export default function Activities() {
                 </div>
                 <div className="field-group">
                   <label className="form-label">Direction *</label>
-                  <select className="form-select" value={activityForm.direction} onChange={e=>setActivityForm({...activityForm,direction:e.target.value})} required>
+                  <select className="form-select" value={activityForm.direction} onChange={e=>setActivityForm({...activityForm,direction:e.target.value})}>
                     <option value="">Select Direction</option>
                     <option value="BUY">Buy</option><option value="SELL">Sell</option><option value="TWO-WAY">Two Way</option>
                   </select>
@@ -244,7 +256,7 @@ export default function Activities() {
               <div className="field-row">
                 <div className="field-group">
                   <label className="form-label">Status *</label>
-                  <select className="form-select" value={activityForm.status} onChange={e=>setActivityForm({...activityForm,status:e.target.value})} required>
+                  <select className="form-select" value={activityForm.status} onChange={e=>setActivityForm({...activityForm,status:e.target.value})}>
                     <option value="">Select Status</option>
                     <option value="ENQUIRY">Enquiry</option><option value="QUOTED">Quoted</option>
                     <option value="EXECUTED">Executed</option><option value="PASSED">Passed</option>
@@ -258,6 +270,7 @@ export default function Activities() {
               </div>
             </div>
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
+              {formError && <div className="form-error-banner">{formError}</div>}
               <button type="submit" className="btn btn-primary" disabled={submitLoading}>
                 {submitLoading?(editingActivity?'Updating...':'Adding...'):(editingActivity?'Update Activity':'+ Add Activity')}
               </button>
@@ -430,6 +443,7 @@ export default function Activities() {
         .filter-clear-x:hover{color:var(--text-primary);}
         .filter-select{padding:7px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;cursor:pointer;transition:border-color 0.2s;}
         .filter-select:focus{outline:none;border-color:var(--border-focus);}
+        .form-error-banner{background:#fee2e2;border:1px solid #ef4444;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;}
         @media(max-width:768px){.field-row{grid-template-columns:1fr;}.stats-summary{width:100%;justify-content:space-between;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}.filter-bar{flex-direction:column;align-items:stretch;}.filter-search-wrap{min-width:100%;}}
       `}</style>
     </div>

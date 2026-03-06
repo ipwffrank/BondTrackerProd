@@ -60,6 +60,9 @@ export default function AIAssistant() {
   const newClientNames = Object.keys(newClientForms);
   const allFormsValid = newClientNames.every(n => newClientForms[n].type && newClientForms[n].region);
   const importBlocked = newClientNames.length > 0 && !allFormsValid;
+  const completedFormsCount = newClientNames.filter(
+    n => newClientForms[n].type && newClientForms[n].region
+  ).length;
 
   async function handleAiAnalysis() {
     if (!aiFile) return;
@@ -239,18 +242,31 @@ export default function AIAssistant() {
                   </div>
                 )}
               </div>
-              <button onClick={handleImportAiResults} className="btn btn-secondary" disabled={submitLoading || importBlocked} title={importBlocked ? 'Complete new client registration below before importing' : ''}>
-                {submitLoading ? (
-                  <><span className="spinner"></span>Importing...</>
-                ) : (
-                  <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/></svg>Import All to Activity Log</>
-                )}
+              <button onClick={handleImportAiResults} className="btn btn-secondary"
+                disabled={submitLoading || importBlocked}
+                title={importBlocked ? 'Complete Step 2 — register new clients below — before importing' : 'Import all activities to Activity Log'}
+              >
+                {submitLoading ? (<><span className="spinner"></span>Importing...</>) :
+                 importBlocked ? (
+                  <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                  </svg>Complete Step 2 below first</>
+                 ) : (
+                  <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4"/>
+                  </svg>Import All to Activity Log</>
+                 )}
               </button>
             </div>
 
             {/* New Client Registration Section */}
             {newClientNames.length > 0 && (
-              <div style={{margin: '0 24px 0 24px', padding: '16px', background: '#7c3a001a', border: '1px solid #d97706', borderRadius: '8px', marginTop: '20px'}}>
+              <div className="step-container" style={{margin: '20px 24px 0 24px'}}>
+                <div className="step-label">
+                  <span className="step-number">2</span>
+                  <span className="step-title">Register New Clients</span>
+                </div>
+                <div style={{padding: '16px', background: '#7c3a001a', border: '1px solid #d97706', borderRadius: '8px'}}>
                 <div style={{fontWeight: 700, fontSize: '14px', color: '#d97706', marginBottom: '12px'}}>
                   ⚠️ New Client Registration Required ({newClientNames.length} new {newClientNames.length === 1 ? 'client' : 'clients'})
                 </div>
@@ -264,9 +280,10 @@ export default function AIAssistant() {
                       <span style={{fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW CLIENT</span>
                     </div>
                     <div>
-                      <label className="form-label" style={{fontSize: '11px'}}>Type *</label>
+                      <label className="form-label" style={{fontSize: '11px', color: '#d97706'}}>Type *</label>
                       <select
                         className="form-select"
+                        style={!newClientForms[name].type ? {borderColor: '#d97706'} : undefined}
                         value={newClientForms[name].type}
                         onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], type: e.target.value}}))}
                       >
@@ -275,9 +292,10 @@ export default function AIAssistant() {
                       </select>
                     </div>
                     <div>
-                      <label className="form-label" style={{fontSize: '11px'}}>Region *</label>
+                      <label className="form-label" style={{fontSize: '11px', color: '#d97706'}}>Region *</label>
                       <select
                         className="form-select"
+                        style={!newClientForms[name].region ? {borderColor: '#d97706'} : undefined}
                         value={newClientForms[name].region}
                         onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], region: e.target.value}}))}
                       >
@@ -297,11 +315,25 @@ export default function AIAssistant() {
                     </div>
                   </div>
                 ))}
-                {importBlocked && (
-                  <div style={{fontSize: '12px', color: '#d97706', marginTop: '8px'}}>
-                    Complete all required fields (Type and Region) to enable import.
-                  </div>
-                )}
+                <hr style={{border:'none',borderTop:'1px solid #d97706',opacity:0.35,margin:'16px 0'}}/>
+                <div style={{fontSize:'12px',color:'#d97706',marginBottom:'12px',fontWeight:600}}>
+                  {allFormsValid
+                    ? `✓ All ${newClientNames.length} ${newClientNames.length===1?'client':'clients'} complete — ready to import`
+                    : `✓ ${completedFormsCount} of ${newClientNames.length} ${newClientNames.length===1?'client':'clients'} complete`}
+                </div>
+                <button
+                  onClick={handleImportAiResults}
+                  className={`btn bottom-import-btn ${allFormsValid ? 'bottom-import-btn--ready' : 'bottom-import-btn--blocked'}`}
+                  disabled={!allFormsValid || submitLoading}
+                >
+                  {submitLoading ? (<><span className="spinner"></span>Importing...</>) :
+                   allFormsValid ? (
+                    <><svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"/>
+                    </svg>All clients registered — Import to Activity Log</>
+                   ) : <>Fill in all required fields above to import</>}
+                </button>
+                </div>
               </div>
             )}
 
@@ -420,6 +452,14 @@ export default function AIAssistant() {
         .badge-success{background:var(--badge-success-bg);color:var(--badge-success-text);}
         .badge-warning{background:var(--badge-warning-bg);color:var(--badge-warning-text);}
         .badge-danger{background:var(--badge-danger-bg);color:var(--badge-danger-text);}
+        .step-container{position:relative;}
+        .step-label{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+        .step-number{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:#d97706;color:#fff;font-size:11px;font-weight:700;flex-shrink:0;}
+        .step-title{font-size:14px;font-weight:700;color:#d97706;letter-spacing:0.02em;}
+        .bottom-import-btn{width:100%;justify-content:center;padding:14px 20px;font-size:15px;border-radius:10px;margin-top:4px;}
+        .bottom-import-btn--ready{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 12px rgba(22,163,74,0.35);}
+        .bottom-import-btn--ready:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 16px rgba(22,163,74,0.45);}
+        .bottom-import-btn--blocked{background:var(--btn-muted-bg);color:var(--btn-muted-text);opacity:0.7;cursor:not-allowed;}
       `}</style>
     </div>
   );

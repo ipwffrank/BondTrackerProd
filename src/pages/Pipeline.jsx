@@ -39,6 +39,7 @@ export default function Pipeline() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const [issueSearch, setIssueSearch] = useState('');
   const [filterIssueCurrency, setFilterIssueCurrency] = useState('');
 
@@ -105,7 +106,12 @@ export default function Pipeline() {
 
   async function handleNewIssueSubmit(e) {
     e.preventDefault();
-    if (!userData?.organizationId) return;
+    setFormError('');
+    const missing = [];
+    if(!newIssueForm.issuerName) missing.push('Issuer Name');
+    if(!newIssueForm.targetIssueSize) missing.push('Target Issue Size');
+    if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
 
     setSubmitLoading(true);
     try {
@@ -125,6 +131,7 @@ export default function Pipeline() {
         createdBy: userData.name || userData.email
       });
 
+      setFormError('');
       setNewIssueForm({
         issuerName: '',
         targetIssueSize: '',
@@ -367,7 +374,6 @@ export default function Pipeline() {
                         placeholder="e.g., Apple Inc."
                         value={newIssueForm.issuerName}
                         onChange={(e) => setNewIssueForm({...newIssueForm, issuerName: e.target.value})}
-                        required
                       />
                     </div>
 
@@ -380,7 +386,6 @@ export default function Pipeline() {
                         placeholder="e.g., 500"
                         value={newIssueForm.targetIssueSize}
                         onChange={(e) => setNewIssueForm({...newIssueForm, targetIssueSize: e.target.value})}
-                        required
                       />
                     </div>
                   </div>
@@ -392,7 +397,6 @@ export default function Pipeline() {
                         className="form-select"
                         value={newIssueForm.currency}
                         onChange={(e) => setNewIssueForm({...newIssueForm, currency: e.target.value})}
-                        required
                       >
                         <option value="USD">USD</option>
                         <option value="EUR">EUR</option>
@@ -437,6 +441,7 @@ export default function Pipeline() {
                 </div>
 
                 <div style={{padding: '20px 24px', borderTop: '1px solid var(--border)'}}>
+                  {formError && <div className="form-error-banner">{formError}</div>}
                   <button type="submit" className="btn btn-primary" disabled={submitLoading}>
                     {submitLoading ? 'Adding...' : '+ Add New Issue'}
                   </button>
@@ -545,7 +550,6 @@ export default function Pipeline() {
                         className="form-select"
                         value={orderBookForm.issuerName}
                         onChange={(e) => setOrderBookForm({...orderBookForm, issuerName: e.target.value})}
-                        required
                       >
                         <option value="">Select Issue</option>
                         {newIssues.map(issue => (
@@ -567,7 +571,6 @@ export default function Pipeline() {
                         className="form-select"
                         value={orderBookForm.clientName}
                         onChange={(e) => setOrderBookForm({...orderBookForm, clientName: e.target.value})}
-                        required
                       >
                         <option value="">Select Client</option>
                         {clients.map(client => (
@@ -587,7 +590,6 @@ export default function Pipeline() {
                         placeholder="e.g., 50"
                         value={orderBookForm.orderSize}
                         onChange={(e) => setOrderBookForm({...orderBookForm, orderSize: e.target.value})}
-                        required
                       />
                     </div>
 
@@ -1018,6 +1020,8 @@ export default function Pipeline() {
           outline: none;
           border-color: var(--border-focus);
         }
+
+        .form-error-banner{background:#fee2e2;border:1px solid #ef4444;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;}
 
         @media (max-width: 768px) {
           .field-row {

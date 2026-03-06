@@ -12,6 +12,7 @@ export default function Clients() {
   const [editingClient, setEditingClient] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
+  const [formError, setFormError] = useState('');
   const [csvUploading, setCsvUploading] = useState(false);
   const [csvNotification, setCsvNotification] = useState(null);
   const csvInputRef = useRef(null);
@@ -29,12 +30,20 @@ export default function Clients() {
   },[userData?.organizationId]);
 
   async function handleClientSubmit(e) {
-    e.preventDefault(); if(!userData?.organizationId) return;
+    e.preventDefault();
+    setFormError('');
+    const missing = [];
+    if(!clientForm.name) missing.push('Client Name');
+    if(!clientForm.type) missing.push('Client Type');
+    if(!clientForm.region) missing.push('Region');
+    if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
     setSubmitLoading(true);
     try {
       const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingClient){ await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),data); setEditingClient(null); }
       else{ await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data); }
+      setFormError('');
       setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
     }catch(e){ console.error(e); alert('Failed to save client'); }finally{ setSubmitLoading(false); }
   }
@@ -164,11 +173,11 @@ export default function Clients() {
               <div className="field-row">
                 <div className="field-group">
                   <label className="form-label">Client Name *</label>
-                  <input type="text" className="form-input" placeholder="e.g., ABC Fund Management Ltd" value={clientForm.name} onChange={e=>setClientForm({...clientForm,name:e.target.value})} required/>
+                  <input type="text" className="form-input" placeholder="e.g., ABC Fund Management Ltd" value={clientForm.name} onChange={e=>setClientForm({...clientForm,name:e.target.value})}/>
                 </div>
                 <div className="field-group">
                   <label className="form-label">Client Type *</label>
-                  <select className="form-select" value={clientForm.type} onChange={e=>setClientForm({...clientForm,type:e.target.value})} required>
+                  <select className="form-select" value={clientForm.type} onChange={e=>setClientForm({...clientForm,type:e.target.value})}>
                     <option value="FUND">Fund</option>
                     <option value="BANK">Bank</option>
                     <option value="INSURANCE">Insurance</option>
@@ -180,7 +189,7 @@ export default function Clients() {
               <div className="field-row">
                 <div className="field-group">
                   <label className="form-label">Region *</label>
-                  <select className="form-select" value={clientForm.region} onChange={e=>setClientForm({...clientForm,region:e.target.value})} required>
+                  <select className="form-select" value={clientForm.region} onChange={e=>setClientForm({...clientForm,region:e.target.value})}>
                     <option value="APAC">APAC</option>
                     <option value="EMEA">EMEA</option>
                     <option value="AMERICAS">Americas</option>
@@ -193,6 +202,7 @@ export default function Clients() {
               </div>
             </div>
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
+              {formError && <div className="form-error-banner">{formError}</div>}
               <button type="submit" className="btn btn-primary" disabled={submitLoading}>
                 {submitLoading?(editingClient?'Updating...':'Adding...'):(editingClient?'Update Client':'+ Add Client')}
               </button>
@@ -338,6 +348,7 @@ export default function Clients() {
         .filter-clear-x:hover{color:var(--text-primary);}
         .filter-select{padding:7px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:13px;font-family:inherit;cursor:pointer;}
         .filter-select:focus{outline:none;border-color:var(--border-focus);}
+        .form-error-banner{background:#fee2e2;border:1px solid #ef4444;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;}
         @media(max-width:768px){.field-row{grid-template-columns:1fr;}.card-header{flex-direction:column;gap:12px;align-items:flex-start;}.filter-bar{flex-direction:column;align-items:stretch;}.filter-search-wrap{min-width:100%;}}
       `}</style>
     </div>
