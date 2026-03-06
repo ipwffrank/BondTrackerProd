@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
@@ -20,6 +20,8 @@ export default function Analytics() {
     activityTypeBreakdown:{},regionBreakdown:{},conversionRate:0,
     executedVolume:0,avgTicketSize:0
   });
+  const [tooltipState, setTooltipState] = useState({ visible: false, type: null, data: null, rect: null });
+  const hideTimerRef = useRef(null);
 
   useEffect(() => {
     if(!userData?.organizationId){ setLoading(false); return; }
@@ -84,6 +86,418 @@ export default function Analytics() {
     data.forEach(a=>{ const r=a.clientRegion||'Unknown'; if(!regionBreakdown[r]) regionBreakdown[r]=0; regionBreakdown[r]++; });
 
     setStats({ totalActivities,totalVolume:totalVolume.toFixed(2),totalClients:new Set(data.map(a=>a.clientName)).size,buyCount,sellCount,twoWayCount,enquiryCount,quotedCount,executedCount,passedCount,tradedAwayCount,topClients,topUsers,currencyBreakdown,activityTypeBreakdown,regionBreakdown,conversionRate,executedVolume:executedVolume.toFixed(2),avgTicketSize });
+  }
+
+  // ─── Tooltip helpers ───────────────────────────────────────────────────────
+  function showTooltip(type, data, rect) {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    setTooltipState({ visible: true, type, data, rect });
+  }
+  function scheduleHide() {
+    hideTimerRef.current = setTimeout(() =>
+      setTooltipState(s => ({ ...s, visible: false })), 150);
+  }
+  function cancelHide() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+  }
+  function getTooltipStyle(rect) {
+    const TIP_W = 280;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    let left = rect.right + 12;
+    if (left + TIP_W > vw - 8) left = rect.left - TIP_W - 12;
+    let top = rect.top;
+    if (top + 320 > vh) top = Math.max(8, vh - 320);
+    return { position:'fixed', left, top, zIndex:9999, width:TIP_W };
+  }
+
+  // ─── CSV download helpers ───────────────────────────────────────────────────
+  function downloadVolumeCSV() {
+    const totalVol = parseFloat(stats.totalVolume) || 1;
+    const data = Object.entries(stats.currencyBreakdown).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d]) => ({
+      currency,
+      totalVolume: d.volume.toFixed(2),
+      buyVolume: filteredActivities.filter(a=>a.currency===currency&&a.direction==='BUY').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2),
+      sellVolume: filteredActivities.filter(a=>a.currency===currency&&a.direction==='SELL').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2),
+      executedVolume: filteredActivities.filter(a=>a.currency===currency&&a.status==='EXECUTED').reduce((s,a)=>s+(parseFloat(a.size)||0),0).toFixed(2),
+      count: d.count,
+      pct: ((d.volume/totalVol)*100).toFixed(1)+'%',
+    }));
+    exportToExcel(data,[
+      {header:'Currency',field:'currency'},{header:'Total Volume (MM)',field:'totalVolume'},
+      {header:'BUY Volume (MM)',field:'buyVolume'},{header:'SELL Volume (MM)',field:'sellVolume'},
+      {header:'Executed Volume (MM)',field:'executedVolume'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}
+    ],'volume-breakdown','Volume');
+  }
+
+  function downloadClientsVolumeCSV() {
+    const clientVolumes = {};
+    const clientCounts = {};
+    filteredActivities.forEach(a => {
+      if(!clientVolumes[a.clientName]){ clientVolumes[a.clientName]=0; clientCounts[a.clientName]=0; }
+      clientVolumes[a.clientName]+=parseFloat(a.size)||0;
+      clientCounts[a.clientName]++;
+    });
+    const data = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).map(([name,volume])=>({name, totalVolume:volume.toFixed(2), activityCount:clientCounts[name]}));
+    exportToExcel(data,[{header:'Client',field:'name'},{header:'Total Volume (MM)',field:'totalVolume'},{header:'Activity Count',field:'activityCount'}],'active-clients-volume','Clients');
+  }
+
+  function downloadExecutedTradesCSV() {
+    const data = filteredActivities.filter(a=>a.status==='EXECUTED').map(a=>({
+      date: a.createdAt ? a.createdAt.toLocaleDateString() : '',
+      client: a.clientName, isin: a.isin, ticker: a.ticker,
+      size: a.size, currency: a.currency, direction: a.direction, price: a.price,
+    }));
+    exportToExcel(data,[
+      {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
+      {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},
+      {header:'Direction',field:'direction'},{header:'Price',field:'price'}
+    ],'executed-trades','Executed Trades');
+  }
+
+  function downloadExecVolumeCSV() {
+    const execByCurrency = {};
+    filteredActivities.filter(a=>a.status==='EXECUTED').forEach(a=>{
+      if(!execByCurrency[a.currency]) execByCurrency[a.currency]={volume:0,count:0};
+      execByCurrency[a.currency].volume+=parseFloat(a.size)||0;
+      execByCurrency[a.currency].count++;
+    });
+    const data = Object.entries(execByCurrency).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d])=>({currency, volume:d.volume.toFixed(2), count:d.count}));
+    exportToExcel(data,[{header:'Currency',field:'currency'},{header:'Executed Volume (MM)',field:'volume'},{header:'Count',field:'count'}],'executed-volume-by-currency','Executed Volume');
+  }
+
+  function downloadClientActivitiesCSV(clientName) {
+    const data = filteredActivities.filter(a=>a.clientName===clientName).map(a=>({
+      date: a.createdAt ? a.createdAt.toLocaleDateString() : '',
+      activityType: a.activityType, isin: a.isin, ticker: a.ticker,
+      size: a.size, currency: a.currency, direction: a.direction,
+      status: a.status, price: a.price, notes: a.notes,
+    }));
+    exportToExcel(data,[
+      {header:'Date',field:'date'},{header:'Activity Type',field:'activityType'},{header:'ISIN',field:'isin'},
+      {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},
+      {header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Price',field:'price'},{header:'Notes',field:'notes'}
+    ],`${clientName}-activities`,'Client Activities');
+  }
+
+  function downloadDirectionCSV(direction) {
+    const data = filteredActivities.filter(a=>a.direction===direction).map(a=>({
+      date: a.createdAt ? a.createdAt.toLocaleDateString() : '',
+      client: a.clientName, isin: a.isin, ticker: a.ticker,
+      size: a.size, currency: a.currency, status: a.status,
+    }));
+    exportToExcel(data,[
+      {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
+      {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},{header:'Status',field:'status'}
+    ],`${direction}-activities`,`${direction} Activities`);
+  }
+
+  function downloadStatusCSV(status) {
+    const data = filteredActivities.filter(a=>a.status===status).map(a=>({
+      date: a.createdAt ? a.createdAt.toLocaleDateString() : '',
+      client: a.clientName, isin: a.isin, ticker: a.ticker,
+      size: a.size, currency: a.currency, direction: a.direction,
+    }));
+    exportToExcel(data,[
+      {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
+      {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},{header:'Direction',field:'direction'}
+    ],`${status.replace(/\s+/g,'-')}-activities`,`${status} Activities`);
+  }
+
+  function downloadCurrencyCSV(currency) {
+    const data = filteredActivities.filter(a=>a.currency===currency).map(a=>({
+      date: a.createdAt ? a.createdAt.toLocaleDateString() : '',
+      client: a.clientName, isin: a.isin,
+      size: a.size, direction: a.direction, status: a.status, price: a.price,
+    }));
+    exportToExcel(data,[
+      {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
+      {header:'Size (MM)',field:'size'},{header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Price',field:'price'}
+    ],`${currency}-activities`,`${currency} Activities`);
+  }
+
+  // ─── Tooltip content renderer ───────────────────────────────────────────────
+  function renderTooltipContent() {
+    const { type, data } = tooltipState;
+
+    if (type === 'stat-activities') {
+      return (
+        <>
+          <div className="hover-card-title">Activity Type Breakdown</div>
+          {Object.entries(stats.activityTypeBreakdown).sort((a,b)=>b[1]-a[1]).map(([t,count])=>(
+            <div key={t} className="hover-card-row">
+              <span className="hover-card-label">{t}</span>
+              <span className="hover-card-value">{count}</span>
+            </div>
+          ))}
+          <hr className="hover-card-divider"/>
+          <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">{stats.buyCount}</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">{stats.sellCount}</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">{stats.twoWayCount}</span></div>
+        </>
+      );
+    }
+
+    if (type === 'stat-volume') {
+      const totalVol = parseFloat(stats.totalVolume) || 1;
+      const buyVol = filteredActivities.filter(a=>a.direction==='BUY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const sellVol = filteredActivities.filter(a=>a.direction==='SELL').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const twVol = filteredActivities.filter(a=>a.direction==='TWO-WAY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      return (
+        <>
+          <div className="hover-card-title">Volume by Currency</div>
+          {Object.entries(stats.currencyBreakdown).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d])=>{
+            const pct = ((d.volume/totalVol)*100).toFixed(0);
+            return (
+              <div key={currency} style={{marginBottom:'6px'}}>
+                <div className="hover-card-row">
+                  <span className="hover-card-label">{currency}</span>
+                  <span className="hover-card-value">${d.volume.toFixed(1)}MM</span>
+                </div>
+                <div style={{height:'4px',background:'var(--border)',borderRadius:'2px',overflow:'hidden',marginTop:'2px'}}>
+                  <div style={{width:`${pct}%`,height:'100%',background:'var(--accent)',borderRadius:'2px'}}></div>
+                </div>
+                <div style={{fontSize:'10px',color:'var(--text-muted)',textAlign:'right'}}>{pct}%</div>
+              </div>
+            );
+          })}
+          <hr className="hover-card-divider"/>
+          <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">${buyVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">${sellVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">${twVol.toFixed(1)}MM</span></div>
+          <button className="hover-card-csv-btn" onClick={downloadVolumeCSV}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'stat-clients') {
+      const clientVolumes = {};
+      const clientCounts = {};
+      filteredActivities.forEach(a=>{
+        if(!clientVolumes[a.clientName]){ clientVolumes[a.clientName]=0; clientCounts[a.clientName]=0; }
+        clientVolumes[a.clientName]+=parseFloat(a.size)||0;
+        clientCounts[a.clientName]++;
+      });
+      const sorted = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      return (
+        <>
+          <div className="hover-card-title">Active Clients by Volume</div>
+          {sorted.map(([name,vol])=>(
+            <div key={name} className="hover-card-row">
+              <span className="hover-card-label" style={{overflow:'hidden',textOverflow:'ellipsis',maxWidth:'160px'}}>{name}</span>
+              <span className="hover-card-value" style={{fontSize:'11px'}}>${vol.toFixed(1)}MM · {clientCounts[name]}</span>
+            </div>
+          ))}
+          <button className="hover-card-csv-btn" onClick={downloadClientsVolumeCSV}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'stat-executed') {
+      const execByClient = {};
+      const execVolByClient = {};
+      filteredActivities.filter(a=>a.status==='EXECUTED').forEach(a=>{
+        if(!execByClient[a.clientName]){ execByClient[a.clientName]=0; execVolByClient[a.clientName]=0; }
+        execByClient[a.clientName]++;
+        execVolByClient[a.clientName]+=parseFloat(a.size)||0;
+      });
+      const sorted = Object.entries(execByClient).sort((a,b)=>b[1]-a[1]||execVolByClient[b[0]]-execVolByClient[a[0]]).slice(0,8);
+      return (
+        <>
+          <div className="hover-card-title">Top Clients by Executed Trades</div>
+          {sorted.map(([name,count])=>(
+            <div key={name} className="hover-card-row">
+              <span className="hover-card-label" style={{overflow:'hidden',textOverflow:'ellipsis',maxWidth:'160px'}}>{name}</span>
+              <span className="hover-card-value" style={{fontSize:'11px'}}>{count} · ${execVolByClient[name].toFixed(1)}MM</span>
+            </div>
+          ))}
+          <button className="hover-card-csv-btn" onClick={downloadExecutedTradesCSV}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'stat-exec-volume') {
+      const execByCurrency = {};
+      filteredActivities.filter(a=>a.status==='EXECUTED').forEach(a=>{
+        if(!execByCurrency[a.currency]) execByCurrency[a.currency]={volume:0,count:0};
+        execByCurrency[a.currency].volume+=parseFloat(a.size)||0;
+        execByCurrency[a.currency].count++;
+      });
+      return (
+        <>
+          <div className="hover-card-title">Executed Volume by Currency</div>
+          {Object.entries(execByCurrency).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d])=>(
+            <div key={currency} className="hover-card-row">
+              <span className="hover-card-label">{currency}</span>
+              <span className="hover-card-value">${d.volume.toFixed(1)}MM · {d.count}</span>
+            </div>
+          ))}
+          <button className="hover-card-csv-btn" onClick={downloadExecVolumeCSV}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'stat-conversion') {
+      const total = stats.totalActivities;
+      const exec = stats.executedCount;
+      const dirs = ['BUY','SELL','TWO-WAY'];
+      return (
+        <>
+          <div className="hover-card-title">Conversion Rate</div>
+          <div className="hover-card-row">
+            <span className="hover-card-label">Formula</span>
+            <span className="hover-card-value">{exec} ÷ {total}</span>
+          </div>
+          <div className="hover-card-row">
+            <span className="hover-card-label">Overall</span>
+            <span className="hover-card-value">{stats.conversionRate}%</span>
+          </div>
+          <hr className="hover-card-divider"/>
+          <div className="hover-card-sub">Per Direction</div>
+          {dirs.map(dir=>{
+            const dirTotal = filteredActivities.filter(a=>a.direction===dir).length;
+            const dirExec = filteredActivities.filter(a=>a.direction===dir&&a.status==='EXECUTED').length;
+            const rate = dirTotal>0 ? ((dirExec/dirTotal)*100).toFixed(1) : '0.0';
+            return (
+              <div key={dir} className="hover-card-row">
+                <span className="hover-card-label">{dir}</span>
+                <span className="hover-card-value">{dirExec}/{dirTotal} = {rate}%</span>
+              </div>
+            );
+          })}
+        </>
+      );
+    }
+
+    if (type === 'stat-avg-ticket') {
+      const sizes = filteredActivities.filter(a=>a.status==='EXECUTED').map(a=>parseFloat(a.size)||0).sort((a,b)=>a-b);
+      const min = sizes.length ? sizes[0] : 0;
+      const max = sizes.length ? sizes[sizes.length-1] : 0;
+      const avg = sizes.length ? sizes.reduce((s,v)=>s+v,0)/sizes.length : 0;
+      const mid = Math.floor(sizes.length/2);
+      const median = sizes.length === 0 ? 0 : sizes.length%2===1 ? sizes[mid] : (sizes[mid-1]+sizes[mid])/2;
+      return (
+        <>
+          <div className="hover-card-title">Ticket Size Stats (Executed)</div>
+          <div className="hover-card-row"><span className="hover-card-label">Min</span><span className="hover-card-value">${min.toFixed(2)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">Max</span><span className="hover-card-value">${max.toFixed(2)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">Median</span><span className="hover-card-value">${median.toFixed(2)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">Average</span><span className="hover-card-value">${avg.toFixed(2)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">Count</span><span className="hover-card-value">{sizes.length}</span></div>
+        </>
+      );
+    }
+
+    if (type === 'client') {
+      const clientName = data;
+      const clientObj = clients.find(c=>c.name===clientName);
+      const clientActs = filteredActivities.filter(a=>a.clientName===clientName);
+      const clientVol = clientActs.reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const buyVol = clientActs.filter(a=>a.direction==='BUY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const sellVol = clientActs.filter(a=>a.direction==='SELL').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const twVol = clientActs.filter(a=>a.direction==='TWO-WAY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      return (
+        <>
+          <div className="hover-card-title">{clientName}</div>
+          {clientObj && (
+            <>
+              <div className="hover-card-row"><span className="hover-card-label">Type</span><span className="hover-card-value">{clientObj.clientType||'—'}</span></div>
+              <div className="hover-card-row"><span className="hover-card-label">Region</span><span className="hover-card-value">{clientObj.region||'—'}</span></div>
+              <div className="hover-card-row"><span className="hover-card-label">Coverage</span><span className="hover-card-value">{clientObj.salesCoverage||'—'}</span></div>
+              <div className="hover-card-row"><span className="hover-card-label">Created By</span><span className="hover-card-value">{clientObj.createdBy||'—'}</span></div>
+            </>
+          )}
+          <hr className="hover-card-divider"/>
+          <div className="hover-card-row"><span className="hover-card-label">Activities</span><span className="hover-card-value">{clientActs.length}</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">Total Volume</span><span className="hover-card-value">${clientVol.toFixed(2)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">${buyVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">${sellVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">${twVol.toFixed(1)}MM</span></div>
+          <button className="hover-card-csv-btn" onClick={()=>downloadClientActivitiesCSV(clientName)}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'direction') {
+      const dir = data;
+      const clientVols = {};
+      const clientCounts = {};
+      filteredActivities.filter(a=>a.direction===dir).forEach(a=>{
+        if(!clientVols[a.clientName]){ clientVols[a.clientName]=0; clientCounts[a.clientName]=0; }
+        clientVols[a.clientName]+=parseFloat(a.size)||0;
+        clientCounts[a.clientName]++;
+      });
+      const sorted = Object.entries(clientVols).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      return (
+        <>
+          <div className="hover-card-title">Top {dir} Clients</div>
+          {sorted.map(([name,vol])=>(
+            <div key={name} className="hover-card-row">
+              <span className="hover-card-label" style={{overflow:'hidden',textOverflow:'ellipsis',maxWidth:'160px'}}>{name}</span>
+              <span className="hover-card-value" style={{fontSize:'11px'}}>${vol.toFixed(1)}MM · {clientCounts[name]}</span>
+            </div>
+          ))}
+          {sorted.length===0 && <div style={{fontSize:'12px',color:'var(--text-muted)'}}>No data</div>}
+          <button className="hover-card-csv-btn" onClick={()=>downloadDirectionCSV(dir)}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'status') {
+      const statusVal = data;
+      const clientVols = {};
+      filteredActivities.filter(a=>a.status===statusVal).forEach(a=>{
+        if(!clientVols[a.clientName]) clientVols[a.clientName]=0;
+        clientVols[a.clientName]+=parseFloat(a.size)||0;
+      });
+      const sorted = Object.entries(clientVols).sort((a,b)=>b[1]-a[1]).slice(0,8);
+      return (
+        <>
+          <div className="hover-card-title">Top Clients — {statusVal}</div>
+          {sorted.map(([name,vol])=>(
+            <div key={name} className="hover-card-row">
+              <span className="hover-card-label" style={{overflow:'hidden',textOverflow:'ellipsis',maxWidth:'170px'}}>{name}</span>
+              <span className="hover-card-value">${vol.toFixed(1)}MM</span>
+            </div>
+          ))}
+          {sorted.length===0 && <div style={{fontSize:'12px',color:'var(--text-muted)'}}>No data</div>}
+          <button className="hover-card-csv-btn" onClick={()=>downloadStatusCSV(statusVal)}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    if (type === 'currency') {
+      const currency = data;
+      const currActs = filteredActivities.filter(a=>a.currency===currency);
+      const buyVol = currActs.filter(a=>a.direction==='BUY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const sellVol = currActs.filter(a=>a.direction==='SELL').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const twVol = currActs.filter(a=>a.direction==='TWO-WAY').reduce((s,a)=>s+(parseFloat(a.size)||0),0);
+      const clientVols = {};
+      currActs.forEach(a=>{
+        if(!clientVols[a.clientName]) clientVols[a.clientName]=0;
+        clientVols[a.clientName]+=parseFloat(a.size)||0;
+      });
+      const topClients = Object.entries(clientVols).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      return (
+        <>
+          <div className="hover-card-title">{currency} Breakdown</div>
+          <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">${buyVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">${sellVol.toFixed(1)}MM</span></div>
+          <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">${twVol.toFixed(1)}MM</span></div>
+          <hr className="hover-card-divider"/>
+          <div className="hover-card-sub">Top Clients</div>
+          {topClients.map(([name,vol])=>(
+            <div key={name} className="hover-card-row">
+              <span className="hover-card-label" style={{overflow:'hidden',textOverflow:'ellipsis',maxWidth:'170px'}}>{name}</span>
+              <span className="hover-card-value">${vol.toFixed(1)}MM</span>
+            </div>
+          ))}
+          <button className="hover-card-csv-btn" onClick={()=>downloadCurrencyCSV(currency)}>⬇ Download CSV</button>
+        </>
+      );
+    }
+
+    return null;
   }
 
   // Export handlers
@@ -183,6 +597,16 @@ export default function Analytics() {
 
   if(loading) return(<div className="app-container"><Navigation/><div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'50vh'}}><div style={{textAlign:'center'}}><div className="spinner" style={{width:'40px',height:'40px',margin:'0 auto 16px'}}></div><div style={{color:'var(--text-primary)'}}>Loading analytics...</div></div></div></div>);
 
+  const statCards = [
+    {value:stats.totalActivities, label:'Total Activities', type:'stat-activities'},
+    {value:`$${stats.totalVolume}MM`, label:'Total Volume', type:'stat-volume'},
+    {value:stats.totalClients, label:'Active Clients', type:'stat-clients'},
+    {value:stats.executedCount, label:'Executed Trades', type:'stat-executed'},
+    {value:`$${stats.executedVolume}MM`, label:'Executed Volume', type:'stat-exec-volume'},
+    {value:`${stats.conversionRate}%`, label:'Conversion Rate', type:'stat-conversion'},
+    {value:`$${stats.avgTicketSize}MM`, label:'Avg Ticket Size', type:'stat-avg-ticket'},
+  ];
+
   return (
     <div className="app-container">
       <Navigation/>
@@ -224,16 +648,15 @@ export default function Analytics() {
         {/* Overview Stats Cards */}
         <div style={{overflowX:'auto',marginBottom:'24px'}}>
           <div style={{display:'grid',gridTemplateColumns:'repeat(7,minmax(140px,1fr))',gap:'16px',minWidth:'700px'}}>
-            {[
-              {value:stats.totalActivities,label:'Total Activities'},
-              {value:`$${stats.totalVolume}MM`,label:'Total Volume'},
-              {value:stats.totalClients,label:'Active Clients'},
-              {value:stats.executedCount,label:'Executed Trades'},
-              {value:`$${stats.executedVolume}MM`,label:'Executed Volume'},
-              {value:`${stats.conversionRate}%`,label:'Conversion Rate'},
-              {value:`$${stats.avgTicketSize}MM`,label:'Avg Ticket Size'},
-            ].map((s,i)=>(
-              <div key={i} className="stat-card">
+            {statCards.map((s,i)=>(
+              <div
+                key={i}
+                className="stat-card"
+                style={{position:'relative',cursor:'default'}}
+                onMouseEnter={e=>showTooltip(s.type, null, e.currentTarget.getBoundingClientRect())}
+                onMouseLeave={scheduleHide}
+              >
+                <span className="stat-card-hint">ℹ</span>
                 <div className="stat-value">{s.value}</div>
                 <div className="stat-label">{s.label}</div>
               </div>
@@ -249,17 +672,32 @@ export default function Analytics() {
               <button onClick={handleExportDirectionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
             </div>
             <div style={{padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
-              <div className="breakdown-box" style={{background:'var(--badge-success-bg)'}}>
+              <div
+                className="breakdown-box"
+                style={{background:'var(--badge-success-bg)',cursor:'default'}}
+                onMouseEnter={e=>showTooltip('direction','BUY',e.currentTarget.getBoundingClientRect())}
+                onMouseLeave={scheduleHide}
+              >
                 <div style={{fontSize:'28px',fontWeight:'bold',color:'var(--badge-success-text)'}}>{stats.buyCount}</div>
                 <div style={{fontSize:'12px',color:'var(--badge-success-text)',marginTop:'4px'}}>BUY</div>
                 <div style={{fontSize:'11px',color:'var(--badge-success-text)',opacity:0.7}}>{stats.totalActivities>0?((stats.buyCount/stats.totalActivities)*100).toFixed(0):0}%</div>
               </div>
-              <div className="breakdown-box" style={{background:'var(--badge-danger-bg)'}}>
+              <div
+                className="breakdown-box"
+                style={{background:'var(--badge-danger-bg)',cursor:'default'}}
+                onMouseEnter={e=>showTooltip('direction','SELL',e.currentTarget.getBoundingClientRect())}
+                onMouseLeave={scheduleHide}
+              >
                 <div style={{fontSize:'28px',fontWeight:'bold',color:'var(--badge-danger-text)'}}>{stats.sellCount}</div>
                 <div style={{fontSize:'12px',color:'var(--badge-danger-text)',marginTop:'4px'}}>SELL</div>
                 <div style={{fontSize:'11px',color:'var(--badge-danger-text)',opacity:0.7}}>{stats.totalActivities>0?((stats.sellCount/stats.totalActivities)*100).toFixed(0):0}%</div>
               </div>
-              <div className="breakdown-box" style={{background:'var(--badge-warning-bg)'}}>
+              <div
+                className="breakdown-box"
+                style={{background:'var(--badge-warning-bg)',cursor:'default'}}
+                onMouseEnter={e=>showTooltip('direction','TWO-WAY',e.currentTarget.getBoundingClientRect())}
+                onMouseLeave={scheduleHide}
+              >
                 <div style={{fontSize:'28px',fontWeight:'bold',color:'var(--badge-warning-text)'}}>{stats.twoWayCount}</div>
                 <div style={{fontSize:'12px',color:'var(--badge-warning-text)',marginTop:'4px'}}>TWO-WAY</div>
                 <div style={{fontSize:'11px',color:'var(--badge-warning-text)',opacity:0.7}}>{stats.totalActivities>0?((stats.twoWayCount/stats.totalActivities)*100).toFixed(0):0}%</div>
@@ -280,7 +718,12 @@ export default function Analytics() {
                 {label:'Passed',count:stats.passedCount,color:'var(--badge-danger-text)',bg:'var(--badge-danger-bg)'},
                 {label:'Traded Away',count:stats.tradedAwayCount,color:'var(--badge-danger-text)',bg:'var(--badge-danger-bg)'},
               ].map((s,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                <div
+                  key={i}
+                  style={{display:'flex',alignItems:'center',gap:'12px',cursor:'default',borderRadius:'6px',padding:'2px 4px',transition:'background 0.15s'}}
+                  onMouseEnter={e=>showTooltip('status', s.label==='Traded Away'?'TRADED AWAY':s.label.toUpperCase(), e.currentTarget.getBoundingClientRect())}
+                  onMouseLeave={scheduleHide}
+                >
                   <span style={{fontSize:'12px',fontWeight:600,width:'90px',color:'var(--text-secondary)'}}>{s.label}</span>
                   <div style={{flex:1,height:'8px',background:'var(--border)',borderRadius:'4px',overflow:'hidden'}}>
                     <div style={{width:`${stats.totalActivities>0?(s.count/stats.totalActivities)*100:0}%`,height:'100%',background:s.color,borderRadius:'4px',transition:'width 0.5s'}}></div>
@@ -306,7 +749,12 @@ export default function Analytics() {
               {stats.topClients.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
                 <div style={{display:'flex',flexDirection:'column',gap:'10px'}}>
                   {stats.topClients.map((c,i)=>(
-                    <div key={i} style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px',background:'var(--section-label-bg)',borderRadius:'8px'}}>
+                    <div
+                      key={i}
+                      style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px',background:'var(--section-label-bg)',borderRadius:'8px',cursor:'default'}}
+                      onMouseEnter={e=>showTooltip('client', c.name, e.currentTarget.getBoundingClientRect())}
+                      onMouseLeave={scheduleHide}
+                    >
                       <div style={{fontSize:'18px',fontWeight:'bold',color:'var(--text-muted)',width:'28px'}}>#{i+1}</div>
                       <div style={{flex:1,fontWeight:600,color:'var(--text-primary)',fontSize:'14px'}}>{c.name}</div>
                       <div style={{fontSize:'16px',fontWeight:'bold',color:'var(--accent)'}}>${c.volume}MM</div>
@@ -398,7 +846,12 @@ export default function Analytics() {
                   Object.entries(stats.currencyBreakdown).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,data])=>{
                     const pct = ((data.volume/parseFloat(stats.totalVolume))*100).toFixed(1);
                     return(
-                      <tr key={currency}>
+                      <tr
+                        key={currency}
+                        style={{cursor:'default'}}
+                        onMouseEnter={e=>showTooltip('currency', currency, e.currentTarget.getBoundingClientRect())}
+                        onMouseLeave={scheduleHide}
+                      >
                         <td><span className="badge badge-primary">{currency}</span></td>
                         <td>{data.count}</td>
                         <td style={{fontWeight:600}}>${data.volume.toFixed(2)}MM</td>
@@ -421,13 +874,35 @@ export default function Analytics() {
         </div>
 
       </main>
+
+      {/* Hover Card Overlay */}
+      {tooltipState.visible && tooltipState.rect && (
+        <div
+          style={{
+            ...getTooltipStyle(tooltipState.rect),
+            background: 'var(--card-bg)',
+            border: '1px solid var(--border)',
+            borderRadius: '12px',
+            padding: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
+            pointerEvents: 'auto',
+            maxHeight: '380px',
+            overflowY: 'auto',
+          }}
+          onMouseEnter={cancelHide}
+          onMouseLeave={scheduleHide}
+        >
+          {renderTooltipContent()}
+        </div>
+      )}
+
       <style jsx>{`
         .app-container{min-height:100vh;background:var(--bg-base);color:var(--text-primary);}
         .main-content{max-width:1400px;margin:0 auto;padding:32px 24px;}
         .page-header{margin-bottom:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px;}
         .page-title{font-size:32px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
         .page-description{font-size:16px;color:var(--text-secondary);}
-        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;box-shadow:var(--shadow);}
+        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:20px;text-align:center;box-shadow:var(--shadow);position:relative;}
         .stat-value{font-size:24px;font-weight:700;color:var(--accent);margin-bottom:6px;}
         .stat-label{font-size:12px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;}
         .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
@@ -453,6 +928,15 @@ export default function Analytics() {
         .spinner{display:inline-block;width:10px;height:10px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 0.6s linear infinite;}
         @keyframes spin{to{transform:rotate(360deg);}}
         @media(max-width:768px){.page-header{flex-direction:column;align-items:flex-start;} div[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:1fr !important;}}
+        .hover-card-title{font-size:13px;font-weight:700;color:var(--text-primary);margin-bottom:10px;}
+        .hover-card-sub{font-size:11px;color:var(--text-muted);margin-bottom:8px;}
+        .hover-card-divider{border:none;border-top:1px solid var(--border);margin:8px 0;}
+        .hover-card-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:3px 0;gap:8px;}
+        .hover-card-label{color:var(--text-secondary);white-space:nowrap;}
+        .hover-card-value{font-weight:600;color:var(--text-primary);text-align:right;}
+        .hover-card-csv-btn{width:100%;margin-top:10px;padding:7px 12px;background:var(--btn-secondary-bg);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-family:inherit;}
+        .hover-card-csv-btn:hover{background:var(--btn-secondary-hover);}
+        .stat-card-hint{position:absolute;top:8px;right:10px;font-size:10px;color:var(--text-muted);opacity:0.5;pointer-events:none;}
       `}</style>
     </div>
   );
