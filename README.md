@@ -1,16 +1,74 @@
-# React + Vite
+# Axle — Bond Tracker Admin
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite admin dashboard for bond tracker. Deployed to Netlify, using Firebase (Firestore + Auth).
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Prerequisites
+- Node.js 18+
+- npm
 
-## React Compiler
+### Install
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+```
 
-## Expanding the ESLint configuration
+### Configure environment
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+cp .env.example .env.local
+# Fill in your Firebase credentials in .env.local
+```
+
+Get Firebase credentials from:
+**Firebase Console → Project Settings → Your Apps → SDK setup and configuration**
+
+### Run locally
+
+```bash
+npm run dev
+```
+
+### Build for production
+
+```bash
+npm run build
+```
+
+## Project Structure
+
+```
+src/
+  pages/          # Route-level components (Dashboard, Clients, Pipeline, Activities, Team, Analytics, AI)
+  components/     # Shared UI components (Navigation, auth guards, marketing)
+  services/       # Firebase data layer (clients, pipeline, team, analytics, export)
+  contexts/       # React contexts (AuthContext)
+  styles/         # Global CSS
+
+alteri-ui/        # Local shared UI package (@alteri/ui)
+netlify/functions/ # Serverless functions (send-invite, analyze-transcript, bloomberg-lookup)
+```
+
+## Key Dependencies
+
+- **React 18** + React Router v6
+- **Firebase** (Auth + Firestore with persistent cache)
+- **Vite** (build tool)
+- **jsPDF** + **xlsx** (PDF/Excel exports)
+- **@google/generative-ai** (AI transcript analysis)
+- **resend** (transactional email via Netlify functions)
+
+## Deployment
+
+Deployed via Netlify. Build command: `npm run build`. Publish dir: `dist`.
+
+Set the following environment variables in the **Netlify dashboard** (not in `.env`):
+- `VITE_FIREBASE_*` — Firebase config values
+- `RESEND_API_KEY` — for email functions
+- `ANTHROPIC_API_KEY` — for AI transcript analysis
+
+## GitHub
+
+Source: https://github.com/ipwffrank/BondTrackerProd
+Deployed site: https://bondtracker-admin.netlify.app
