@@ -149,12 +149,10 @@ export function AuthProvider({ children }) {
         const userMappingRef = doc(db, `users/${user.uid}`);
         const userMappingSnap = await getDoc(userMappingRef);
 
-        let orgId;
-        if (userMappingSnap.exists()) {
+        const domain = email.split('@')[1];
+        let orgId = `org_${domain.replace(/\./g, '_')}`;
+        if (userMappingSnap.exists() && userMappingSnap.data().organizationId) {
           orgId = userMappingSnap.data().organizationId;
-        } else {
-          const domain = email.split('@')[1];
-          orgId = `org_${domain.replace(/\./g, '_')}`;
         }
 
         const userRef = doc(db, `organizations/${orgId}/users/${user.uid}`);
@@ -221,11 +219,11 @@ export function AuthProvider({ children }) {
           const userMappingRef = doc(db, `users/${user.uid}`);
           const userMappingSnap = await getDoc(userMappingRef);
 
-          if (userMappingSnap.exists()) {
+          if (userMappingSnap.exists() && userMappingSnap.data().organizationId) {
             orgId = userMappingSnap.data().organizationId;
             console.log('🔍 Found user mapping, using organization:', orgId);
           } else {
-            console.log('🔍 No user mapping found, will create one');
+            console.log('🔍 No valid user mapping found, using domain-derived org:', orgId);
           }
 
           console.log('🔍 Subscribing to user data at:', `organizations/${orgId}/users/${user.uid}`);
