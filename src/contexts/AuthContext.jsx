@@ -234,8 +234,13 @@ export function AuthProvider({ children }) {
           const userDocRef = doc(db, `organizations/${orgId}/users/${user.uid}`);
           let isFirstSnapshot = true;
 
+          let retryCount = 0;
+          const MAX_RETRIES = 3;
+          const RETRY_DELAY = 1500; // ms
+
           orgUserUnsubscribe = onSnapshot(userDocRef, async (userDocSnap) => {
             if (userDocSnap.exists()) {
+              retryCount = 0; // reset on success
               const data = userDocSnap.data();
 
               const completeUserData = {
@@ -276,6 +281,7 @@ export function AuthProvider({ children }) {
               });
 
               setUserData(completeUserData);
+              setLoading(false);
             } else {
               console.warn('⚠️ User document not found in snapshot, trying getDoc fallback...');
               try {
@@ -294,16 +300,49 @@ export function AuthProvider({ children }) {
                     lastLogin: data.lastLogin
                   });
                   console.log('✅ User data loaded via getDoc fallback');
+                  setLoading(false);
+                } else if (retryCount < MAX_RETRIES) {
+                  // Document may not exist yet (signup race condition) — retry after delay
+                  retryCount++;
+                  console.warn(`⏳ User doc not found, retrying (${retryCount}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
+                  setTimeout(async () => {
+                    try {
+                      const retrySnap = await getDoc(userDocRef);
+                      if (retrySnap.exists()) {
+                        const data = retrySnap.data();
+                        setUserData({
+                          uid: user.uid,
+                          email: user.email,
+                          name: data.name || user.displayName || user.email,
+                          organizationId: orgId,
+                          organizationName: data.organizationName || domain,
+                          isAdmin: data.isAdmin || false,
+                          role: data.role || 'user',
+                          createdAt: data.createdAt,
+                          lastLogin: data.lastLogin
+                        });
+                        console.log('✅ User data loaded on retry');
+                      } else {
+                        console.warn(`⚠️ Retry ${retryCount}/${MAX_RETRIES}: doc still not found`);
+                      }
+                    } catch (retryError) {
+                      console.error('❌ Retry getDoc failed:', retryError);
+                    }
+                    setLoading(false);
+                  }, RETRY_DELAY);
                 } else {
-                  console.error('❌ User document not found at:', `organizations/${orgId}/users/${user.uid}`);
-                  setUserData(null);
+                  console.error('❌ User document not found after retries at:', `organizations/${orgId}/users/${user.uid}`);
+                  // Do NOT clear userData if we already have valid data for this user
+                  setUserData((prev) => (prev?.uid === user.uid ? prev : null));
+                  setLoading(false);
                 }
               } catch (fallbackError) {
                 console.error('❌ getDoc fallback failed:', fallbackError);
-                setUserData(null);
+                // Preserve existing userData if it belongs to the current user
+                setUserData((prev) => (prev?.uid === user.uid ? prev : null));
+                setLoading(false);
               }
             }
-            setLoading(false);
           }, (error) => {
             console.error('❌ Error in user doc snapshot (keeping last known userData):', error);
             // Do NOT clear userData on connection errors — keep the last known value
