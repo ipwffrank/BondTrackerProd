@@ -277,13 +277,37 @@ export function AuthProvider({ children }) {
 
               setUserData(completeUserData);
             } else {
-              console.error('❌ User document not found at:', `organizations/${orgId}/users/${user.uid}`);
-              setUserData(null);
+              console.warn('⚠️ User document not found in snapshot, trying getDoc fallback...');
+              try {
+                const freshSnap = await getDoc(userDocRef);
+                if (freshSnap.exists()) {
+                  const data = freshSnap.data();
+                  setUserData({
+                    uid: user.uid,
+                    email: user.email,
+                    name: data.name || user.displayName || user.email,
+                    organizationId: orgId,
+                    organizationName: data.organizationName || domain,
+                    isAdmin: data.isAdmin || false,
+                    role: data.role || 'user',
+                    createdAt: data.createdAt,
+                    lastLogin: data.lastLogin
+                  });
+                  console.log('✅ User data loaded via getDoc fallback');
+                } else {
+                  console.error('❌ User document not found at:', `organizations/${orgId}/users/${user.uid}`);
+                  setUserData(null);
+                }
+              } catch (fallbackError) {
+                console.error('❌ getDoc fallback failed:', fallbackError);
+                setUserData(null);
+              }
             }
             setLoading(false);
           }, (error) => {
-            console.error('❌ Error in user doc snapshot:', error);
-            setUserData(null);
+            console.error('❌ Error in user doc snapshot (keeping last known userData):', error);
+            // Do NOT clear userData on connection errors — keep the last known value
+            // so forms remain functional during transient Firestore issues.
             setLoading(false);
           });
 

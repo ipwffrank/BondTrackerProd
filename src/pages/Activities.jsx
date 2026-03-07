@@ -6,7 +6,7 @@ import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
 export default function Activities() {
-  const { userData } = useAuth();
+  const { userData, currentUser } = useAuth();
   const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:'' });
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
@@ -78,7 +78,14 @@ export default function Activities() {
     if(!activityForm.status) missing.push('Status');
     if(activityForm.currency==='OTHER' && !activityForm.otherCurrency) missing.push('Currency');
     if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
-    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
+    if(!userData?.organizationId){
+      if(currentUser) {
+        setFormError('Session loading — please wait a moment and try again.');
+      } else {
+        setFormError('Not connected — please refresh the page.');
+      }
+      return;
+    }
     const sc=getSelectedClient();
     setSubmitLoading(true);
     try{

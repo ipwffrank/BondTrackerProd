@@ -6,7 +6,7 @@ import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
 export default function Clients() {
-  const { userData, isAdmin } = useAuth();
+  const { userData, isAdmin, currentUser } = useAuth();
   const [clientForm, setClientForm] = useState({ name:'',type:'FUND',region:'APAC',salesCoverage:'' });
   const [clients, setClients] = useState([]);
   const [editingClient, setEditingClient] = useState(null);
@@ -37,7 +37,14 @@ export default function Clients() {
     if(!clientForm.type) missing.push('Client Type');
     if(!clientForm.region) missing.push('Region');
     if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
-    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
+    if(!userData?.organizationId){
+      if(currentUser) {
+        setFormError('Session loading — please wait a moment and try again.');
+      } else {
+        setFormError('Not connected — please refresh the page.');
+      }
+      return;
+    }
     setSubmitLoading(true);
     try {
       const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};

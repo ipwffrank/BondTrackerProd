@@ -6,7 +6,7 @@ import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
 export default function Pipeline() {
-  const { userData } = useAuth();
+  const { userData, currentUser } = useAuth();
   
   const [activeSubTab, setActiveSubTab] = useState('create');
   
@@ -111,7 +111,14 @@ export default function Pipeline() {
     if(!newIssueForm.issuerName) missing.push('Issuer Name');
     if(!newIssueForm.targetIssueSize) missing.push('Target Issue Size');
     if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
-    if(!userData?.organizationId){ setFormError('Not connected — please refresh the page.'); return; }
+    if(!userData?.organizationId){
+      if(currentUser) {
+        setFormError('Session loading — please wait a moment and try again.');
+      } else {
+        setFormError('Not connected — please refresh the page.');
+      }
+      return;
+    }
 
     setSubmitLoading(true);
     try {
