@@ -39,19 +39,23 @@ exports.handler = async (event) => {
 
     const https = require('https');
     
-    const prompt = `Analyze bond trading chat from DEALER perspective.
+    const prompt = `Analyze bond trading chat from the DEALER's perspective (the person quoting prices).
 
-RULES:
-1. Client asks "Your bid?" = SELL (client wants to sell, dealer buys)
-2. Client asks "Offer?" or "Yours?" = BUY (client wants to buy, dealer sells)
-3. Extract company from "(From Company)" or context
-4. Determine status from outcome:
+DIRECTION RULES (from dealer's perspective — this is critical):
+1. Client asks "Your bid?" or "bid for X?" → direction = BUY (the dealer is buying from the client)
+2. Client asks "Offer X" or "Yours?" or wants to buy → direction = SELL (the dealer is selling to the client)
+3. If client asks for both bid and offer → direction = TWO-WAY
+
+OTHER RULES:
+3. Extract the CLIENT company from "(From Company)" or context. The dealer's own firm is NOT the client.
+4. Determine status from the final outcome of the conversation:
    - "done", "yours", "mine", "executed", "filled", "traded", "confirmed" → EXECUTED
    - "traded away", "done away", "lost to", "competitor got it" → TRADED AWAY
    - "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
-   - Price was quoted but no final outcome → QUOTED
+   - Price was quoted but no final outcome mentioned → QUOTED
    - Enquiry only, no price given → ENQUIRY
-5. SIZE must always be in millions (MM). Examples: "15MM" → 15, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size mentioned, return null.
+5. PRICE: Extract the numeric price the dealer quoted. Strip any trailing slashes, symbols, or non-numeric characters. "100/" → 100, "@ 101" → 101. If no price was quoted, return null.
+6. SIZE must always be in millions (MM). Examples: "15MM" → 15, "2mm" → 2, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size is mentioned in the conversation, return null (not 0).
 
 Return JSON array only (no markdown):
 [{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]
@@ -103,21 +107,25 @@ Transcript: ${transcript}`;
     let activities = JSON.parse(text);
     if (!Array.isArray(activities)) activities = [activities];
 
-    const validActivities = activities.filter(a => 
+    const validActivities = activities.filter(a =>
       a.clientName && (a.ticker || a.isin) && a.direction && a.status
-    ).map(a => ({
-      clientName: a.clientName,
-      contactPerson: a.contactPerson || '',
-      activityType: 'Bloomberg Chat',
-      isin: a.isin || '',
-      ticker: a.ticker || '',
-      size: a.size ? parseFloat(a.size) : null,
-      currency: 'USD',
-      price: a.price ? parseFloat(a.price) : null,
-      direction: a.direction,
-      status: a.status,
-      notes: a.notes || ''
-    }));
+    ).map(a => {
+      const parsedSize = a.size != null ? parseFloat(a.size) : null;
+      const parsedPrice = a.price != null ? parseFloat(String(a.price).replace(/[^0-9.\-]/g, '')) : null;
+      return {
+        clientName: a.clientName,
+        contactPerson: a.contactPerson || '',
+        activityType: 'Bloomberg Chat',
+        isin: a.isin || '',
+        ticker: a.ticker || '',
+        size: (parsedSize && !isNaN(parsedSize)) ? parsedSize : null,
+        currency: 'USD',
+        price: (parsedPrice && !isNaN(parsedPrice)) ? parsedPrice : null,
+        direction: a.direction,
+        status: a.status,
+        notes: a.notes || ''
+      };
+    });
 
     console.log(`✅ Extracted ${validActivities.length} activities`);
 
