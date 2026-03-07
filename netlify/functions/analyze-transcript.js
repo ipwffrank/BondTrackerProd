@@ -54,7 +54,13 @@ OTHER RULES:
    - "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
    - Price was quoted but no final outcome mentioned → QUOTED
    - Enquiry only, no price given → ENQUIRY
-5. PRICE: Extract the numeric price the dealer quoted. Strip any trailing slashes, symbols, or non-numeric characters. "100/" → 100, "@ 101" → 101. If no price was quoted, return null.
+5. PRICE: The dealer's response with a number IS the price, even if it looks like shorthand. Bond trading price notation examples:
+   - "100/" means the dealer's bid price is 100 (trailing slash = bid side)
+   - "@ 101" means the dealer's offer price is 101
+   - "/99" means the dealer's offer price is 99 (leading slash = offer side)
+   - "99/101" means bid 99 / offer 101
+   - Any number the dealer says in reply to a price request IS the price.
+   Always return price as a plain number (e.g. 100, 101, 99.5). Never return null if the dealer quoted a number.
 6. SIZE must always be in millions (MM). Examples: "15MM" → 15, "2mm" → 2, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size is mentioned in the conversation, return null (not 0).
 
 Return JSON array only (no markdown):

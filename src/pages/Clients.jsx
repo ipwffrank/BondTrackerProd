@@ -19,6 +19,7 @@ export default function Clients() {
   const [clientSearch, setClientSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -66,6 +67,46 @@ export default function Clients() {
     setClientForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||''});
     setEditingClient(c.id);
     window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const allSelected = filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filteredClients.forEach(c => next.delete(c.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        filteredClients.forEach(c => next.add(c.id));
+        return next;
+      });
+    }
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!isAdmin) { alert('Only admins can delete clients'); return; }
+    if (!window.confirm(`Delete ${selectedIds.size} selected client${selectedIds.size === 1 ? '' : 's'}?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await deleteDoc(doc(db, `organizations/${userData.organizationId}/clients`, id));
+      }
+      setSelectedIds(new Set());
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete some clients');
+    }
   }
 
   async function handleCsvUpload(e) {
@@ -222,6 +263,9 @@ export default function Clients() {
           <div className="card-header">
             <span>📋 Client Directory ({filteredClients.length < clients.length ? `${filteredClients.length} of ${clients.length}` : clients.length})</span>
             <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
+              {isAdmin && selectedIds.size > 0 && (
+                <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
+              )}
               <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
               <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
               <button onClick={() => csvInputRef.current?.click()} className="btn btn-secondary" disabled={csvUploading}>
@@ -269,12 +313,13 @@ export default function Clients() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>Name</th><th>Type</th><th>Region</th><th>Sales Coverage</th><th>Created By</th><th>Actions</th></tr>
+                <tr>{isAdmin && <th style={{width:'40px'}}><input type="checkbox" checked={filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>}<th>Name</th><th>Type</th><th>Region</th><th>Sales Coverage</th><th>Created By</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {filteredClients.length===0?(<tr><td colSpan="6" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(
+                {filteredClients.length===0?(<tr><td colSpan={isAdmin ? 7 : 6} style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(
                   filteredClients.map(c=>(
-                    <tr key={c.id}>
+                    <tr key={c.id} style={selectedIds.has(c.id) ? {background:'var(--accent-glow)'} : undefined}>
+                      {isAdmin && <td><input type="checkbox" checked={selectedIds.has(c.id)} onChange={()=>toggleSelect(c.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>}
                       <td style={{fontWeight:600}}>{c.name}</td>
                       <td><span className="badge badge-primary">{c.type}</span></td>
                       <td><span className="badge badge-success">{c.region}</span></td>
@@ -329,6 +374,7 @@ export default function Clients() {
         .btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
         .btn-secondary{background:var(--btn-secondary-bg);color:#fff;padding:8px 14px;font-size:13px;}
         .btn-secondary:hover{background:var(--btn-secondary-hover);}
+        .btn-danger{background:#dc2626;color:#fff;padding:8px 14px;font-size:13px;}.btn-danger:hover{background:#b91c1c;}
         .btn-muted{background:var(--btn-muted-bg);color:var(--btn-muted-text);}
         .btn-muted:hover{background:var(--btn-muted-hover);}
         .btn-icon{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;transition:transform 0.2s;}

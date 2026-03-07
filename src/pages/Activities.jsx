@@ -23,6 +23,7 @@ export default function Activities() {
   const [actSearch, setActSearch] = useState('');
   const [actFilterDir, setActFilterDir] = useState('');
   const [actFilterStatus, setActFilterStatus] = useState('');
+  const [selectedIds, setSelectedIds] = useState(new Set());
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -100,6 +101,46 @@ export default function Activities() {
   async function handleDeleteActivity(id){
     if(!window.confirm('Delete this activity?')) return;
     try{await deleteDoc(doc(db,`organizations/${userData.organizationId}/activities`,id));}catch(e){alert('Failed to delete');}
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIds.size} selected activit${selectedIds.size === 1 ? 'y' : 'ies'}?`)) return;
+    try {
+      for (const id of selectedIds) {
+        await deleteDoc(doc(db, `organizations/${userData.organizationId}/activities`, id));
+      }
+      setSelectedIds(new Set());
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete some activities');
+    }
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    const pageItems = filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE);
+    const allSelected = pageItems.every(a => selectedIds.has(a.id));
+    if (allSelected) {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        pageItems.forEach(a => next.delete(a.id));
+        return next;
+      });
+    } else {
+      setSelectedIds(prev => {
+        const next = new Set(prev);
+        pageItems.forEach(a => next.add(a.id));
+        return next;
+      });
+    }
   }
 
   function handleEditActivity(a){
@@ -290,6 +331,9 @@ export default function Activities() {
           <div className="card-header">
             <span>📊 Activity History ({filteredActivities.length < activities.length ? `${filteredActivities.length} of ${activities.length}` : activities.length})</span>
             <div style={{display:'flex',gap:'10px'}}>
+              {selectedIds.size > 0 && (
+                <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
+              )}
               <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
               <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
             </div>
@@ -322,12 +366,13 @@ export default function Activities() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
+                <tr><th style={{width:'40px'}}><input type="checkbox" checked={filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).length > 0 && filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).every(a => selectedIds.has(a.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {filteredActivities.length===0?(<tr><td colSpan="12" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(
+                {filteredActivities.length===0?(<tr><td colSpan="13" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(
                   filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map(a=>(
-                    <tr key={a.id}>
+                    <tr key={a.id} style={selectedIds.has(a.id) ? {background:'var(--accent-glow)'} : undefined}>
+                      <td><input type="checkbox" checked={selectedIds.has(a.id)} onChange={()=>toggleSelect(a.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>
                       <td>{a.createdAt?new Date(a.createdAt).toLocaleDateString():'-'}</td>
                       <td style={{fontWeight:600}}>{a.clientName}</td>
                       <td>{a.clientType?<span className="badge badge-primary">{a.clientType}</span>:'-'}</td>
@@ -416,6 +461,7 @@ export default function Activities() {
         .btn-muted:hover{background:var(--btn-muted-hover);}
         .btn-icon{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;transition:transform 0.2s;}
         .btn-icon:hover{transform:scale(1.2);}
+        .btn-danger{background:#dc2626;color:#fff;padding:8px 14px;font-size:13px;}.btn-danger:hover{background:#b91c1c;}
         .table-container{overflow-x:auto;}
         .table{width:100%;border-collapse:collapse;font-size:14px;}
         .table thead{background:var(--table-header-bg);}

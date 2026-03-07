@@ -42,6 +42,7 @@ export default function Pipeline() {
   const [formError, setFormError] = useState('');
   const [issueSearch, setIssueSearch] = useState('');
   const [filterIssueCurrency, setFilterIssueCurrency] = useState('');
+  const [selectedIssueIds, setSelectedIssueIds] = useState(new Set());
 
   useEffect(() => {
     if (!userData?.organizationId) {
@@ -218,6 +219,45 @@ export default function Pipeline() {
     } catch (error) {
       console.error('Error deleting order:', error);
       alert('Failed to delete order');
+    }
+  }
+
+  function toggleSelectIssue(id) {
+    setSelectedIssueIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllIssues() {
+    const allSelected = filteredNewIssues.length > 0 && filteredNewIssues.every(i => selectedIssueIds.has(i.id));
+    if (allSelected) {
+      setSelectedIssueIds(prev => {
+        const next = new Set(prev);
+        filteredNewIssues.forEach(i => next.delete(i.id));
+        return next;
+      });
+    } else {
+      setSelectedIssueIds(prev => {
+        const next = new Set(prev);
+        filteredNewIssues.forEach(i => next.add(i.id));
+        return next;
+      });
+    }
+  }
+
+  async function handleBulkDeleteIssues() {
+    if (selectedIssueIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedIssueIds.size} selected issue${selectedIssueIds.size === 1 ? '' : 's'}?`)) return;
+    try {
+      for (const id of selectedIssueIds) {
+        await deleteDoc(doc(db, `organizations/${userData.organizationId}/newIssues`, id));
+      }
+      setSelectedIssueIds(new Set());
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete some issues');
     }
   }
 
@@ -461,6 +501,11 @@ export default function Pipeline() {
               <div className="card-header">
                 <span>📋 New Issues ({filteredNewIssues.length < newIssues.length ? `${filteredNewIssues.length} of ${newIssues.length}` : newIssues.length})</span>
                 <div style={{display: 'flex', gap: '10px'}}>
+                  {selectedIssueIds.size > 0 && (
+                    <button onClick={handleBulkDeleteIssues} className="btn btn-danger">
+                      🗑️ Delete {selectedIssueIds.size} Selected
+                    </button>
+                  )}
                   <button onClick={handleExportNewIssuesExcel} className="btn btn-secondary">
                     📊 Export Excel
                   </button>
@@ -496,6 +541,7 @@ export default function Pipeline() {
                 <table className="table">
                   <thead>
                     <tr>
+                      <th style={{width:'40px'}}><input type="checkbox" checked={filteredNewIssues.length > 0 && filteredNewIssues.every(i => selectedIssueIds.has(i.id))} onChange={toggleSelectAllIssues} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>
                       <th>Date</th>
                       <th>Issuer</th>
                       <th>Target Size</th>
@@ -508,13 +554,14 @@ export default function Pipeline() {
                   <tbody>
                     {filteredNewIssues.length === 0 ? (
                       <tr>
-                        <td colSpan="7" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
+                        <td colSpan="8" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>
                           {newIssues.length === 0 ? 'No new issues yet. Add your first issue above!' : 'No issues match your filters.'}
                         </td>
                       </tr>
                     ) : (
                       filteredNewIssues.map((issue) => (
-                        <tr key={issue.id}>
+                        <tr key={issue.id} style={selectedIssueIds.has(issue.id) ? {background:'var(--accent-glow)'} : undefined}>
+                          <td><input type="checkbox" checked={selectedIssueIds.has(issue.id)} onChange={()=>toggleSelectIssue(issue.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>
                           <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '-'}</td>
                           <td style={{fontWeight: 600}}>{issue.issuerName}</td>
                           <td>{issue.targetIssueSize}MM</td>
@@ -1029,6 +1076,8 @@ export default function Pipeline() {
         }
 
         .form-error-banner{background:#fee2e2;border:1px solid #ef4444;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;}
+
+        .btn-danger{background:#dc2626;color:#fff;padding:8px 14px;font-size:13px;}.btn-danger:hover{background:#b91c1c;}
 
         @media (max-width: 768px) {
           .field-row {
