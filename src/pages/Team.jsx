@@ -53,6 +53,19 @@ export default function Team() {
     return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId, isAdmin]);
 
+  // Time range filter for performance table
+  const RANGE_OPTIONS = [
+    { key: 'all', label: 'All Time' },
+    { key: 'today', label: 'Today' },
+    { key: '7d', label: 'Last 7 Days' },
+    { key: '30d', label: 'Last 30 Days' },
+    { key: '90d', label: 'Last 90 Days' },
+    { key: 'custom', label: 'Custom' },
+  ];
+  const [timeRange, setTimeRange] = useState('all');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo] = useState('');
+
   // Load all activities + clients for performance table
   const [allActivities, setAllActivities] = useState([]);
   const [allClients, setAllClients] = useState([]);
@@ -71,13 +84,38 @@ export default function Team() {
     })();
   }, [userData?.organizationId, isAdmin]);
 
-  // Compute per-member performance stats
+  // Filter activities by selected time range
+  const filteredActivities = useMemo(() => {
+    if (timeRange === 'all') return allActivities;
+    const now = Date.now();
+    let fromMs = 0;
+    let toMs = now;
+    if (timeRange === 'today') {
+      const start = new Date(); start.setHours(0, 0, 0, 0);
+      fromMs = start.getTime();
+    } else if (timeRange === '7d') {
+      fromMs = now - 7 * 86400000;
+    } else if (timeRange === '30d') {
+      fromMs = now - 30 * 86400000;
+    } else if (timeRange === '90d') {
+      fromMs = now - 90 * 86400000;
+    } else if (timeRange === 'custom') {
+      if (customFrom) fromMs = new Date(customFrom).getTime();
+      if (customTo) { const d = new Date(customTo); d.setHours(23, 59, 59, 999); toMs = d.getTime(); }
+    }
+    return allActivities.filter(a => {
+      const ts = a.createdAt?.toMillis?.() || (a.createdAt?.toDate?.() ? a.createdAt.toDate().getTime() : 0);
+      return ts >= fromMs && ts <= toMs;
+    });
+  }, [allActivities, timeRange, customFrom, customTo]);
+
+  // Compute per-member performance stats from filtered activities
   const memberPerformance = useMemo(() => {
-    if (members.length === 0 || allActivities.length === 0) return [];
+    if (members.length === 0 || filteredActivities.length === 0) return [];
     return members.map(member => {
       const nameLC = (member.name || '').toLowerCase();
       const emailLC = (member.email || '').toLowerCase();
-      const acts = allActivities.filter(a => {
+      const acts = filteredActivities.filter(a => {
         const cb = (a.createdBy || '').toLowerCase();
         return cb === nameLC || cb === emailLC || cb.startsWith(nameLC) || cb.startsWith(emailLC);
       });
@@ -88,7 +126,7 @@ export default function Team() {
       const nonExecuted = acts.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length;
       return { ...member, acts, uniqueClients: uniqueClients.size, totalTrades, volume, executed, nonExecuted };
     }).sort((a, b) => b.totalTrades - a.totalTrades);
-  }, [members, allActivities]);
+  }, [members, filteredActivities]);
 
   function downloadMemberCSV(perf) {
     const headers = ['Client', 'Ticker', 'ISIN', 'Direction', 'Status', 'Price', 'Size', 'Currency', 'Date', 'Notes'];
@@ -576,13 +614,44 @@ export default function Team() {
           </div>
         )}
         {/* Team Performance Table */}
-        {memberPerformance.length > 0 && (
+        {(memberPerformance.length > 0 || allActivities.length > 0) && (
           <div className="card" style={{marginTop: '24px'}}>
-            <div className="card-header">
+            <div className="card-header" style={{flexWrap: 'wrap', gap: '12px'}}>
               <span>Team Performance Summary</span>
-              <span style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: '400'}}>{allActivities.length} total activities · {allClients.length} clients</span>
+              <span style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: '400'}}>
+                {filteredActivities.length}{timeRange !== 'all' ? ` of ${allActivities.length}` : ''} activities · {new Set(filteredActivities.map(a => a.clientName).filter(Boolean)).size} clients
+                {timeRange !== 'all' && ` · ${RANGE_OPTIONS.find(r => r.key === timeRange)?.label || 'Custom range'}`}
+              </span>
+            </div>
+            {/* Time Range Selector */}
+            <div style={{padding: '16px 24px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap'}}>
+              <span style={{fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', marginRight: '4px'}}>Time Range</span>
+              {RANGE_OPTIONS.map(opt => (
+                <button
+                  key={opt.key}
+                  onClick={() => setTimeRange(opt.key)}
+                  className={`range-btn ${timeRange === opt.key ? 'range-btn-active' : ''}`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+              {timeRange === 'custom' && (
+                <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginLeft: '8px'}}>
+                  <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                    className="form-input" style={{padding: '6px 10px', fontSize: '12px', width: '150px'}} />
+                  <span style={{color: 'var(--text-muted)', fontSize: '12px'}}>to</span>
+                  <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+                    className="form-input" style={{padding: '6px 10px', fontSize: '12px', width: '150px'}} />
+                </div>
+              )}
             </div>
             <div className="table-container">
+              {memberPerformance.length === 0 ? (
+                <div style={{textAlign: 'center', padding: '48px 20px', color: 'var(--text-muted)'}}>
+                  <p style={{fontSize: '16px', fontWeight: '600', marginBottom: '8px'}}>No activity data in this time range</p>
+                  <p style={{fontSize: '13px'}}>Try selecting a wider range or "All Time"</p>
+                </div>
+              ) : (
               <table className="perf-table">
                 <thead>
                   <tr>
@@ -642,17 +711,18 @@ export default function Team() {
                 <tfoot>
                   <tr style={{borderTop: '2px solid var(--border)'}}>
                     <td style={{fontWeight: '700', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em'}}>Total</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>{new Set(allActivities.map(a => a.clientName).filter(Boolean)).size}</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>{allActivities.length}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>{new Set(filteredActivities.map(a => a.clientName).filter(Boolean)).size}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>{filteredActivities.length}</td>
                     <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>
-                      {allActivities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 1})}
+                      {filteredActivities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 1})}
                     </td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-success-text)'}}>{allActivities.filter(a => a.status === 'EXECUTED').length}</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-danger-text)'}}>{allActivities.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-success-text)'}}>{filteredActivities.filter(a => a.status === 'EXECUTED').length}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-danger-text)'}}>{filteredActivities.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length}</td>
                     <td></td>
                   </tr>
                 </tfoot>
               </table>
+              )}
             </div>
           </div>
         )}
@@ -1054,6 +1124,32 @@ export default function Team() {
           width: 100%;
           border: 1.5px solid var(--border);
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .range-btn {
+          padding: 5px 14px;
+          border-radius: 6px;
+          font-size: 12px;
+          font-weight: 500;
+          font-family: inherit;
+          cursor: pointer;
+          border: 1px solid var(--border);
+          background: transparent;
+          color: var(--text-secondary);
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .range-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+        }
+
+        .range-btn-active {
+          background: rgba(200, 162, 88, 0.15);
+          border-color: var(--accent);
+          color: var(--accent);
+          font-weight: 600;
         }
 
         .table-container {
