@@ -202,8 +202,8 @@ service cloud.firestore {
       // The invitation ID acts as a secret token - without it, you can't access the invitation
       allow read: if true;
 
-      // Only admins can create invitations
-      allow create: if isAdminInOrg(orgId);
+      // Admins or host admins can create invitations
+      allow create: if isAdminInOrg(orgId) || isHostAdmin();
 
       // Admins can update invitations, OR authenticated users can mark their own invitation as accepted
       allow update: if isAdminInOrg(orgId) ||
