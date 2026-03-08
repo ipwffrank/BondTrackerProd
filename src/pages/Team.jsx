@@ -122,9 +122,13 @@ export default function Team() {
       const uniqueClients = new Set(acts.map(a => a.clientName).filter(Boolean));
       const totalTrades = acts.length;
       const volume = acts.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
-      const executed = acts.filter(a => a.status === 'EXECUTED').length;
-      const nonExecuted = acts.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length;
-      return { ...member, acts, uniqueClients: uniqueClients.size, totalTrades, volume, executed, nonExecuted };
+      const executedActs = acts.filter(a => a.status === 'EXECUTED');
+      const nonExecutedActs = acts.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY');
+      const executed = executedActs.length;
+      const executedVolume = executedActs.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
+      const nonExecuted = nonExecutedActs.length;
+      const nonExecutedVolume = nonExecutedActs.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
+      return { ...member, acts, uniqueClients: uniqueClients.size, totalTrades, volume, executed, executedVolume, nonExecuted, nonExecutedVolume };
     }).sort((a, b) => b.totalTrades - a.totalTrades);
   }, [members, filteredActivities]);
 
@@ -246,6 +250,18 @@ export default function Team() {
   const getInitials = (name) => {
     if (!name) return '?';
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  };
+
+  const getDisplayName = (member) => {
+    if (!member.name || member.name === member.email) return null;
+    return member.name;
+  };
+
+  const fmtVol = (v) => {
+    if (!v || v === 0) return '0';
+    if (v >= 1000) return (v / 1000).toFixed(1).replace(/\.0$/, '') + 'B';
+    if (v >= 1) return v.toFixed(1).replace(/\.0$/, '') + 'MM';
+    return v.toFixed(2) + 'MM';
   };
 
   const getAvatarColor = (name) => {
@@ -397,16 +413,18 @@ export default function Team() {
                         <div style={{flex: 1}}>
                           <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
                             <span style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
-                              {member.name}
+                              {getDisplayName(member) || member.email}
                             </span>
                             {getRoleBadge(member.isAdmin)}
                             {member.id === currentUser?.uid && (
                               <span className="badge badge-success" style={{fontSize: '10px'}}>You</span>
                             )}
                           </div>
+                          {getDisplayName(member) && (
                           <p style={{fontSize: '13px', color: 'var(--text-muted)', marginBottom: '2px'}}>
                             {member.email}
                           </p>
+                          )}
                           {member.lastLogin && (
                             <p style={{fontSize: '11px', color: 'var(--text-muted)'}}>
                               Last active: {new Date(member.lastLogin.toDate?.() || member.lastLogin).toLocaleDateString()}
@@ -591,11 +609,13 @@ export default function Team() {
                         </div>
                         <div>
                           <p style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
-                            {stat.name}
+                            {getDisplayName(stat) || stat.email}
                           </p>
+                          {getDisplayName(stat) && (
                           <p style={{fontSize: '12px', color: 'var(--text-muted)'}}>
                             {stat.email}
                           </p>
+                          )}
                         </div>
                       </div>
                       <div style={{textAlign: 'right'}}>
@@ -655,10 +675,10 @@ export default function Team() {
               <table className="perf-table">
                 <thead>
                   <tr>
-                    <th>Member</th>
+                    <th>Name</th>
+                    <th>Email</th>
                     <th style={{textAlign: 'center'}}>Clients</th>
                     <th style={{textAlign: 'center'}}>Total Trades</th>
-                    <th style={{textAlign: 'center'}}>Volume (MM)</th>
                     <th style={{textAlign: 'center'}}>Executed</th>
                     <th style={{textAlign: 'center'}}>Non-Executed</th>
                     <th style={{width: '60px'}}></th>
@@ -676,22 +696,23 @@ export default function Team() {
                           }}>
                             {getInitials(perf.name)}
                           </div>
-                          <div>
-                            <div style={{fontWeight: '600', fontSize: '13px', color: 'var(--text-primary)'}}>{perf.name}</div>
-                            <div style={{fontSize: '11px', color: 'var(--text-muted)'}}>{perf.email}</div>
+                          <div style={{fontWeight: '600', fontSize: '13px', color: 'var(--text-primary)'}}>
+                            {getDisplayName(perf) || '—'}
                           </div>
                         </div>
                       </td>
+                      <td style={{fontSize: '12px', color: 'var(--text-muted)'}}>{perf.email}</td>
                       <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)'}}>{perf.uniqueClients}</td>
-                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--accent)'}}>{perf.totalTrades}</td>
-                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)'}}>
-                        {perf.volume > 0 ? perf.volume.toLocaleString(undefined, {maximumFractionDigits: 1}) : '—'}
+                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--accent)'}}>
+                        {perf.totalTrades} <span style={{fontSize: '11px', fontWeight: '400', color: 'var(--text-muted)'}}>({fmtVol(perf.volume)})</span>
                       </td>
                       <td style={{textAlign: 'center'}}>
                         <span className="badge badge-success">{perf.executed}</span>
+                        <span style={{fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px'}}>({fmtVol(perf.executedVolume)})</span>
                       </td>
                       <td style={{textAlign: 'center'}}>
                         <span className="badge badge-danger">{perf.nonExecuted}</span>
+                        <span style={{fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px'}}>({fmtVol(perf.nonExecutedVolume)})</span>
                       </td>
                       <td style={{textAlign: 'center'}}>
                         <button
@@ -709,17 +730,29 @@ export default function Team() {
                   ))}
                 </tbody>
                 <tfoot>
-                  <tr style={{borderTop: '2px solid var(--border)'}}>
-                    <td style={{fontWeight: '700', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em'}}>Total</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>{new Set(filteredActivities.map(a => a.clientName).filter(Boolean)).size}</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>{filteredActivities.length}</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>
-                      {filteredActivities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 1})}
-                    </td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-success-text)'}}>{filteredActivities.filter(a => a.status === 'EXECUTED').length}</td>
-                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-danger-text)'}}>{filteredActivities.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length}</td>
-                    <td></td>
-                  </tr>
+                  {(() => {
+                    const totalVol = filteredActivities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
+                    const execActs = filteredActivities.filter(a => a.status === 'EXECUTED');
+                    const nonExecActs = filteredActivities.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY');
+                    const execVol = execActs.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
+                    const nonExecVol = nonExecActs.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
+                    return (
+                      <tr style={{borderTop: '2px solid var(--border)'}}>
+                        <td style={{fontWeight: '700', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em'}} colSpan={2}>Total</td>
+                        <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>{new Set(filteredActivities.map(a => a.clientName).filter(Boolean)).size}</td>
+                        <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>
+                          {filteredActivities.length} <span style={{fontSize: '11px', fontWeight: '400', color: 'var(--text-muted)'}}>({fmtVol(totalVol)})</span>
+                        </td>
+                        <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-success-text)'}}>
+                          {execActs.length} <span style={{fontSize: '11px', fontWeight: '400', color: 'var(--text-muted)'}}>({fmtVol(execVol)})</span>
+                        </td>
+                        <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-danger-text)'}}>
+                          {nonExecActs.length} <span style={{fontSize: '11px', fontWeight: '400', color: 'var(--text-muted)'}}>({fmtVol(nonExecVol)})</span>
+                        </td>
+                        <td></td>
+                      </tr>
+                    );
+                  })()}
                 </tfoot>
               </table>
               )}
