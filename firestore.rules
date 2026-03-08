@@ -214,6 +214,16 @@ service cloud.firestore {
     }
     
     // ============================================
+    // TRANSCRIPT UPLOADS SUB-COLLECTION
+    // ============================================
+
+    match /organizations/{orgId}/transcriptUploads/{uploadId} {
+      allow read: if isSameOrg(orgId) || isHostAdmin();
+      allow create: if isSameOrg(orgId);
+      allow delete: if isAdminInOrg(orgId);
+    }
+
+    // ============================================
     // ARTIFACTS COLLECTION (if used)
     // ============================================
     

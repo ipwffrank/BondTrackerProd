@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { teamService } from '../services/team.service';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 export default function Team() {
   const { userData, currentUser, isAdmin } = useAuth();
@@ -50,6 +52,65 @@ export default function Team() {
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId, isAdmin]);
+
+  // Load all activities + clients for performance table
+  const [allActivities, setAllActivities] = useState([]);
+  const [allClients, setAllClients] = useState([]);
+
+  useEffect(() => {
+    if (!userData?.organizationId || !isAdmin) return;
+    (async () => {
+      try {
+        const actSnap = await getDocs(query(collection(db, `organizations/${userData.organizationId}/activities`), orderBy('createdAt', 'desc')));
+        setAllActivities(actSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('Failed to load activities for team stats:', e); }
+      try {
+        const cliSnap = await getDocs(query(collection(db, `organizations/${userData.organizationId}/clients`), orderBy('name', 'asc')));
+        setAllClients(cliSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      } catch (e) { console.error('Failed to load clients for team stats:', e); }
+    })();
+  }, [userData?.organizationId, isAdmin]);
+
+  // Compute per-member performance stats
+  const memberPerformance = useMemo(() => {
+    if (members.length === 0 || allActivities.length === 0) return [];
+    return members.map(member => {
+      const nameLC = (member.name || '').toLowerCase();
+      const emailLC = (member.email || '').toLowerCase();
+      const acts = allActivities.filter(a => {
+        const cb = (a.createdBy || '').toLowerCase();
+        return cb === nameLC || cb === emailLC || cb.startsWith(nameLC) || cb.startsWith(emailLC);
+      });
+      const uniqueClients = new Set(acts.map(a => a.clientName).filter(Boolean));
+      const totalTrades = acts.length;
+      const volume = acts.reduce((sum, a) => sum + (parseFloat(a.size) || 0), 0);
+      const executed = acts.filter(a => a.status === 'EXECUTED').length;
+      const nonExecuted = acts.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length;
+      return { ...member, acts, uniqueClients: uniqueClients.size, totalTrades, volume, executed, nonExecuted };
+    }).sort((a, b) => b.totalTrades - a.totalTrades);
+  }, [members, allActivities]);
+
+  function downloadMemberCSV(perf) {
+    const headers = ['Client', 'Ticker', 'ISIN', 'Direction', 'Status', 'Price', 'Size', 'Currency', 'Date', 'Notes'];
+    const rows = perf.acts.map(a => {
+      const d = a.createdAt?.toDate?.() || (a.createdAt ? new Date(a.createdAt) : null);
+      return [
+        a.clientName || '', a.ticker || '', a.isin || '', a.direction || '', a.status || '',
+        a.price ?? '', a.size ?? '', a.currency || '',
+        d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '',
+        a.notes || '',
+      ];
+    });
+    const escape = (v) => { const s = String(v ?? ''); return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s; };
+    const csv = [headers.map(escape).join(','), ...rows.map(r => r.map(escape).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(perf.name || perf.email).replace(/\s+/g, '_')}_activities.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -514,6 +575,87 @@ export default function Team() {
             </div>
           </div>
         )}
+        {/* Team Performance Table */}
+        {memberPerformance.length > 0 && (
+          <div className="card" style={{marginTop: '24px'}}>
+            <div className="card-header">
+              <span>Team Performance Summary</span>
+              <span style={{fontSize: '12px', color: 'var(--text-muted)', fontWeight: '400'}}>{allActivities.length} total activities · {allClients.length} clients</span>
+            </div>
+            <div className="table-container">
+              <table className="perf-table">
+                <thead>
+                  <tr>
+                    <th>Member</th>
+                    <th style={{textAlign: 'center'}}>Clients</th>
+                    <th style={{textAlign: 'center'}}>Total Trades</th>
+                    <th style={{textAlign: 'center'}}>Volume (MM)</th>
+                    <th style={{textAlign: 'center'}}>Executed</th>
+                    <th style={{textAlign: 'center'}}>Non-Executed</th>
+                    <th style={{width: '60px'}}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {memberPerformance.map(perf => (
+                    <tr key={perf.id} className="perf-row">
+                      <td>
+                        <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+                          <div style={{
+                            width: '32px', height: '32px', borderRadius: '50%', background: '#C8A258',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            color: '#0F2137', fontWeight: '700', fontSize: '12px', flexShrink: 0,
+                          }}>
+                            {getInitials(perf.name)}
+                          </div>
+                          <div>
+                            <div style={{fontWeight: '600', fontSize: '13px', color: 'var(--text-primary)'}}>{perf.name}</div>
+                            <div style={{fontSize: '11px', color: 'var(--text-muted)'}}>{perf.email}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)'}}>{perf.uniqueClients}</td>
+                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--accent)'}}>{perf.totalTrades}</td>
+                      <td style={{textAlign: 'center', fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)'}}>
+                        {perf.volume > 0 ? perf.volume.toLocaleString(undefined, {maximumFractionDigits: 1}) : '—'}
+                      </td>
+                      <td style={{textAlign: 'center'}}>
+                        <span className="badge badge-success">{perf.executed}</span>
+                      </td>
+                      <td style={{textAlign: 'center'}}>
+                        <span className="badge badge-danger">{perf.nonExecuted}</span>
+                      </td>
+                      <td style={{textAlign: 'center'}}>
+                        <button
+                          className="csv-btn"
+                          onClick={() => downloadMemberCSV(perf)}
+                          title={`Download ${perf.name}'s activities as CSV`}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+                          </svg>
+                          CSV
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr style={{borderTop: '2px solid var(--border)'}}>
+                    <td style={{fontWeight: '700', fontSize: '12px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em'}}>Total</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>{new Set(allActivities.map(a => a.clientName).filter(Boolean)).size}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--accent)'}}>{allActivities.length}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)'}}>
+                      {allActivities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0).toLocaleString(undefined, {maximumFractionDigits: 1})}
+                    </td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-success-text)'}}>{allActivities.filter(a => a.status === 'EXECUTED').length}</td>
+                    <td style={{textAlign: 'center', fontWeight: '700', fontSize: '14px', color: 'var(--badge-danger-text)'}}>{allActivities.filter(a => a.status === 'PASSED' || a.status === 'TRADED AWAY').length}</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* Invite Modal - HIGHLY VISIBLE */}
@@ -912,6 +1054,65 @@ export default function Team() {
           width: 100%;
           border: 1.5px solid var(--border);
           box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .table-container {
+          overflow-x: auto;
+        }
+
+        .perf-table {
+          width: 100%;
+          border-collapse: collapse;
+          font-family: inherit;
+        }
+
+        .perf-table thead th {
+          padding: 12px 16px;
+          font-size: 11px;
+          font-weight: 600;
+          color: var(--text-secondary);
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          border-bottom: 1px solid var(--border);
+          white-space: nowrap;
+          text-align: left;
+        }
+
+        .perf-table tbody td,
+        .perf-table tfoot td {
+          padding: 14px 16px;
+          border-bottom: 1px solid var(--border);
+          color: var(--text-primary);
+        }
+
+        .perf-table tbody tr:hover {
+          background: var(--section-label-bg);
+        }
+
+        .csv-btn {
+          opacity: 0;
+          padding: 4px 10px;
+          background: rgba(200,162,88,0.1);
+          border: 1px solid rgba(200,162,88,0.3);
+          border-radius: 6px;
+          color: var(--accent);
+          font-size: 11px;
+          font-weight: 600;
+          cursor: pointer;
+          font-family: inherit;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+
+        .perf-row:hover .csv-btn {
+          opacity: 1;
+        }
+
+        .csv-btn:hover {
+          background: rgba(200,162,88,0.2);
         }
 
         @media (max-width: 768px) {
