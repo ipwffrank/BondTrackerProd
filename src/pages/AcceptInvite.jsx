@@ -146,7 +146,8 @@ function EyeIcon({ open }) {
 
 export default function AcceptInvite() {
   const [searchParams] = useSearchParams();
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -207,6 +208,10 @@ export default function AcceptInvite() {
   async function handleSubmit(e) {
     e.preventDefault();
 
+    if (!firstName.trim() || !surname.trim()) {
+      return setError('Please enter both your first name and surname');
+    }
+
     if (password !== confirmPassword) {
       return setError('Passwords do not match');
     }
@@ -219,10 +224,12 @@ export default function AcceptInvite() {
       setError('');
       setLoading(true);
 
+      const fullName = `${firstName.trim()} ${surname.trim()}`;
+
       await signupWithInvitation(
         invitation.email,
         password,
-        name,
+        fullName,
         invitation.organizationId,
         invitation.organizationName,
         invitation.role,
@@ -312,14 +319,26 @@ export default function AcceptInvite() {
           </div>
 
           <form onSubmit={handleSubmit} noValidate>
-            <div>
-              <label className="invite-label">Your Name</label>
-              <div className="invite-input-wrap">
-                <input
-                  type="text" value={name} onChange={e => setName(e.target.value)}
-                  className="invite-input" placeholder="Enter your full name"
-                  required autoFocus
-                />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="invite-label">First Name</label>
+                <div className="invite-input-wrap">
+                  <input
+                    type="text" value={firstName} onChange={e => setFirstName(e.target.value)}
+                    className="invite-input" placeholder="Jane"
+                    required autoFocus
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="invite-label">Surname</label>
+                <div className="invite-input-wrap">
+                  <input
+                    type="text" value={surname} onChange={e => setSurname(e.target.value)}
+                    className="invite-input" placeholder="Smith"
+                    required
+                  />
+                </div>
               </div>
             </div>
 

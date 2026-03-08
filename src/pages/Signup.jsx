@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function Signup() {
-  const [name, setName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [surname, setSurname] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -16,10 +17,16 @@ export default function Signup() {
   async function handleSubmit(e) {
     e.preventDefault();
     
+    if (!firstName.trim() || !surname.trim()) {
+      setError('Please enter both your first name and surname.');
+      return;
+    }
+
     try {
       setError('');
       setLoading(true);
-      await signup(email, password, name, organizationName);
+      const fullName = `${firstName.trim()} ${surname.trim()}`;
+      await signup(email, password, fullName, organizationName);
       navigate('/dashboard');
     } catch (err) {
       setError('Failed to create account: ' + err.message);
@@ -45,15 +52,29 @@ export default function Signup() {
         )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Name</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-            />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">First Name</label>
+              <input
+                type="text"
+                required
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Jane"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700">Surname</label>
+              <input
+                type="text"
+                required
+                value={surname}
+                onChange={(e) => setSurname(e.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Smith"
+              />
+            </div>
           </div>
 
           <div>
