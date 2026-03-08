@@ -143,12 +143,12 @@ service cloud.firestore {
     // ============================================
     
     match /organizations/{orgId}/clients/{clientId} {
-      // Org members can read all clients
-      allow read: if isSameOrg(orgId);
-      
+      // Org members or host admins can read all clients
+      allow read: if isSameOrg(orgId) || isHostAdmin();
+
       // Org members can create clients
       allow create: if isSameOrg(orgId);
-      
+
       // Only admins can update or delete clients
       allow update, delete: if isAdminInOrg(orgId);
     }
@@ -158,7 +158,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/newIssues/{issueId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow update: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
@@ -169,7 +169,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/orderBooks/{orderId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow update: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
@@ -180,8 +180,8 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/pipeline/{issueId} {
-      // Org members can read all pipeline issues
-      allow read: if isSameOrg(orgId);
+      // Org members or host admins can read all pipeline issues
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       
       // Org members can create pipeline issues
       allow create: if isSameOrg(orgId);
