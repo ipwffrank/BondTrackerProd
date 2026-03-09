@@ -42,7 +42,7 @@ exports.handler = async (event) => {
     const timeStr = now.toUTCString();
 
     await resend.emails.send({
-      from: 'Axle Security <onboarding@resend.dev>',
+      from: 'Axle Security <security@axle-finance.com>',
       to: email,
       subject: 'Your Axle password has been changed',
       html: `

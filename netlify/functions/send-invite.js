@@ -50,7 +50,7 @@ exports.handler = async (event) => {
 
     // Send email
     const data = await resend.emails.send({
-      from: 'Axle <onboarding@resend.dev>',
+      from: 'Axle <info@axle-finance.com>',
       to: email,
       subject: `You're invited to join ${organizationName} on Axle`,
       html: `
