@@ -298,11 +298,12 @@ export const teamService = {
       const userActivities = {};
       snapshot.docs.slice(0, limit * 10).forEach(doc => {
         const data = doc.data();
-        const userId = data.addedBy;
+        const rawCreator = data.createdBy || data.addedBy || 'Unknown';
+        const userId = rawCreator.replace(/\s*\(AI Import\)\s*$/, '').trim();
         if (!userActivities[userId]) {
           userActivities[userId] = {
-            email: userId,
-            name: data.addedByName || userId,
+            email: data.addedBy || userId,
+            name: userId,
             count: 0,
             lastActivity: null
           };

@@ -4,6 +4,7 @@ import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { findSimilarClients } from '../utils/clientDedup';
 
 export default function Clients() {
   const { userData, isAdmin, currentUser } = useAuth();
@@ -20,6 +21,9 @@ export default function Clients() {
   const [filterType, setFilterType] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [dedupMatches, setDedupMatches] = useState([]);
+  const [showDedupModal, setShowDedupModal] = useState(false);
+  const [pendingClientData, setPendingClientData] = useState(null);
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -46,14 +50,43 @@ export default function Clients() {
       }
       return;
     }
+    const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+
+    // Check for similar clients when adding (not editing)
+    if (!editingClient) {
+      const similar = findSimilarClients(clientForm.name, clients);
+      if (similar.length > 0) {
+        setDedupMatches(similar);
+        setPendingClientData(data);
+        setShowDedupModal(true);
+        return;
+      }
+    }
+
+    await saveClient(data);
+  }
+
+  async function saveClient(data) {
     setSubmitLoading(true);
     try {
-      const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingClient){ await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),data); setEditingClient(null); }
       else{ await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data); }
       setFormError('');
       setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
     }catch(e){ console.error(e); alert('Failed to save client'); }finally{ setSubmitLoading(false); }
+  }
+
+  function confirmAddDespiteDupes() {
+    setShowDedupModal(false);
+    if (pendingClientData) saveClient(pendingClientData);
+    setPendingClientData(null);
+    setDedupMatches([]);
+  }
+
+  function cancelDedupAdd() {
+    setShowDedupModal(false);
+    setPendingClientData(null);
+    setDedupMatches([]);
   }
 
   async function handleDeleteClient(id) {
@@ -139,10 +172,24 @@ export default function Clients() {
 
       if (rows.length === 0) { setCsvNotification({ type: 'error', message: 'No valid rows found in CSV.' }); return; }
 
-      // Match against existing clients by name (case-insensitive)
+      // Match against existing clients by name (exact + fuzzy)
       const existingNames = new Set(clients.map(c => c.name.toLowerCase()));
-      const toAdd = rows.filter(r => !existingNames.has(r.name.toLowerCase()));
-      const skipped = rows.length - toAdd.length;
+      const toAdd = [];
+      let skipped = 0;
+      let fuzzySkipped = 0;
+
+      for (const r of rows) {
+        if (existingNames.has(r.name.toLowerCase())) {
+          skipped++;
+          continue;
+        }
+        const similar = findSimilarClients(r.name, clients);
+        if (similar.length > 0) {
+          fuzzySkipped++;
+          continue;
+        }
+        toAdd.push(r);
+      }
 
       for (const row of toAdd) {
         await addDoc(collection(db, `organizations/${userData.organizationId}/clients`), {
@@ -151,10 +198,10 @@ export default function Clients() {
         });
       }
 
-      setCsvNotification({
-        type: 'success',
-        message: `Added ${toAdd.length} client${toAdd.length !== 1 ? 's' : ''}${skipped > 0 ? `, skipped ${skipped} duplicate${skipped !== 1 ? 's' : ''} already in directory` : ''}.`,
-      });
+      const parts = [`Added ${toAdd.length} client${toAdd.length !== 1 ? 's' : ''}`];
+      if (skipped > 0) parts.push(`skipped ${skipped} exact duplicate${skipped !== 1 ? 's' : ''}`);
+      if (fuzzySkipped > 0) parts.push(`skipped ${fuzzySkipped} similar name${fuzzySkipped !== 1 ? 's' : ''}`);
+      setCsvNotification({ type: 'success', message: parts.join(', ') + '.' });
     } catch (err) {
       console.error(err);
       setCsvNotification({ type: 'error', message: 'Failed to parse CSV. Check file format.' });
@@ -347,6 +394,30 @@ export default function Clients() {
             <li>Clients are automatically available in Activity Log and Order Book forms</li>
           </ul>
         </div>
+        {/* Dedup Confirmation Modal */}
+        {showDedupModal && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+            <div style={{background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'12px',padding:'24px',maxWidth:'500px',width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,0.4)'}}>
+              <h3 style={{fontSize:'17px',fontWeight:700,color:'var(--text-primary)',marginBottom:'12px'}}>Similar Clients Found</h3>
+              <p style={{fontSize:'13px',color:'var(--text-secondary)',marginBottom:'16px'}}>
+                The following existing clients are similar to "<strong>{pendingClientData?.name}</strong>":
+              </p>
+              <div style={{maxHeight:'200px',overflow:'auto',marginBottom:'16px'}}>
+                {dedupMatches.map((m,i) => (
+                  <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 12px',background:'var(--table-odd)',borderRadius:'8px',marginBottom:'6px',border:'1px solid var(--border)'}}>
+                    <span style={{fontWeight:600,color:'var(--text-primary)'}}>{m.client.name}</span>
+                    <span className="badge badge-warning" style={{fontSize:'10px'}}>{m.matchType === 'exact' ? 'Exact match' : m.matchType === 'contains' ? 'Name overlap' : 'Similar'} ({Math.round(m.score*100)}%)</span>
+                  </div>
+                ))}
+              </div>
+              <div style={{display:'flex',gap:'10px',justifyContent:'flex-end'}}>
+                <button className="btn btn-muted" onClick={cancelDedupAdd}>Cancel</button>
+                <button className="btn btn-primary" onClick={confirmAddDespiteDupes}>Add Anyway</button>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{marginTop:'16px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
           <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>📋 CSV Bulk Upload Format</h4>
           <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, salesCoverage</strong> (header row optional)</p>

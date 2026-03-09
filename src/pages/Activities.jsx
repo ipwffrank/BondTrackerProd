@@ -6,7 +6,7 @@ import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 
 export default function Activities() {
-  const { userData, currentUser } = useAuth();
+  const { userData, currentUser, isAdmin } = useAuth();
   const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:'' });
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
@@ -275,8 +275,8 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label className="form-label">Size (MM) *</label>
-                  <input type="number" step="0.01" className="form-input" placeholder="e.g., 50" value={activityForm.size} onChange={e=>setActivityForm({...activityForm,size:e.target.value})}/>
+                  <label className="form-label">Size (MM) *{editingActivity && !isAdmin ? ' (admin only)' : ''}</label>
+                  <input type="number" step="0.01" className="form-input" placeholder="e.g., 50" value={activityForm.size} onChange={e=>setActivityForm({...activityForm,size:e.target.value})} disabled={editingActivity && !isAdmin} title={editingActivity && !isAdmin ? 'Only admins can edit size' : ''}/>
                 </div>
                 <div className="field-group">
                   <label className="form-label">Currency *</label>
@@ -290,8 +290,8 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label className="form-label">Price</label>
-                  <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})}/>
+                  <label className="form-label">Price{editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? ' (locked)' : ''}</label>
+                  <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} title={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? 'Price can only be edited for Enquiry and Quoted statuses' : ''}/>
                 </div>
                 <div className="field-group">
                   <label className="form-label">Direction *</label>
@@ -382,7 +382,7 @@ export default function Activities() {
                       <td>{a.currency}</td>
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>
                       <td>
-                        {['QUOTED','TRADED AWAY','EXECUTED'].includes(a.status) ? (
+                        {['ENQUIRY','QUOTED'].includes(a.status) ? (
                           <input
                             type="number"
                             step="0.0001"

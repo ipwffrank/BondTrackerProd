@@ -3,9 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { findSimilarClients } from '../utils/clientDedup';
 
 export default function AIAssistant() {
-  const { userData } = useAuth();
+  const { userData, isAdmin } = useAuth();
 
   const [aiFile, setAiFile] = useState(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
@@ -21,6 +22,10 @@ export default function AIAssistant() {
 
   // New client registration forms: { [clientName]: { type, region, salesCoverage } }
   const [newClientForms, setNewClientForms] = useState({});
+  // Map AI-extracted client names to existing clients: { [aiName]: existingClientName }
+  const [clientMappings, setClientMappings] = useState({});
+  // Similar client suggestions: { [aiName]: [{ client, matchType, score }] }
+  const [similarSuggestions, setSimilarSuggestions] = useState({});
 
   // Upload history
   const [uploadHistory, setUploadHistory] = useState([]);
@@ -42,20 +47,34 @@ export default function AIAssistant() {
     return () => unsubscribes.forEach(u => u());
   }, [userData?.organizationId]);
 
-  // Detect new clients whenever aiResults or clients change
+  // Detect new clients whenever aiResults or clients change (with fuzzy matching)
   useEffect(() => {
-    if (aiResults.length === 0) { setNewClientForms({}); return; }
+    if (aiResults.length === 0) { setNewClientForms({}); setSimilarSuggestions({}); return; }
     const existingNames = new Set(clients.map(c => c.name.toLowerCase().trim()));
     const unique = [...new Set(aiResults.map(r => r.clientName).filter(Boolean))];
-    const newNames = unique.filter(n => !existingNames.has(n.toLowerCase().trim()));
+    const trulyNew = [];
+    const suggestions = {};
+
+    for (const name of unique) {
+      if (existingNames.has(name.toLowerCase().trim())) continue;
+      // Already mapped to an existing client by user
+      if (clientMappings[name]) continue;
+      const similar = findSimilarClients(name, clients);
+      if (similar.length > 0) {
+        suggestions[name] = similar;
+      }
+      trulyNew.push(name);
+    }
+
+    setSimilarSuggestions(suggestions);
     setNewClientForms(prev => {
       const next = {};
-      newNames.forEach(name => {
+      trulyNew.filter(name => !clientMappings[name]).forEach(name => {
         next[name] = prev[name] || { type: '', region: '', salesCoverage: '' };
       });
       return next;
     });
-  }, [aiResults, clients]);
+  }, [aiResults, clients, clientMappings]);
 
   const newClientNames = Object.keys(newClientForms);
   const allFormsValid = newClientNames.every(n => newClientForms[n].type && newClientForms[n].region);
@@ -91,7 +110,7 @@ export default function AIAssistant() {
         setAiError('No activities detected in the transcript');
       }
 
-      // Save upload history record
+      // Save upload history record (include raw text for admin download)
       if (userData?.organizationId) {
         await addDoc(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), {
           fileName: aiFile.name,
@@ -100,7 +119,8 @@ export default function AIAssistant() {
           activitiesDetected: result.activities?.length || 0,
           tokensUsed: result.usage?.totalTokens || 0,
           promptTokens: result.usage?.promptTokens || 0,
-          completionTokens: result.usage?.completionTokens || 0
+          completionTokens: result.usage?.completionTokens || 0,
+          rawText: text
         });
       }
     } catch (error) {
@@ -136,10 +156,11 @@ export default function AIAssistant() {
       const existingClientMap = {};
       clients.forEach(c => { existingClientMap[c.name] = c; });
 
-      // Import activities, enriching with client data
+      // Import activities, enriching with client data (using mappings for dedup)
       for (const activity of aiResults) {
-        const clientName = activity.clientName || 'UNKNOWN';
-        const clientData = registeredClients[clientName] || existingClientMap[clientName] || {};
+        const rawName = activity.clientName || 'UNKNOWN';
+        const clientName = clientMappings[rawName] || rawName;
+        const clientData = registeredClients[clientName] || existingClientMap[clientName] || registeredClients[rawName] || {};
         await addDoc(activitiesRef, {
           clientName,
           clientType: clientData.type || '',
@@ -162,6 +183,8 @@ export default function AIAssistant() {
       setAiResults([]);
       setAiFile(null);
       setNewClientForms({});
+      setClientMappings({});
+      setSimilarSuggestions({});
     } catch (error) {
       console.error('Import error:', error);
       alert('Failed to import activities');
@@ -274,7 +297,26 @@ export default function AIAssistant() {
                   The following clients are not in your database. Please fill in their details before importing.
                 </p>
                 {newClientNames.map(name => (
-                  <div key={name} style={{display: 'grid', gridTemplateColumns: '200px 160px 160px 1fr', gap: '12px', alignItems: 'center', padding: '12px', background: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border)'}}>
+                  <div key={name} style={{padding: '12px', background: 'var(--card-bg)', borderRadius: '8px', marginBottom: '8px', border: '1px solid var(--border)'}}>
+                    {similarSuggestions[name]?.length > 0 && (
+                      <div style={{marginBottom: '10px', padding: '8px 12px', background: 'var(--badge-warning-bg)', borderRadius: '6px', border: '1px solid var(--badge-warning-text)'}}>
+                        <div style={{fontSize: '12px', fontWeight: 600, color: 'var(--badge-warning-text)', marginBottom: '6px'}}>Similar existing clients found:</div>
+                        {similarSuggestions[name].map((m, i) => (
+                          <div key={i} style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
+                            <span style={{fontSize: '12px', color: 'var(--text-primary)'}}>{m.client.name}</span>
+                            <span style={{fontSize: '10px', color: 'var(--badge-warning-text)'}}>({Math.round(m.score*100)}% match)</span>
+                            <button
+                              className="btn"
+                              style={{padding: '2px 8px', fontSize: '11px', background: 'var(--accent)', color: '#fff', borderRadius: '4px'}}
+                              onClick={() => {
+                                setClientMappings(p => ({...p, [name]: m.client.name}));
+                              }}
+                            >Use this</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <div style={{display: 'grid', gridTemplateColumns: '200px 160px 160px 1fr', gap: '12px', alignItems: 'center'}}>
                     <div>
                       <div style={{fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)'}}>{name}</div>
                       <span style={{fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW CLIENT</span>
@@ -312,6 +354,7 @@ export default function AIAssistant() {
                         value={newClientForms[name].salesCoverage}
                         onChange={e => setNewClientForms(p => ({...p, [name]: {...p[name], salesCoverage: e.target.value}}))}
                       />
+                    </div>
                     </div>
                   </div>
                 ))}
@@ -354,9 +397,14 @@ export default function AIAssistant() {
                   {aiResults.map((result, idx) => (
                     <tr key={idx}>
                       <td style={{fontWeight: 600}}>
-                        {result.clientName}
-                        {newClientForms[result.clientName] !== undefined && (
+                        {clientMappings[result.clientName] ? (
+                          <><span style={{textDecoration:'line-through',opacity:0.5}}>{result.clientName}</span> → {clientMappings[result.clientName]}</>
+                        ) : result.clientName}
+                        {!clientMappings[result.clientName] && newClientForms[result.clientName] !== undefined && (
                           <span style={{marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW</span>
+                        )}
+                        {clientMappings[result.clientName] && (
+                          <span style={{marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '20px', background: 'var(--badge-success-bg)', color: 'var(--badge-success-text)'}}>MAPPED</span>
                         )}
                       </td>
                       <td>{result.ticker || result.isin || '-'}</td>
@@ -387,11 +435,12 @@ export default function AIAssistant() {
                   <th>Timestamp</th>
                   <th>Activities Detected</th>
                   <th>Tokens Used</th>
+                  {isAdmin && <th>Download</th>}
                 </tr>
               </thead>
               <tbody>
                 {uploadHistory.length === 0 ? (
-                  <tr><td colSpan="5" style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>No uploads yet</td></tr>
+                  <tr><td colSpan={isAdmin ? 6 : 5} style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>No uploads yet</td></tr>
                 ) : (
                   <>
                     {uploadHistory.map(h => (
@@ -405,11 +454,33 @@ export default function AIAssistant() {
                             {(h.tokensUsed||0).toLocaleString()}
                           </span>
                         </td>
+                        {isAdmin && (
+                          <td>
+                            {h.rawText ? (
+                              <button
+                                className="btn btn-secondary"
+                                style={{padding: '4px 10px', fontSize: '12px'}}
+                                onClick={() => {
+                                  const blob = new Blob([h.rawText], { type: 'text/plain' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = h.fileName || 'transcript.txt';
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }}
+                              >Download</button>
+                            ) : (
+                              <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>N/A</span>
+                            )}
+                          </td>
+                        )}
                       </tr>
                     ))}
                     <tr style={{background: 'var(--table-header-bg)', fontWeight: 700}}>
                       <td colSpan="4" style={{textAlign: 'right', color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Total Tokens Used</td>
                       <td style={{color: 'var(--accent)'}}>{uploadHistory.reduce((s, h) => s + (h.tokensUsed || 0), 0).toLocaleString()}</td>
+                      {isAdmin && <td></td>}
                     </tr>
                   </>
                 )}
