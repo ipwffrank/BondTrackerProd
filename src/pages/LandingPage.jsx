@@ -83,6 +83,8 @@ const STYLES = `
     .lp2-problem-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
     .lp2-testimonial-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
     .lp2-contact-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+    .lp2-ai-steps { grid-template-columns: 1fr !important; gap: 24px !important; }
+    .lp2-ai-compare { grid-template-columns: 1fr !important; }
   }
   @media (max-width: 600px) {
     .lp2-feat-grid { grid-template-columns: 1fr !important; }
@@ -375,25 +377,33 @@ function AnalyticsPreview() {
 
 function AIPreview() {
   const results = [
-    { client:'GIC Private Ltd', isin:'US0231351067', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'50', ccy:'USD', notes:'Client interested in 3Y maturity' },
-    { client:'Ping An Asset Mgmt', isin:'US38141G1040', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'75', ccy:'USD', notes:'Preferring AT1 structure' },
+    { client:'GIC Private Ltd', isin:'HSBC 5.25 2028', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'10', ccy:'USD', price:'100.15', status:'EXECUTED', statusClr:'#22c55e' },
+    { client:'Fidelity Intl', isin:'STANCHART 6.17 2027', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'15', ccy:'USD', price:'52', status:'TRADED AWAY', statusClr:'#ef4444' },
+    { client:'Ping An Asset Mgmt', isin:'BOC 5.00 2026', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'50', ccy:'USD', price:'-', status:'ENQUIRY', statusClr:'#60a5fa' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
-      <div style={{ padding:'14px 18px', background:'rgba(255,255,255,0.03)', borderRadius:'8px', border:'1px solid rgba(200,162,88,0.2)', marginBottom:'18px', display:'flex', alignItems:'center', gap:'14px' }}>
+      {/* Transcript input preview */}
+      <div style={{ padding:'10px 14px', background:'rgba(255,255,255,0.02)', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.06)', marginBottom:'12px', fontFamily:"'JetBrains Mono', monospace", fontSize:'10px', color:'rgba(255,255,255,0.3)', lineHeight:'1.7' }}>
+        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:14]</span> GIC: can you show me axe on HSBC 5.25 2028? looking for 10mm usd &nbsp;
+        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:16]</span> done at 100.15, bought 10mm &nbsp;
+        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:32]</span> Fidelity: offer 15mm STANCHART 6.17 at 52...
+      </div>
+      {/* Status bar */}
+      <div style={{ padding:'12px 18px', background:'rgba(255,255,255,0.03)', borderRadius:'8px', border:'1px solid rgba(200,162,88,0.2)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'14px' }}>
         <div style={{ width:'34px', height:'34px', borderRadius:'8px', background:'rgba(200,162,88,0.1)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
         </div>
         <div style={{ flex:1 }}>
           <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.8)' }}>bloomberg_chat_0303.txt</div>
-          <div style={{ fontSize:'10px', color:'rgba(255,255,255,0.3)', marginTop:'2px' }}>✓ Analysed — 2 activities detected</div>
+          <div style={{ fontSize:'10px', color:'#22c55e', marginTop:'2px' }}>✓ Analysed — 3 activities detected · 847 tokens</div>
         </div>
         <div style={{ padding:'6px 14px', borderRadius:'6px', background:'linear-gradient(135deg,#C8A258,#D4B06A)', color:'#0F2137', fontSize:'11px', fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>Import All</div>
       </div>
       <div style={{ overflowX:'auto' }}>
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
           <thead>
-            <tr>{['Client','ISIN','Size','Direction','Notes'].map(h=>(
+            <tr>{['Client','Bond','Size','Price','Direction','Status'].map(h=>(
               <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'rgba(255,255,255,0.3)', fontWeight:600, fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.07em', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{h}</th>
             ))}</tr>
           </thead>
@@ -401,10 +411,11 @@ function AIPreview() {
             {results.map((r,i)=>(
               <tr key={i} style={{ background:i%2===0?'rgba(255,255,255,0.02)':'transparent', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.9)', fontWeight:600 }}>{r.client}</td>
-                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)', fontFamily:'monospace', fontSize:'11px' }}>{r.isin}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)', fontSize:'11px' }}>{r.isin}</td>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.7)' }}>{r.size}MM {r.ccy}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.7)' }}>{r.price}</td>
                 <td style={{ padding:'10px 12px' }}><DarkBadge text={r.dir} color={r.dirClr} bg={r.dirBg} /></td>
-                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.4)', maxWidth:'200px', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.notes}</td>
+                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.status} color={r.statusClr} bg={`${r.statusClr}18`} /></td>
               </tr>
             ))}
           </tbody>
@@ -642,7 +653,7 @@ export default function LandingPage() {
             maxWidth: '560px',
             lineHeight: '1.7',
           }}>
-            Axle gives bond sales desks a single source of truth — activity tracking, client intelligence, deal pipeline, and AI-powered analytics.
+            Axle turns Bloomberg chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -696,6 +707,11 @@ export default function LandingPage() {
                     icon: <><circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" /></>,
                     title: 'Compliance risk',
                     desc: "Undocumented activities mean audit trails that are incomplete or don't exist at all.",
+                  },
+                  {
+                    icon: <><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></>,
+                    title: 'Hours lost to manual data entry',
+                    desc: 'Salespeople re-key deal details from chats and calls into spreadsheets. Information gets lost, delayed, or never captured at all.',
                   },
                 ].map(item => (
                   <div key={item.title} style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
@@ -751,7 +767,7 @@ export default function LandingPage() {
               {
                 icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>,
                 title: 'AI Transcript Analysis',
-                desc: 'Drop in call or chat transcripts and let Axle extract actionable deal intelligence — client sentiment, securities mentioned, and follow-ups.',
+                desc: 'Paste a Bloomberg chat or call transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours of manual entry now takes seconds.',
               },
               {
                 icon: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
@@ -830,6 +846,123 @@ export default function LandingPage() {
                 {activePreview === 'analytics' && <AnalyticsPreview />}
                 {activePreview === 'ai' && <AIPreview />}
               </div>
+            </div>
+          </AnimatedSection>
+        </div>
+      </section>
+
+      {/* ── AI DEEP-DIVE SECTION ─────────────────────────────────────────────────── */}
+      <section style={{
+        background: 'linear-gradient(160deg, #0A1929 0%, #0F2137 60%, #162B44 100%)',
+        padding: '100px 24px',
+      }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <SectionLabel>AI-Powered</SectionLabel>
+            <h2 style={{
+              fontFamily: "'Sora', sans-serif",
+              fontSize: 'clamp(28px, 4vw, 42px)',
+              fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px', lineHeight: '1.2',
+            }}>
+              From chat transcript to deal intelligence<br />
+              <span style={{ color: '#C8A258' }}>in seconds.</span>
+            </h2>
+            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
+              Stop re-keying trades from Bloomberg chats. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
+            </p>
+          </AnimatedSection>
+
+          {/* 3-step flow */}
+          <AnimatedSection delay={100}>
+            <div className="lp2-ai-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' }}>
+              {[
+                { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg chat, call note, or meeting transcript.' },
+                { num: '02', title: 'AI extracts trades', desc: 'GPT identifies clients, ISINs, tickers, sizes, directions, prices, and deal status automatically.' },
+                { num: '03', title: 'Import with one click', desc: 'Review extracted activities, register new clients, and import everything to your activity log instantly.' },
+              ].map((step, i) => (
+                <div key={step.num} style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: '48px', height: '48px', borderRadius: '50%',
+                    background: 'rgba(200,162,88,0.15)', border: '1px solid rgba(200,162,88,0.3)',
+                    color: '#C8A258', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    margin: '0 auto 16px', fontFamily: "'JetBrains Mono', monospace", fontSize: '13px', fontWeight: 600,
+                  }}>
+                    {step.num}
+                  </div>
+                  <h4 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: '0 0 8px' }}>
+                    {step.title}
+                  </h4>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 300, color: 'rgba(240,237,232,0.5)', lineHeight: '1.6', margin: 0 }}>
+                    {step.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </AnimatedSection>
+
+          {/* Before/After visual */}
+          <AnimatedSection delay={200}>
+            <div className="lp2-ai-compare" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'stretch' }}>
+              {/* Before: Raw transcript */}
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
+                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Raw Bloomberg Chat</span>
+                </div>
+                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: '1.8', flex: 1 }}>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:14]</span> GIC: can you show me axe on HSBC 5.25 2028?</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:14]</span> looking for 10mm usd</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:15]</span> Dealer: 100.15/100.25</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:16]</span> GIC: done at 100.15, bought 10mm</div>
+                  <div style={{ marginTop: '10px' }}><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:32]</span> Fidelity: any interest in STANCHART 6.17 2027?</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:32]</span> we can offer 15mm at 52</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:33]</span> Dealer: let me check with desk</div>
+                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:45]</span> Dealer: goldman executed @ 51.75, traded away</div>
+                </div>
+              </div>
+
+              {/* After: Extracted data */}
+              <div style={{ background: 'rgba(200,162,88,0.04)', border: '1px solid rgba(200,162,88,0.2)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
+                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: 600, color: '#C8A258', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AI-Extracted Activities</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                  {[
+                    { client: 'GIC', bond: 'HSBC 5.25 2028', size: '10MM', dir: 'BUY', dirClr: '#22c55e', price: '100.15', status: 'EXECUTED', statusClr: '#22c55e' },
+                    { client: 'Fidelity', bond: 'STANCHART 6.17 2027', size: '15MM', dir: 'SELL', dirClr: '#ef4444', price: '52', status: 'TRADED AWAY', statusClr: '#ef4444' },
+                  ].map((r, i) => (
+                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: 600, color: '#F0EDE8' }}>{r.client}</span>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: `${r.dirClr}18`, color: r.dirClr }}>{r.dir}</span>
+                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: `${r.statusClr}18`, color: r.statusClr }}>{r.status}</span>
+                        </div>
+                      </div>
+                      <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: 'rgba(240,237,232,0.5)' }}>
+                        {r.bond} · {r.size} USD · @ {r.price}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </AnimatedSection>
+
+          {/* Stats row */}
+          <AnimatedSection delay={300}>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '48px', marginTop: '48px', flexWrap: 'wrap' }}>
+              {[
+                { value: '~2 hrs', label: 'saved per desk per day' },
+                { value: '< 10s', label: 'per transcript analysis' },
+                { value: '1-click', label: 'import to activity log' },
+              ].map(s => (
+                <div key={s.label} style={{ textAlign: 'center' }}>
+                  <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '32px', fontWeight: 700, color: '#C8A258' }}>{s.value}</div>
+                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 300, color: 'rgba(240,237,232,0.5)', marginTop: '4px' }}>{s.label}</div>
+                </div>
+              ))}
             </div>
           </AnimatedSection>
         </div>
