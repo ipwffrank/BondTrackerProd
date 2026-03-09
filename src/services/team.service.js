@@ -287,13 +287,21 @@ export const teamService = {
     }
   },
 
-  // Get team activity log
-  async getActivityLog(organizationId, limit = 50) {
+  // Get team activity log, enriched with member data
+  async getActivityLog(organizationId, members = [], limit = 50) {
     try {
       const activitiesRef = collection(db, `organizations/${organizationId}/activities`);
       const q = query(activitiesRef, orderBy('createdAt', 'desc'));
       const snapshot = await getDocs(q);
-      
+
+      // Build lookup: name -> member (for cross-referencing email)
+      const memberByName = {};
+      const memberByEmail = {};
+      members.forEach(m => {
+        if (m.name) memberByName[m.name.toLowerCase().trim()] = m;
+        if (m.email) memberByEmail[m.email.toLowerCase().trim()] = m;
+      });
+
       // Group activities by user
       const userActivities = {};
       snapshot.docs.slice(0, limit * 10).forEach(doc => {
@@ -301,9 +309,11 @@ export const teamService = {
         const rawCreator = data.createdBy || data.addedBy || 'Unknown';
         const userId = rawCreator.replace(/\s*\(AI Import\)\s*$/, '').trim();
         if (!userActivities[userId]) {
+          // Try to find matching member by name or email
+          const member = memberByName[userId.toLowerCase()] || memberByEmail[userId.toLowerCase()];
           userActivities[userId] = {
-            email: data.addedBy || userId,
-            name: userId,
+            email: member?.email || data.addedBy || '',
+            name: member?.name || userId,
             count: 0,
             lastActivity: null
           };
@@ -313,7 +323,7 @@ export const teamService = {
           userActivities[userId].lastActivity = data.createdAt?.toDate();
         }
       });
-      
+
       return Object.values(userActivities).sort((a, b) => b.count - a.count);
     } catch (error) {
       console.error('Error fetching activity log:', error);

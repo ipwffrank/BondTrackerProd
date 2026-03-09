@@ -410,7 +410,7 @@ export default function Activities() {
                         </select>
                       </td>
                       <td style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={a.notes||''}>{a.notes||'-'}</td>
-                      <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleEditActivity(a)} title="Edit">✏️</button><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete">🗑️</button></div></td>
+                      <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete">🗑️</button></div></td>
                     </tr>
                   ))
                 )}

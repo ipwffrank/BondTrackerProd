@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit } from 'firebase/firestore';
+import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { findSimilarClients } from '../utils/clientDedup';
 
@@ -29,6 +29,7 @@ export default function AIAssistant() {
 
   // Upload history
   const [uploadHistory, setUploadHistory] = useState([]);
+  const [selectedUploadIds, setSelectedUploadIds] = useState(new Set());
 
   useEffect(() => {
     if (!userData?.organizationId) return;
@@ -190,6 +191,47 @@ export default function AIAssistant() {
       alert('Failed to import activities');
     } finally {
       setSubmitLoading(false);
+    }
+  }
+
+  async function handleDeleteUpload(id) {
+    if (!window.confirm('Delete this transcript upload record?')) return;
+    try {
+      await deleteDoc(doc(db, `organizations/${userData.organizationId}/transcriptUploads`, id));
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete upload');
+    }
+  }
+
+  async function handleBulkDeleteUploads() {
+    if (selectedUploadIds.size === 0) return;
+    if (!window.confirm(`Delete ${selectedUploadIds.size} selected upload${selectedUploadIds.size === 1 ? '' : 's'}?`)) return;
+    try {
+      for (const id of selectedUploadIds) {
+        await deleteDoc(doc(db, `organizations/${userData.organizationId}/transcriptUploads`, id));
+      }
+      setSelectedUploadIds(new Set());
+    } catch (e) {
+      console.error(e);
+      alert('Failed to delete some uploads');
+    }
+  }
+
+  function toggleUploadSelect(id) {
+    setSelectedUploadIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllUploads() {
+    const allSelected = uploadHistory.length > 0 && uploadHistory.every(h => selectedUploadIds.has(h.id));
+    if (allSelected) {
+      setSelectedUploadIds(new Set());
+    } else {
+      setSelectedUploadIds(new Set(uploadHistory.map(h => h.id)));
     }
   }
 
@@ -425,26 +467,33 @@ export default function AIAssistant() {
         <div className="card" style={{marginTop: '24px'}}>
           <div className="card-header">
             <span>Upload History</span>
+            {isAdmin && selectedUploadIds.size > 0 && (
+              <button onClick={handleBulkDeleteUploads} className="btn" style={{background:'#dc2626',color:'#fff',padding:'8px 14px',fontSize:'13px'}}>
+                Delete {selectedUploadIds.size} Selected
+              </button>
+            )}
           </div>
           <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
+                  {isAdmin && <th style={{width:'40px'}}><input type="checkbox" checked={uploadHistory.length > 0 && uploadHistory.every(h => selectedUploadIds.has(h.id))} onChange={toggleSelectAllUploads} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>}
                   <th>File Name</th>
                   <th>Analyzed By</th>
                   <th>Timestamp</th>
                   <th>Activities Detected</th>
                   <th>Tokens Used</th>
-                  {isAdmin && <th>Download</th>}
+                  {isAdmin && <th>Actions</th>}
                 </tr>
               </thead>
               <tbody>
                 {uploadHistory.length === 0 ? (
-                  <tr><td colSpan={isAdmin ? 6 : 5} style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>No uploads yet</td></tr>
+                  <tr><td colSpan={isAdmin ? 8 : 5} style={{textAlign: 'center', padding: '40px', color: 'var(--text-muted)'}}>No uploads yet</td></tr>
                 ) : (
                   <>
                     {uploadHistory.map(h => (
-                      <tr key={h.id}>
+                      <tr key={h.id} style={selectedUploadIds.has(h.id) ? {background:'var(--accent-glow)'} : undefined}>
+                        {isAdmin && <td><input type="checkbox" checked={selectedUploadIds.has(h.id)} onChange={()=>toggleUploadSelect(h.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>}
                         <td style={{fontWeight: 600}}>{h.fileName}</td>
                         <td>{h.analyzedBy}</td>
                         <td>{h.analyzedAt ? `${h.analyzedAt.toLocaleDateString()} ${h.analyzedAt.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'})}` : '-'}</td>
@@ -456,28 +505,36 @@ export default function AIAssistant() {
                         </td>
                         {isAdmin && (
                           <td>
-                            {h.rawText ? (
+                            <div style={{display:'flex',gap:'6px'}}>
+                              {h.rawText ? (
+                                <button
+                                  className="btn btn-secondary"
+                                  style={{padding: '4px 10px', fontSize: '12px'}}
+                                  onClick={() => {
+                                    const blob = new Blob([h.rawText], { type: 'text/plain' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = h.fileName || 'transcript.txt';
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                >Download</button>
+                              ) : (
+                                <span style={{fontSize: '12px', color: 'var(--text-muted)', padding: '4px 0'}}>N/A</span>
+                              )}
                               <button
-                                className="btn btn-secondary"
-                                style={{padding: '4px 10px', fontSize: '12px'}}
-                                onClick={() => {
-                                  const blob = new Blob([h.rawText], { type: 'text/plain' });
-                                  const url = URL.createObjectURL(blob);
-                                  const a = document.createElement('a');
-                                  a.href = url;
-                                  a.download = h.fileName || 'transcript.txt';
-                                  a.click();
-                                  URL.revokeObjectURL(url);
-                                }}
-                              >Download</button>
-                            ) : (
-                              <span style={{fontSize: '12px', color: 'var(--text-muted)'}}>N/A</span>
-                            )}
+                                className="btn"
+                                style={{padding: '4px 10px', fontSize: '12px', background:'#dc2626', color:'#fff'}}
+                                onClick={() => handleDeleteUpload(h.id)}
+                              >Delete</button>
+                            </div>
                           </td>
                         )}
                       </tr>
                     ))}
                     <tr style={{background: 'var(--table-header-bg)', fontWeight: 700}}>
+                      {isAdmin && <td></td>}
                       <td colSpan="4" style={{textAlign: 'right', color: 'var(--text-secondary)', fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em'}}>Total Tokens Used</td>
                       <td style={{color: 'var(--accent)'}}>{uploadHistory.reduce((s, h) => s + (h.tokensUsed || 0), 0).toLocaleString()}</td>
                       {isAdmin && <td></td>}

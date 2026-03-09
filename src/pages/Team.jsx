@@ -48,10 +48,16 @@ export default function Team() {
     });
     unsubscribes.push(invitationsUnsub);
 
-    teamService.getActivityLog(userData.organizationId).then(setActivityStats).catch(console.error);
+    // Activity stats loaded separately after members are available
 
     return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId, isAdmin]);
+
+  // Load activity stats after members are available (to enrich with email)
+  useEffect(() => {
+    if (!userData?.organizationId || !isAdmin) return;
+    teamService.getActivityLog(userData.organizationId, members).then(setActivityStats).catch(console.error);
+  }, [userData?.organizationId, isAdmin, members]);
 
   // Time range filter for performance table
   const RANGE_OPTIONS = [
