@@ -174,7 +174,7 @@ export function AuthProvider({ children }) {
 
   // Password reset — Firebase sends email; custom action URL set in Firebase Console
   // Authentication > Email Templates > Password reset > Customize action URL
-  // => https://app.axle.finance/auth-action
+  // => https://www.axle-finance.com
   async function sendPasswordReset(email) {
     return sendPasswordResetEmail(auth, email);
   }
