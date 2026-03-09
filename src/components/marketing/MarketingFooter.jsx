@@ -67,11 +67,11 @@ export default function MarketingFooter() {
               }}>
                 The central intelligence platform for bond sales desks.
               </p>
-              <a href="mailto:hello@axle.finance" style={{
+              <a href="mailto:info@axle-finance.com" style={{
                 fontFamily: "'Outfit', sans-serif", fontSize: '14px',
                 color: '#C8A258', textDecoration: 'none',
               }}>
-                hello@axle.finance
+                info@axle-finance.com
               </a>
             </div>
 

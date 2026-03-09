@@ -835,7 +835,7 @@ export default function LandingPage() {
                 {[1,2,3].map(d => <div key={d} style={{ width:'9px', height:'9px', borderRadius:'50%', background:'rgba(255,255,255,0.08)' }} />)}
                 <div style={{ flex:1, background:'rgba(255,255,255,0.05)', borderRadius:'4px', height:'22px', marginLeft:'8px', display:'flex', alignItems:'center', paddingLeft:'10px' }}>
                   <span style={{ fontSize:'11px', color:'rgba(255,255,255,0.25)', fontFamily:'monospace' }}>
-                    app.axle.finance/{activePreview === 'crm' ? 'activities' : activePreview === 'pipeline' ? 'pipeline' : activePreview === 'analytics' ? 'analytics' : 'ai-assistant'}
+                    axle-finance.com/{activePreview === 'crm' ? 'activities' : activePreview === 'pipeline' ? 'pipeline' : activePreview === 'analytics' ? 'analytics' : 'ai-assistant'}
                   </span>
                 </div>
               </div>
@@ -1195,7 +1195,7 @@ export default function LandingPage() {
                 {[
                   { label: 'Typical response time', value: 'Within 1 business day' },
                   { label: 'Demo format', value: '30-min screen share' },
-                  { label: 'Contact', value: 'hello@axle.finance' },
+                  { label: 'Contact', value: 'info@axle-finance.com' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                     <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase' }}>

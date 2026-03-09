@@ -126,11 +126,11 @@ exports.handler = async (event) => {
                       <strong>Didn't make this change?</strong> If you did not reset your password,
                       your account may be compromised. Please contact your administrator or our
                       support team immediately at
-                      <a href="mailto:sales@axle.finance" style="color: #991b1b;">sales@axle.finance</a>.
+                      <a href="mailto:support@axle-finance.com" style="color: #991b1b;">support@axle-finance.com</a>.
                     </p>
                   </div>
 
-                  <a href="https://app.axle.finance/login" class="btn">
+                  <a href="https://www.axle-finance.com/login" class="btn">
                     Sign In to Axle
                   </a>
 
