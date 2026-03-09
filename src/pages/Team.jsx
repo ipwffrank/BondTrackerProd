@@ -626,10 +626,10 @@ export default function Team() {
                       </div>
                       <div style={{textAlign: 'right'}}>
                         <p style={{fontSize: '28px', fontWeight: 'bold', color: 'var(--accent)'}}>
-                          {stat.count}
+                          {fmtVol(stat.executedVolume)}
                         </p>
                         <p style={{fontSize: '11px', color: 'var(--text-muted)'}}>
-                          activities logged
+                          executed volume · {stat.executedCount} trade{stat.executedCount !== 1 ? 's' : ''} · {stat.count} total
                         </p>
                       </div>
                     </div>

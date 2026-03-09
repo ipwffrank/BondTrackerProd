@@ -315,16 +315,22 @@ export const teamService = {
             email: member?.email || data.addedBy || '',
             name: member?.name || userId,
             count: 0,
+            executedCount: 0,
+            executedVolume: 0,
             lastActivity: null
           };
         }
         userActivities[userId].count++;
+        if (data.status === 'EXECUTED') {
+          userActivities[userId].executedCount++;
+          userActivities[userId].executedVolume += parseFloat(data.size) || 0;
+        }
         if (!userActivities[userId].lastActivity) {
           userActivities[userId].lastActivity = data.createdAt?.toDate();
         }
       });
 
-      return Object.values(userActivities).sort((a, b) => b.count - a.count);
+      return Object.values(userActivities).sort((a, b) => b.executedVolume - a.executedVolume);
     } catch (error) {
       console.error('Error fetching activity log:', error);
       throw error;
