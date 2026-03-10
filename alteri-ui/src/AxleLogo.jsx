@@ -33,7 +33,6 @@ export default function AxleLogo({ variant = 'dark', size = 'md', animated = tru
         fill: 'none', xmlns: 'http://www.w3.org/2000/svg',
         style: { color, display: 'block' },
       },
-        e('circle', { cx: 22, cy: 22, r: 18, stroke: 'currentColor', strokeWidth: '0.8', fill: 'none', opacity: '0.15', strokeDasharray: '3 4' }),
         e('g', { className: animated ? 'axle-rotor-blades' : undefined },
           e('path', { d: 'M22 8 Q30 14 28 22', stroke: 'currentColor', strokeWidth: '2.2', strokeLinecap: 'round', fill: 'none' }),
           e('path', { d: 'M34 28 Q28 34 22 32', stroke: 'currentColor', strokeWidth: '2.2', strokeLinecap: 'round', fill: 'none', opacity: '0.7' }),
