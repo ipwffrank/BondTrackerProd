@@ -245,10 +245,31 @@ const STYLES = `
     display: flex; align-items: center; justify-content: center;
     margin: 0 auto 20px;
   }
+  .login-textarea {
+    width: 100%; padding: 11px 14px;
+    background: #0f172a; border: 1px solid #334155;
+    border-radius: 10px; color: #f8fafc;
+    font-size: 15px; font-family: inherit; outline: none;
+    transition: border-color 0.2s; resize: vertical;
+    min-height: 100px;
+  }
+  .login-textarea:focus { border-color: #C8A258; }
+  .login-textarea::placeholder { color: #475569; }
+  .login-phone-row { display: flex; gap: 8px; }
+  .login-phone-select {
+    width: 160px; flex-shrink: 0; padding: 11px 14px;
+    background: #0f172a; border: 1px solid #334155;
+    border-radius: 10px; color: #f8fafc;
+    font-size: 14px; font-family: inherit; outline: none;
+    cursor: pointer; transition: border-color 0.2s;
+  }
+  .login-phone-select:focus { border-color: #C8A258; }
   @media (max-width: 480px) {
     .login-card { padding: 28px 20px; border-radius: 16px; }
     .demo-modal { padding: 24px 20px; }
     .demo-row { grid-template-columns: 1fr; }
+    .login-phone-row { flex-direction: column; }
+    .login-phone-select { width: 100%; }
   }
 `;
 
@@ -428,7 +449,7 @@ function DemoModal({ onClose }) {
 }
 
 // ─── Login View ────────────────────────────────────────────────────────────────
-function LoginView({ onForgotPassword, onOpenDemo }) {
+function LoginView({ onForgotPassword, onOpenDemo, onContact }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -504,7 +525,7 @@ function LoginView({ onForgotPassword, onOpenDemo }) {
 
       <div className="login-footer-link">
         New to Axle?{' '}
-        <button type="button" className="login-contact-btn" onClick={onOpenDemo}>
+        <button type="button" className="login-contact-btn" onClick={onContact || onOpenDemo}>
           Contact us
         </button>
         {' '}for access.
@@ -606,10 +627,147 @@ function ForgotPasswordView({ onBack }) {
 }
 
 // ─── Root Component ────────────────────────────────────────────────────────────
-export { LoginView, ForgotPasswordView, EyeIcon, STYLES as LOGIN_STYLES };
+// ─── Contact View ───────────────────────────────────────────────────────────
+function ContactView({ onBack }) {
+  const [form, setForm] = useState({
+    firstName: '', lastName: '', email: '', countryCode: '+65', phone: '', message: '',
+  });
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+
+  const handleChange = (e) => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.message.trim()) {
+      setError('Please fill in all required fields.');
+      return;
+    }
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/.netlify/functions/contact-us', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone ? `${form.countryCode} ${form.phone}` : '',
+          message: form.message,
+        }),
+      });
+      if (!res.ok) throw new Error('Failed');
+      setSubmitted(true);
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (submitted) {
+    return (
+      <>
+        <div style={{ textAlign: 'center', padding: '16px 0' }}>
+          <div style={{
+            width: '56px', height: '56px', borderRadius: '50%',
+            background: 'rgba(200,162,88,0.1)', border: '1px solid rgba(200,162,88,0.25)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            margin: '0 auto 16px',
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <h1 className="login-title">Message Sent</h1>
+          <p style={{ color: '#64748b', fontSize: '14px', lineHeight: 1.6, margin: '0 0 24px' }}>
+            Thank you, {form.firstName}. We'll get back to you shortly.
+          </p>
+          <button type="button" className="login-btn" onClick={onBack}>
+            Back to Sign In
+          </button>
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <button type="button" className="login-back-btn" onClick={onBack}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+        Back to sign in
+      </button>
+
+      <h1 className="login-title">Contact Us</h1>
+      <p className="login-subtitle">We'd love to hear from you. Fill in the form below.</p>
+
+      {error && <div className="login-error">{error}</div>}
+
+      <form onSubmit={handleSubmit} noValidate>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+          <div>
+            <label className="login-label">First Name *</label>
+            <div className="login-input-wrap" style={{ marginBottom: 0 }}>
+              <input name="firstName" value={form.firstName} onChange={handleChange}
+                className="login-input" placeholder="Jane" required />
+            </div>
+          </div>
+          <div>
+            <label className="login-label">Last Name *</label>
+            <div className="login-input-wrap" style={{ marginBottom: 0 }}>
+              <input name="lastName" value={form.lastName} onChange={handleChange}
+                className="login-input" placeholder="Smith" required />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="login-label">Company Email *</label>
+          <div className="login-input-wrap">
+            <input name="email" type="email" value={form.email} onChange={handleChange}
+              className="login-input" placeholder="jane@firm.com" required />
+          </div>
+        </div>
+
+        <div>
+          <label className="login-label">Phone</label>
+          <div className="login-input-wrap">
+            <div className="login-phone-row">
+              <select name="countryCode" value={form.countryCode} onChange={handleChange} className="login-phone-select">
+                {COUNTRIES.map(c => (
+                  <option key={`${c.name}-${c.code}`} value={c.code}>{c.name} ({c.code})</option>
+                ))}
+              </select>
+              <input name="phone" type="tel" value={form.phone} onChange={handleChange}
+                className="login-input" placeholder="Phone number" />
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <label className="login-label">Message *</label>
+          <div className="login-input-wrap">
+            <textarea name="message" value={form.message} onChange={handleChange}
+              className="login-textarea" placeholder="How can we help?" required />
+          </div>
+        </div>
+
+        <button type="submit" disabled={submitting} className="login-btn" style={{ marginTop: '4px' }}>
+          {submitting ? 'Sending...' : 'Send Message'}
+        </button>
+      </form>
+    </>
+  );
+}
+
+export { LoginView, ForgotPasswordView, ContactView, EyeIcon, STYLES as LOGIN_STYLES };
 
 export default function Login() {
-  const [view, setView] = useState('login'); // 'login' | 'forgot'
+  const [view, setView] = useState('login'); // 'login' | 'forgot' | 'contact'
   const [showDemoModal, setShowDemoModal] = useState(false);
 
   return (
@@ -629,9 +787,12 @@ export default function Login() {
             <LoginView
               onForgotPassword={() => setView('forgot')}
               onOpenDemo={() => setShowDemoModal(true)}
+              onContact={() => setView('contact')}
             />
-          ) : (
+          ) : view === 'forgot' ? (
             <ForgotPasswordView onBack={() => setView('login')} />
+          ) : (
+            <ContactView onBack={() => setView('login')} />
           )}
         </div>
       </div>

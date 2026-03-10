@@ -4,7 +4,7 @@ import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import MarketingNav from '../components/marketing/MarketingNav';
 import MarketingFooter from '../components/marketing/MarketingFooter';
-import { LoginView, ForgotPasswordView, LOGIN_STYLES } from './Login';
+import { LoginView, ForgotPasswordView, ContactView, LOGIN_STYLES } from './Login';
 import { AxleLogo } from '@alteri/ui';
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
@@ -614,9 +614,12 @@ function LoginModal() {
             <LoginView
               onForgotPassword={() => setView('forgot')}
               onOpenDemo={handleClose}
+              onContact={() => setView('contact')}
             />
-          ) : (
+          ) : view === 'forgot' ? (
             <ForgotPasswordView onBack={() => setView('login')} />
+          ) : (
+            <ContactView onBack={() => setView('login')} />
           )}
         </div>
       </div>
