@@ -501,7 +501,7 @@ function ContactSection() {
         <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 12px' }}>
           Request Received
         </h3>
-        <p style={{ fontFamily: "'Outfit', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: 0, maxWidth: '400px' }}>
+        <p style={{ fontFamily: "'Outfit', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: '0 auto', maxWidth: '400px' }}>
           Thank you, {form.firstName}. Our team will be in touch within one business day to schedule your demo.
         </p>
       </div>
@@ -549,7 +549,7 @@ function ContactSection() {
       <div className="lp2-form-group">
         <label className="lp2-form-label">Number of Employees *</label>
         <select name="employees" value={form.employees} onChange={handleChange}
-          className="lp2-form-select" style={errStyle('employees')}>
+          className="lp2-form-select" style={{ ...errStyle('employees'), color: form.employees ? '#0C1017' : '#C0BDB8' }}>
           <option value="">Select company size</option>
           {EMPLOYEE_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
         </select>
@@ -559,7 +559,7 @@ function ContactSection() {
       <div className="lp2-form-group">
         <label className="lp2-form-label">Phone *</label>
         <div className="lp2-phone-row">
-          <select name="countryCode" value={form.countryCode} onChange={handleChange} className="lp2-form-select">
+          <select name="countryCode" value={form.countryCode} onChange={handleChange} className="lp2-form-select" style={{ color: form.countryCode ? '#0C1017' : '#C0BDB8' }}>
             {COUNTRIES.map(c => (
               <option key={`${c.name}-${c.code}`} value={c.code}>{c.name} ({c.code})</option>
             ))}
