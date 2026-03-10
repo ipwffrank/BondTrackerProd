@@ -459,14 +459,16 @@ function ContactSection() {
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSubmitting(true);
     try {
-      const body = new URLSearchParams({
-        'form-name': 'demo-request',
-        firstName: form.firstName, lastName: form.lastName,
-        jobTitle: form.jobTitle, email: form.email,
-        company: form.company, employees: form.employees,
-        phone: form.countryCode + ' ' + form.phone,
+      await fetch('/.netlify/functions/notify-demo-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: form.firstName, lastName: form.lastName,
+          jobTitle: form.jobTitle, email: form.email,
+          company: form.company, employees: form.employees,
+          phone: form.countryCode + ' ' + form.phone,
+        }),
       });
-      await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() });
     } catch { /* non-blocking */ }
     try {
       await addDoc(collection(db, 'demoRequests'), {
