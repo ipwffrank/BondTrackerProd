@@ -1,8 +1,5 @@
 import { useState, useEffect } from 'react';
 import { AxleLogo } from '@alteri/ui';
-import { collection, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
-import { getAllAuditLogs } from '../services/audit.service';
 
 const ACTION_LABELS = {
   export_activities_excel: 'Export Activities (Excel)',
@@ -126,10 +123,14 @@ export default function HostAdmin() {
     if (auditLoaded) return;
     setAuditLoading(true);
     try {
-      const orgsSnap = await getDocs(collection(db, 'organizations'));
-      const orgIds = orgsSnap.docs.map(d => d.id);
-      const logs = await getAllAuditLogs(orgIds, 200);
-      setAuditLogs(logs);
+      const res = await fetch('/.netlify/functions/fetch-audit-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostKey: hostKey.trim(), limit: 200 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load');
+      setAuditLogs(data.logs || []);
       setAuditLoaded(true);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
@@ -146,8 +147,7 @@ export default function HostAdmin() {
 
   const fmtDate = (ts) => {
     if (!ts) return '-';
-    const d = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
-    return d.toLocaleString();
+    return new Date(ts).toLocaleString();
   };
 
   return (
@@ -227,7 +227,7 @@ export default function HostAdmin() {
                         {auditLogs.map(log => (
                           <tr key={log.id} style={{ borderBottom: '1px solid #1e293b' }}>
                             <td style={{ padding: '10px 12px', color: '#64748b', whiteSpace: 'nowrap' }}>{fmtDate(log.timestamp)}</td>
-                            <td style={{ padding: '10px 12px', color: '#cbd5e1', fontSize: '12px' }}>{log.organizationId || '-'}</td>
+                            <td style={{ padding: '10px 12px', color: '#cbd5e1', fontSize: '12px' }}>{log.organizationName || log.organizationId || '-'}</td>
                             <td style={{ padding: '10px 12px', color: '#f8fafc' }}>
                               <div style={{ fontWeight: 500 }}>{log.userName || '-'}</div>
                               <div style={{ fontSize: '11px', color: '#64748b' }}>{log.userEmail || ''}</div>
