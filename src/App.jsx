@@ -14,6 +14,7 @@ import Pipeline from './pages/Pipeline';
 import Team from './pages/Team';
 import LandingPage from './pages/LandingPage';
 import AuthAction from './pages/AuthAction';
+import HostAdmin from './pages/HostAdmin';
 
 function LoadingScreen() {
   return (
@@ -42,6 +43,7 @@ function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/auth-action" element={<AuthAction />} />
+        <Route path="/hostadmin" element={<HostAdmin />} />
         
         {/* Main application routes */}
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
