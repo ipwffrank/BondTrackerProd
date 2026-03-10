@@ -606,6 +606,8 @@ function ForgotPasswordView({ onBack }) {
 }
 
 // ─── Root Component ────────────────────────────────────────────────────────────
+export { LoginView, ForgotPasswordView, EyeIcon, STYLES as LOGIN_STYLES };
+
 export default function Login() {
   const [view, setView] = useState('login'); // 'login' | 'forgot'
   const [showDemoModal, setShowDemoModal] = useState(false);

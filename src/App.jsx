@@ -38,7 +38,7 @@ function AppRoutes() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<LandingPage showLogin />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/auth-action" element={<AuthAction />} />

@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import MarketingNav from '../components/marketing/MarketingNav';
 import MarketingFooter from '../components/marketing/MarketingFooter';
+import { LoginView, ForgotPasswordView, LOGIN_STYLES } from './Login';
+import { AxleLogo } from '@alteri/ui';
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 const STYLES = `
@@ -585,13 +588,50 @@ function ContactSection() {
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────────
-export default function LandingPage() {
+function LoginModal() {
+  const navigate = useNavigate();
+  const [view, setView] = useState('login');
+
+  const handleClose = () => navigate('/');
+
+  return (
+    <>
+      <style>{LOGIN_STYLES}</style>
+      <div
+        onClick={(e) => { if (e.target === e.currentTarget) handleClose(); }}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 2000,
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: '24px',
+        }}
+      >
+        <div className="login-card" style={{ position: 'relative' }}>
+          <div className="login-logo">
+            <AxleLogo size="md" variant="dark" />
+          </div>
+          {view === 'login' ? (
+            <LoginView
+              onForgotPassword={() => setView('forgot')}
+              onOpenDemo={handleClose}
+            />
+          ) : (
+            <ForgotPasswordView onBack={() => setView('login')} />
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+export default function LandingPage({ showLogin = false }) {
   const [activePreview, setActivePreview] = useState('crm');
   return (
     <div className="lp2">
       <style>{STYLES}</style>
 
       <MarketingNav />
+      {showLogin && <LoginModal />}
 
       {/* ── 1. HERO ──────────────────────────────────────────────────────────────── */}
       <section id="home" style={{
