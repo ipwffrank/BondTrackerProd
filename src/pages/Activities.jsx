@@ -4,6 +4,7 @@ import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { logAudit } from '../services/audit.service';
 
 export default function Activities() {
   const { userData, currentUser, isAdmin } = useAuth();
@@ -183,6 +184,7 @@ export default function Activities() {
       {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},{header:'Price',field:'price'},
       {header:'Status',field:'status'},{header:'Notes',field:'notes'},{header:'Created By',field:'createdBy'}
     ],'activity-log-export','Activity Log');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_excel',details:`Exported ${activities.length} activities to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportPDF(){
@@ -193,6 +195,7 @@ export default function Activities() {
       {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},
       {header:'Price',field:'price'},{header:'Status',field:'status'},{header:'Notes',field:'notes'}
     ],'activity-log-export','Activity Log');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_pdf',details:`Exported ${activities.length} activities to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   const filteredActivities = activities.filter(a => {

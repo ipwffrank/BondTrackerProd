@@ -4,6 +4,7 @@ import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { logAudit } from '../services/audit.service';
 import { findSimilarClients } from '../utils/clientDedup';
 
 export default function Clients() {
@@ -231,6 +232,7 @@ export default function Clients() {
       {header:'Sales Coverage',field:'salesCoverage'},
       {header:'Created By',field:'createdBy'}
     ],'clients-export','Clients');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_clients_excel',details:`Exported ${clients.length} clients to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportPDF() {
@@ -242,6 +244,7 @@ export default function Clients() {
       {header:'Sales Coverage',field:'salesCoverage'},
       {header:'Created By',field:'createdBy'}
     ],'clients-export','Client Directory');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_clients_pdf',details:`Exported ${clients.length} clients to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   if(loading) return(<div className="app-container"><Navigation/><div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'50vh'}}><div style={{textAlign:'center'}}><div className="spinner" style={{width:'40px',height:'40px',margin:'0 auto 16px'}}></div><div style={{color:'var(--text-primary)'}}>Loading clients...</div></div></div></div>);

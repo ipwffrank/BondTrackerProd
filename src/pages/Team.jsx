@@ -5,6 +5,103 @@ import Navigation from '../components/Navigation';
 import { teamService } from '../services/team.service';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
+import { getAuditLogs } from '../services/audit.service';
+
+const ACTION_LABELS = {
+  export_activities_excel: 'Export Activities (Excel)',
+  export_activities_pdf: 'Export Activities (PDF)',
+  export_clients_excel: 'Export Clients (Excel)',
+  export_clients_pdf: 'Export Clients (PDF)',
+  export_pipeline_issues_excel: 'Export Pipeline Issues (Excel)',
+  export_pipeline_issues_pdf: 'Export Pipeline Issues (PDF)',
+  export_orderbook_excel: 'Export Order Book (Excel)',
+  export_orderbook_pdf: 'Export Order Book (PDF)',
+  export_analytics_excel: 'Export Analytics (Excel)',
+  export_analytics_pdf: 'Export Analytics (PDF)',
+  export_analytics_csv: 'Export Analytics (CSV)',
+};
+
+function AuditTrailTab({ orgId }) {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [lastDoc, setLastDoc] = useState(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  useEffect(() => {
+    if (!orgId) return;
+    setLoading(true);
+    getAuditLogs(orgId, 50).then(({ logs: data, lastDoc: ld }) => {
+      setLogs(data);
+      setLastDoc(ld);
+      setHasMore(data.length === 50);
+      setLoading(false);
+    }).catch(() => setLoading(false));
+  }, [orgId]);
+
+  const loadMore = async () => {
+    if (!lastDoc || !hasMore) return;
+    const { logs: more, lastDoc: ld } = await getAuditLogs(orgId, 50, lastDoc);
+    setLogs(prev => [...prev, ...more]);
+    setLastDoc(ld);
+    setHasMore(more.length === 50);
+  };
+
+  const fmtDate = (ts) => {
+    if (!ts) return '-';
+    const d = ts.toDate ? ts.toDate() : new Date(ts.seconds * 1000);
+    return d.toLocaleString();
+  };
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <span>Audit Trail</span>
+      </div>
+      <div style={{ padding: '24px' }}>
+        {loading ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading audit logs...</div>
+        ) : logs.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '64px', marginBottom: '16px' }}>📋</div>
+            <p style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No audit logs yet</p>
+            <p style={{ fontSize: '14px' }}>Export actions will be recorded here automatically.</p>
+          </div>
+        ) : (
+          <>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border)', textAlign: 'left' }}>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: 600 }}>Timestamp</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: 600 }}>User</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: 600 }}>Action</th>
+                  <th style={{ padding: '10px 12px', color: 'var(--text-muted)', fontWeight: 600 }}>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logs.map(log => (
+                  <tr key={log.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{fmtDate(log.timestamp)}</td>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>
+                      <div style={{ fontWeight: 500 }}>{log.userName || '-'}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{log.userEmail || ''}</div>
+                    </td>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-primary)' }}>{ACTION_LABELS[log.action] || log.action}</td>
+                    <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{log.details}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {hasMore && (
+              <div style={{ textAlign: 'center', marginTop: '16px' }}>
+                <button onClick={loadMore} className="btn btn-secondary" style={{ fontSize: '13px' }}>Load More</button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function Team() {
   const { userData, currentUser, isAdmin } = useAuth();
@@ -315,7 +412,7 @@ export default function Team() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">Team Management</h1>
+            <h1 className="page-title">Admin</h1>
             <p className="page-description">Invite members, assign roles, and manage your team</p>
           </div>
           {/* PROMINENT INVITE BUTTON IN HEADER */}
@@ -344,11 +441,17 @@ export default function Team() {
           >
             ✉️ Pending Invitations ({invitations.length})
           </button>
-          <button 
+          <button
             className={`sub-tab ${activeSubTab === 'activity' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('activity')}
           >
             📊 Activity Stats
+          </button>
+          <button
+            className={`sub-tab ${activeSubTab === 'audit' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('audit')}
+          >
+            📋 Audit Trail
           </button>
         </div>
 
@@ -764,6 +867,10 @@ export default function Team() {
               )}
             </div>
           </div>
+        )}
+
+        {activeSubTab === 'audit' && (
+          <AuditTrailTab orgId={userData?.organizationId} />
         )}
       </main>
 

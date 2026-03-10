@@ -4,6 +4,7 @@ import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { logAudit } from '../services/audit.service';
 
 export default function Pipeline() {
   const { userData, currentUser } = useAuth();
@@ -296,6 +297,7 @@ export default function Pipeline() {
     ];
 
     exportToExcel(exportData, columns, 'new-issues-export', 'New Issues');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_pipeline_issues_excel',details:`Exported ${newIssues.length} new issues to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportNewIssuesPDF() {
@@ -319,6 +321,7 @@ export default function Pipeline() {
     ];
 
     exportToPDF(exportData, columns, 'new-issues-export', 'New Issues Pipeline');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_pipeline_issues_pdf',details:`Exported ${newIssues.length} new issues to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   // Export functions for Order Book
@@ -339,6 +342,7 @@ export default function Pipeline() {
     ];
 
     exportToExcel(orderBooks, columns, 'order-book-export', 'Order Book');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_orderbook_excel',details:`Exported ${orderBooks.length} orders to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportOrderBookPDF() {
@@ -358,6 +362,7 @@ export default function Pipeline() {
     ];
 
     exportToPDF(orderBooks, columns, 'order-book-export', 'Order Book');
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_orderbook_pdf',details:`Exported ${orderBooks.length} orders to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   if (loading) {

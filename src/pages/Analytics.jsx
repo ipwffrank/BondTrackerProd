@@ -4,9 +4,11 @@ import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
+import { logAudit } from '../services/audit.service';
 
 export default function Analytics() {
-  const { userData } = useAuth();
+  const { userData, currentUser } = useAuth();
+  const _audit = (action, details) => { if(userData?.organizationId) logAudit(userData.organizationId,{action,details,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email}); };
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -128,6 +130,7 @@ export default function Analytics() {
       {header:'BUY Volume (MM)',field:'buyVolume'},{header:'SELL Volume (MM)',field:'sellVolume'},
       {header:'Executed Volume (MM)',field:'executedVolume'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}
     ],'volume-breakdown','Volume');
+    _audit('export_analytics_csv','Exported volume breakdown CSV');
   }
 
   function downloadClientsVolumeCSV() {
@@ -140,6 +143,7 @@ export default function Analytics() {
     });
     const data = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).map(([name,volume])=>({name, totalVolume:volume.toFixed(2), activityCount:clientCounts[name]}));
     exportToExcel(data,[{header:'Client',field:'name'},{header:'Total Volume (MM)',field:'totalVolume'},{header:'Activity Count',field:'activityCount'}],'active-clients-volume','Clients');
+    _audit('export_analytics_csv','Exported clients volume CSV');
   }
 
   function downloadExecutedTradesCSV() {
@@ -153,6 +157,7 @@ export default function Analytics() {
       {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},
       {header:'Direction',field:'direction'},{header:'Price',field:'price'}
     ],'executed-trades','Executed Trades');
+    _audit('export_analytics_csv','Exported executed trades CSV');
   }
 
   function downloadExecVolumeCSV() {
@@ -164,6 +169,7 @@ export default function Analytics() {
     });
     const data = Object.entries(execByCurrency).sort((a,b)=>b[1].volume-a[1].volume).map(([currency,d])=>({currency, volume:d.volume.toFixed(2), count:d.count}));
     exportToExcel(data,[{header:'Currency',field:'currency'},{header:'Executed Volume (MM)',field:'volume'},{header:'Count',field:'count'}],'executed-volume-by-currency','Executed Volume');
+    _audit('export_analytics_csv','Exported executed volume by currency CSV');
   }
 
   function downloadClientActivitiesCSV(clientName) {
@@ -178,6 +184,7 @@ export default function Analytics() {
       {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},
       {header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Price',field:'price'},{header:'Notes',field:'notes'}
     ],`${clientName}-activities`,'Client Activities');
+    _audit('export_analytics_csv',`Exported ${clientName} activities CSV`);
   }
 
   function downloadDirectionCSV(direction) {
@@ -190,6 +197,7 @@ export default function Analytics() {
       {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
       {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},{header:'Status',field:'status'}
     ],`${direction}-activities`,`${direction} Activities`);
+    _audit('export_analytics_csv',`Exported ${direction} activities CSV`);
   }
 
   function downloadStatusCSV(status) {
@@ -202,6 +210,7 @@ export default function Analytics() {
       {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
       {header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},{header:'Currency',field:'currency'},{header:'Direction',field:'direction'}
     ],`${status.replace(/\s+/g,'-')}-activities`,`${status} Activities`);
+    _audit('export_analytics_csv',`Exported ${status} activities CSV`);
   }
 
   function downloadCurrencyCSV(currency) {
@@ -214,6 +223,7 @@ export default function Analytics() {
       {header:'Date',field:'date'},{header:'Client',field:'client'},{header:'ISIN',field:'isin'},
       {header:'Size (MM)',field:'size'},{header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Price',field:'price'}
     ],`${currency}-activities`,`${currency} Activities`);
+    _audit('export_analytics_csv',`Exported ${currency} activities CSV`);
   }
 
   // ─── Tooltip content renderer ───────────────────────────────────────────────
@@ -521,6 +531,7 @@ export default function Analytics() {
       { metric:'Traded Away', value:stats.tradedAwayCount },
     ];
     exportToPDF(summaryData,[{header:'Metric',field:'metric'},{header:'Value',field:'value'}],'analytics-summary','Analytics Summary Report');
+    _audit('export_analytics_pdf','Exported analytics summary to PDF');
   }
 
   function handleExportExcel() {
@@ -533,6 +544,7 @@ export default function Analytics() {
       {header:'Direction',field:'direction'},{header:'Status',field:'status'},{header:'Notes',field:'notes'},
       {header:'Created By',field:'createdBy'}
     ],'analytics-full-export','Analytics');
+    _audit('export_analytics_excel',`Exported ${filteredActivities.length} analytics records to Excel`);
   }
 
   // Per-card CSV export handlers
@@ -543,6 +555,7 @@ export default function Analytics() {
       { direction: 'TWO-WAY', count: stats.twoWayCount, pct: stats.totalActivities>0?((stats.twoWayCount/stats.totalActivities)*100).toFixed(1)+'%':'0%' },
     ];
     exportToExcel(data,[{header:'Direction',field:'direction'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}],'direction-breakdown','Direction');
+    _audit('export_analytics_csv','Exported direction breakdown CSV');
   }
 
   function handleExportStatusCSV() {
@@ -554,6 +567,7 @@ export default function Analytics() {
       { status:'TRADED AWAY', count:stats.tradedAwayCount },
     ].map(r => ({...r, pct: stats.totalActivities>0?((r.count/stats.totalActivities)*100).toFixed(1)+'%':'0%'}));
     exportToExcel(data,[{header:'Status',field:'status'},{header:'Count',field:'count'},{header:'% of Total',field:'pct'}],'status-breakdown','Status');
+    _audit('export_analytics_csv','Exported status breakdown CSV');
   }
 
   function handleExportClientsCSV() {
@@ -566,23 +580,27 @@ export default function Analytics() {
     });
     const data = Object.entries(clientVolumes).sort((a,b)=>b[1]-a[1]).map(([name,volume])=>({name, totalVolume:volume.toFixed(2), activityCount:clientCounts[name]}));
     exportToExcel(data,[{header:'Client',field:'name'},{header:'Total Volume (MM)',field:'totalVolume'},{header:'Activity Count',field:'activityCount'}],'top-clients','Clients');
+    _audit('export_analytics_csv','Exported top clients CSV');
   }
 
   function handleExportUsersCSV() {
     const data = stats.topUsers.map(u=>({name:u.name, count:u.count}));
     exportToExcel(data,[{header:'User',field:'name'},{header:'Activity Count',field:'count'}],'active-users','Users');
+    _audit('export_analytics_csv','Exported active users CSV');
   }
 
   function handleExportActivityTypeCSV() {
     const total = stats.totalActivities;
     const data = Object.entries(stats.activityTypeBreakdown).sort((a,b)=>b[1]-a[1]).map(([type,count])=>({type, count, pct: total>0?((count/total)*100).toFixed(1)+'%':'0%'}));
     exportToExcel(data,[{header:'Activity Type',field:'type'},{header:'Count',field:'count'},{header:'%',field:'pct'}],'activity-type-breakdown','Activity Types');
+    _audit('export_analytics_csv','Exported activity type breakdown CSV');
   }
 
   function handleExportRegionCSV() {
     const total = stats.totalActivities;
     const data = Object.entries(stats.regionBreakdown).sort((a,b)=>b[1]-a[1]).map(([region,count])=>({region, count, pct: total>0?((count/total)*100).toFixed(1)+'%':'0%'}));
     exportToExcel(data,[{header:'Region',field:'region'},{header:'Count',field:'count'},{header:'%',field:'pct'}],'region-breakdown','Regions');
+    _audit('export_analytics_csv','Exported region breakdown CSV');
   }
 
   function handleExportCurrencyCSV() {
@@ -593,6 +611,7 @@ export default function Analytics() {
       pct: ((d.volume/total)*100).toFixed(1)+'%'
     }));
     exportToExcel(data,[{header:'Currency',field:'currency'},{header:'Count',field:'count'},{header:'Volume (MM)',field:'volume'},{header:'Executed Volume (MM)',field:'executedVolume'},{header:'% of Total',field:'pct'}],'currency-breakdown','Currency');
+    _audit('export_analytics_csv','Exported currency breakdown CSV');
   }
 
   if(loading) return(<div className="app-container"><Navigation/><div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'50vh'}}><div style={{textAlign:'center'}}><div className="spinner" style={{width:'40px',height:'40px',margin:'0 auto 16px'}}></div><div style={{color:'var(--text-primary)'}}>Loading analytics...</div></div></div></div>);
