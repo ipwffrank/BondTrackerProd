@@ -12,7 +12,7 @@ const TENOR_OPTIONS = ['2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y', '30Y'];
 const CLIENT_TYPES = ['FUND', 'BANK', 'INSURANCE', 'PENSION', 'SOVEREIGN'];
 const CLIENT_REGIONS = ['APAC', 'EMEA', 'AMERICAS'];
 
-const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '' };
+const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '', internalTargetSize: '' };
 const EMPTY_NEW_ISSUE_FORM = {
   issuerName: '',
   bookrunners: { JPM: false, GS: false, MS: false, HSBC: false, SCB: false, BOCHK: false, other: false },
@@ -158,7 +158,8 @@ export default function Pipeline() {
       const tranchesData = formData.tranches.map(t => ({
         tenor: t.tenor,
         currency: t.currency,
-        targetSize: parseFloat(t.targetSize) || 0
+        targetSize: parseFloat(t.targetSize) || 0,
+        internalTargetSize: parseFloat(t.internalTargetSize) || 0
       }));
 
       if (editingIssue) {
@@ -215,7 +216,7 @@ export default function Pipeline() {
       issuerName: issue.issuerName,
       bookrunners,
       otherBookrunner,
-      tranches: (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize) }))
+      tranches: (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize), internalTargetSize: String(t.internalTargetSize || '') }))
     });
     if (newIssueForm.tranches?.length === 0) {
       setNewIssueForm(prev => ({ ...prev, tranches: [{ ...EMPTY_TRANCHE }] }));
@@ -417,8 +418,8 @@ export default function Pipeline() {
   function getIssueOrderSummary(issue) {
     return (issue.tranches || []).map(t => {
       const total = getTrancheOrderTotal(issue.id, t.id);
-      const target = t.targetSize || 0;
-      const pct = target > 0 ? Math.round((total / target) * 100) : 0;
+      const internalTarget = t.internalTargetSize || 0;
+      const pct = internalTarget > 0 ? Math.round((total / internalTarget) * 100) : 0;
       return { ...t, orderTotal: total, pct };
     });
   }
@@ -438,6 +439,7 @@ export default function Pipeline() {
           issuerName: issue.issuerName,
           tenor: t.tenor,
           targetIssueSize: t.targetSize,
+          internalTargetSize: t.internalTargetSize || 0,
           currency: t.currency,
           bookrunners: issue.bookrunners?.join(', ') || '-',
           createdBy: issue.createdBy
@@ -446,7 +448,8 @@ export default function Pipeline() {
     });
     const columns = [
       { header: 'Date', field: 'createdAt' }, { header: 'Issuer', field: 'issuerName' },
-      { header: 'Tenor', field: 'tenor' }, { header: 'Target Size (MM)', field: 'targetIssueSize' },
+      { header: 'Tenor', field: 'tenor' }, { header: 'Issue Size (MM)', field: 'targetIssueSize' },
+      { header: 'Internal Order Target (MM)', field: 'internalTargetSize' },
       { header: 'Currency', field: 'currency' }, { header: 'Bookrunners', field: 'bookrunners' },
       { header: 'Created By', field: 'createdBy' }
     ];
@@ -464,6 +467,7 @@ export default function Pipeline() {
           issuerName: issue.issuerName,
           tenor: t.tenor,
           targetIssueSize: t.targetSize,
+          internalTargetSize: t.internalTargetSize || 0,
           currency: t.currency,
           bookrunners: issue.bookrunners?.join(', ') || '-',
           createdBy: issue.createdBy
@@ -472,7 +476,8 @@ export default function Pipeline() {
     });
     const columns = [
       { header: 'Date', field: 'createdAt' }, { header: 'Issuer', field: 'issuerName' },
-      { header: 'Tenor', field: 'tenor' }, { header: 'Target Size (MM)', field: 'targetIssueSize' },
+      { header: 'Tenor', field: 'tenor' }, { header: 'Issue Size (MM)', field: 'targetIssueSize' },
+      { header: 'Internal Order Target (MM)', field: 'internalTargetSize' },
       { header: 'Currency', field: 'currency' }, { header: 'Bookrunners', field: 'bookrunners' },
       { header: 'Created By', field: 'createdBy' }
     ];
@@ -588,7 +593,7 @@ export default function Pipeline() {
                       </div>
 
                       {newIssueForm.tranches.map((tranche, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: '12px', marginBottom: '10px', padding: '12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '12px', marginBottom: '10px', padding: '12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                           <div className="field-group">
                             <label className="form-label">Tenor *</label>
                             <select className="form-select" value={tranche.tenor} onChange={(e) => updateTranche(idx, 'tenor', e.target.value)}>
@@ -603,9 +608,14 @@ export default function Pipeline() {
                             </select>
                           </div>
                           <div className="field-group">
-                            <label className="form-label">Target Size (MM) *</label>
-                            <input type="number" step="0.01" className="form-input" placeholder="e.g., 500" value={tranche.targetSize}
+                            <label className="form-label">Issue Size (MM) *</label>
+                            <input type="number" step="0.01" className="form-input" placeholder="e.g., 5000" value={tranche.targetSize}
                               onChange={(e) => updateTranche(idx, 'targetSize', e.target.value)} />
+                          </div>
+                          <div className="field-group">
+                            <label className="form-label">Internal Order Target (MM)</label>
+                            <input type="number" step="0.01" className="form-input" placeholder="e.g., 200" value={tranche.internalTargetSize}
+                              onChange={(e) => updateTranche(idx, 'internalTargetSize', e.target.value)} />
                           </div>
                           <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
                             {newIssueForm.tranches.length > 1 && (
@@ -723,17 +733,22 @@ export default function Pipeline() {
                                   <td style={{ paddingLeft: '32px', fontSize: '13px', color: 'var(--text-secondary)' }}>{t.tenor}</td>
                                   <td>
                                     <span className="badge badge-primary">{t.currency}</span>
-                                    <span style={{ marginLeft: '8px', fontSize: '13px' }}>{t.targetSize}MM target</span>
+                                    <span style={{ marginLeft: '8px', fontSize: '13px' }}>Issue: {t.targetSize}MM</span>
+                                    {t.internalTargetSize > 0 && <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>Internal target: {t.internalTargetSize}MM</span>}
                                   </td>
                                   <td colSpan={isAdmin ? 3 : 2}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                      <div style={{ flex: 1, background: 'var(--border)', borderRadius: '4px', height: '8px', maxWidth: '150px' }}>
-                                        <div style={{ width: `${Math.min(s?.pct || 0, 100)}%`, background: (s?.pct || 0) >= 100 ? '#22c55e' : 'var(--accent)', height: '100%', borderRadius: '4px', transition: 'width 0.3s' }}></div>
+                                    {t.internalTargetSize > 0 ? (
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ flex: 1, background: 'var(--border)', borderRadius: '4px', height: '8px', maxWidth: '150px' }}>
+                                          <div style={{ width: `${Math.min(s?.pct || 0, 100)}%`, background: (s?.pct || 0) >= 100 ? '#22c55e' : 'var(--accent)', height: '100%', borderRadius: '4px', transition: 'width 0.3s' }}></div>
+                                        </div>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: (s?.pct || 0) >= 100 ? '#22c55e' : 'var(--text-secondary)' }}>
+                                          {s?.orderTotal || 0}MM / {t.internalTargetSize}MM ({s?.pct || 0}%)
+                                        </span>
                                       </div>
-                                      <span style={{ fontSize: '12px', fontWeight: 600, color: (s?.pct || 0) >= 100 ? '#22c55e' : 'var(--text-secondary)' }}>
-                                        {s?.orderTotal || 0}MM / {t.targetSize}MM ({s?.pct || 0}%)
-                                      </span>
-                                    </div>
+                                    ) : (
+                                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No internal target set</span>
+                                    )}
                                   </td>
                                 </tr>
                               );
@@ -832,18 +847,26 @@ export default function Pipeline() {
                     const currentTotal = getTrancheOrderTotal(orderBookForm.issueId, orderBookForm.trancheId);
                     const newOrderSize = parseFloat(orderBookForm.orderSize) || 0;
                     const projectedTotal = currentTotal + newOrderSize;
-                    const pct = tranche.targetSize > 0 ? Math.round((projectedTotal / tranche.targetSize) * 100) : 0;
+                    const internalTarget = tranche.internalTargetSize || 0;
+                    const pct = internalTarget > 0 ? Math.round((projectedTotal / internalTarget) * 100) : 0;
+                    if (!internalTarget) return (
+                      <div style={{ padding: '12px', background: 'var(--table-header-bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                          {selectedIssueForOrder?.issuerName} {tranche.tenor} {tranche.currency} — Issue size: {tranche.targetSize}MM (no internal order target set)
+                        </div>
+                      </div>
+                    );
                     return (
                       <div style={{ padding: '12px', background: 'var(--table-header-bg)', borderRadius: '8px', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
-                          Book Status: {selectedIssueForOrder?.issuerName} {tranche.tenor} {tranche.currency}
+                          Book Status: {selectedIssueForOrder?.issuerName} {tranche.tenor} {tranche.currency} — Issue size: {tranche.targetSize}MM | Internal order target: {internalTarget}MM
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                           <div style={{ flex: 1, background: 'var(--border)', borderRadius: '4px', height: '10px' }}>
                             <div style={{ width: `${Math.min(pct, 100)}%`, background: pct >= 100 ? '#22c55e' : 'var(--accent)', height: '100%', borderRadius: '4px', transition: 'width 0.3s' }}></div>
                           </div>
                           <span style={{ fontSize: '13px', fontWeight: 600, color: pct >= 100 ? '#22c55e' : 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-                            {projectedTotal}MM / {tranche.targetSize}MM ({pct}%)
+                            {projectedTotal}MM / {internalTarget}MM ({pct}%)
                           </span>
                         </div>
                         {newOrderSize > 0 && (
