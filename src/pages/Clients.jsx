@@ -53,15 +53,13 @@ export default function Clients() {
     }
     const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
 
-    // Check for similar clients when adding (not editing)
-    if (!editingClient) {
-      const similar = findSimilarClients(clientForm.name, clients);
-      if (similar.length > 0) {
-        setDedupMatches(similar);
-        setPendingClientData(data);
-        setShowDedupModal(true);
-        return;
-      }
+    // Check for similar clients
+    const similar = findSimilarClients(clientForm.name, clients);
+    if (similar.length > 0) {
+      setDedupMatches(similar);
+      setPendingClientData(data);
+      setShowDedupModal(true);
+      return;
     }
 
     await saveClient(data);
@@ -70,8 +68,7 @@ export default function Clients() {
   async function saveClient(data) {
     setSubmitLoading(true);
     try {
-      if(editingClient){ await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),data); setEditingClient(null); }
-      else{ await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data); }
+      await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data);
       setFormError('');
       setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
     }catch(e){ console.error(e); alert('Failed to save client'); }finally{ setSubmitLoading(false); }
@@ -97,10 +94,36 @@ export default function Clients() {
     catch(e){ alert('Failed to delete client'); }
   }
 
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({name:'',type:'FUND',region:'APAC',salesCoverage:''});
+
   function handleEditClient(c) {
-    setClientForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||''});
+    setEditForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||''});
     setEditingClient(c.id);
-    window.scrollTo({top:0,behavior:'smooth'});
+    setShowEditModal(true);
+  }
+
+  function cancelEditClient() {
+    setEditingClient(null);
+    setShowEditModal(false);
+    setEditForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
+  }
+
+  async function handleEditClientSubmit(e) {
+    e.preventDefault();
+    const missing = [];
+    if(!editForm.name) missing.push('Client Name');
+    if(!editForm.type) missing.push('Client Type');
+    if(!editForm.region) missing.push('Region');
+    if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    setSubmitLoading(true);
+    try {
+      await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),{
+        name:editForm.name,type:editForm.type,region:editForm.region,salesCoverage:editForm.salesCoverage,
+      });
+      cancelEditClient();
+      setFormError('');
+    }catch(e){ console.error(e); alert('Failed to update client'); }finally{ setSubmitLoading(false); }
   }
 
   function toggleSelect(id) {
@@ -263,8 +286,7 @@ export default function Clients() {
         {/* Client Form */}
         <div className="card">
           <div className="card-header">
-            <span>📝 {editingClient?'Edit Client':'New Client'}</span>
-            {editingClient&&<button className="btn btn-muted" onClick={()=>{setEditingClient(null);setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});}}>Cancel Edit</button>}
+            <span>New Client</span>
           </div>
           <form onSubmit={handleClientSubmit}>
             <div className="form-grid">
@@ -302,7 +324,7 @@ export default function Clients() {
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
               {formError && <div className="form-error-banner">{formError}</div>}
               <button type="submit" className="btn btn-primary" disabled={submitLoading}>
-                {submitLoading?(editingClient?'Updating...':'Adding...'):(editingClient?'Update Client':'+ Add Client')}
+                {submitLoading?'Adding...':'+ Add Client'}
               </button>
             </div>
           </form>
@@ -377,7 +399,7 @@ export default function Clients() {
                       <td>{c.createdBy}</td>
                       <td>
                         <div style={{display:'flex',gap:'8px'}}>
-                          <button className="btn-icon" onClick={()=>handleEditClient(c)} title="Edit">✏️</button>
+                          <button className="btn-edit" onClick={()=>handleEditClient(c)} title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                           {isAdmin&&<button className="btn-icon" onClick={()=>handleDeleteClient(c.id)} title="Delete (Admin only)">🗑️</button>}
                         </div>
                       </td>
@@ -397,6 +419,51 @@ export default function Clients() {
             <li>Clients are automatically available in Activity Log and Order Book forms</li>
           </ul>
         </div>
+        {/* Edit Client Modal */}
+        {showEditModal && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+            <div style={{background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'12px',padding:'24px',maxWidth:'520px',width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,0.4)'}}>
+              <h3 style={{fontSize:'17px',fontWeight:700,color:'var(--text-primary)',marginBottom:'16px'}}>Edit Client</h3>
+              <form onSubmit={handleEditClientSubmit}>
+                <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+                  <div className="field-group">
+                    <label className="form-label">Client Name *</label>
+                    <input type="text" className="form-input" value={editForm.name} onChange={e=>setEditForm({...editForm,name:e.target.value})}/>
+                  </div>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                    <div className="field-group">
+                      <label className="form-label">Client Type *</label>
+                      <select className="form-select" value={editForm.type} onChange={e=>setEditForm({...editForm,type:e.target.value})}>
+                        <option value="FUND">Fund</option>
+                        <option value="BANK">Bank</option>
+                        <option value="INSURANCE">Insurance</option>
+                        <option value="PENSION">Pension</option>
+                        <option value="SOVEREIGN">Sovereign</option>
+                      </select>
+                    </div>
+                    <div className="field-group">
+                      <label className="form-label">Region *</label>
+                      <select className="form-select" value={editForm.region} onChange={e=>setEditForm({...editForm,region:e.target.value})}>
+                        <option value="APAC">APAC</option>
+                        <option value="EMEA">EMEA</option>
+                        <option value="AMERICAS">Americas</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="field-group">
+                    <label className="form-label">Sales Coverage</label>
+                    <input type="text" className="form-input" value={editForm.salesCoverage} onChange={e=>setEditForm({...editForm,salesCoverage:e.target.value})}/>
+                  </div>
+                </div>
+                {formError && showEditModal && <div className="form-error-banner" style={{marginTop:'12px'}}>{formError}</div>}
+                <div style={{display:'flex',gap:'10px',justifyContent:'flex-end',marginTop:'16px'}}>
+                  <button type="button" className="btn btn-muted" onClick={cancelEditClient}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" disabled={submitLoading}>{submitLoading?'Saving...':'Save Changes'}</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
         {/* Dedup Confirmation Modal */}
         {showDedupModal && (
           <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
@@ -453,6 +520,8 @@ export default function Clients() {
         .btn-muted:hover{background:var(--btn-muted-hover);}
         .btn-icon{background:none;border:none;cursor:pointer;font-size:16px;padding:4px;transition:transform 0.2s;}
         .btn-icon:hover{transform:scale(1.2);}
+        .btn-edit{background:none;border:1px solid var(--accent);border-radius:6px;cursor:pointer;padding:5px 7px;color:var(--accent);display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;}
+        .btn-edit:hover{background:var(--accent);color:#fff;transform:translateY(-1px);box-shadow:0 2px 8px var(--accent-glow);}
         .table-container{overflow-x:auto;}
         .table{width:100%;border-collapse:collapse;font-size:14px;}
         .table thead{background:var(--table-header-bg);}

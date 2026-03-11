@@ -42,6 +42,10 @@ export default function Pipeline() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState({ ...EMPTY_ORDER_FORM });
 
+  // Edit issue modal
+  const [showEditIssueModal, setShowEditIssueModal] = useState(false);
+  const [editIssueForm, setEditIssueForm] = useState({ ...EMPTY_NEW_ISSUE_FORM, tranches: [{ ...EMPTY_TRANCHE }] });
+
   // Dedup state
   const [dedupMatches, setDedupMatches] = useState([]);
   const [showDedupModal, setShowDedupModal] = useState(false);
@@ -212,23 +216,52 @@ export default function Pipeline() {
       if (bookrunners.hasOwnProperty(b)) bookrunners[b] = true;
       else { bookrunners.other = true; otherBookrunner = b; }
     });
-    setNewIssueForm({
+    const tranches = (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize), internalTargetSize: String(t.internalTargetSize || '') }));
+    setEditIssueForm({
       issuerName: issue.issuerName,
       bookrunners,
       otherBookrunner,
-      tranches: (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize), internalTargetSize: String(t.internalTargetSize || '') }))
+      tranches: tranches.length > 0 ? tranches : [{ ...EMPTY_TRANCHE }]
     });
-    if (newIssueForm.tranches?.length === 0) {
-      setNewIssueForm(prev => ({ ...prev, tranches: [{ ...EMPTY_TRANCHE }] }));
-    }
     setEditingIssue(issue.id);
-    setActiveSubTab('create');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowEditIssueModal(true);
   }
 
   function cancelEditIssue() {
     setEditingIssue(null);
-    setNewIssueForm({ ...EMPTY_NEW_ISSUE_FORM, tranches: [{ ...EMPTY_TRANCHE }] });
+    setShowEditIssueModal(false);
+    setEditIssueForm({ ...EMPTY_NEW_ISSUE_FORM, tranches: [{ ...EMPTY_TRANCHE }] });
+  }
+
+  // Edit issue form tranche helpers
+  function addEditTranche() {
+    setEditIssueForm(prev => ({ ...prev, tranches: [...prev.tranches, { ...EMPTY_TRANCHE }] }));
+  }
+  function removeEditTranche(idx) {
+    setEditIssueForm(prev => ({ ...prev, tranches: prev.tranches.filter((_, i) => i !== idx) }));
+  }
+  function updateEditTranche(idx, field, value) {
+    setEditIssueForm(prev => {
+      const tranches = [...prev.tranches];
+      tranches[idx] = { ...tranches[idx], [field]: value };
+      return { ...prev, tranches };
+    });
+  }
+
+  async function handleEditIssueSubmit(e) {
+    e.preventDefault();
+    setFormError('');
+    const missing = [];
+    if (!editIssueForm.issuerName) missing.push('Issuer');
+    if (editIssueForm.tranches.length === 0) missing.push('At least one tranche');
+    for (let i = 0; i < editIssueForm.tranches.length; i++) {
+      const t = editIssueForm.tranches[i];
+      if (!t.tenor) missing.push(`Tranche ${i + 1}: Tenor`);
+      if (!t.targetSize) missing.push(`Tranche ${i + 1}: Issue Size`);
+    }
+    if (missing.length) { setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    await saveIssue(editIssueForm);
+    setShowEditIssueModal(false);
   }
 
   // ============ DELETE ISSUE ============
@@ -554,8 +587,7 @@ export default function Pipeline() {
             {isAdmin ? (
               <div className="card">
                 <div className="card-header">
-                  <span>{editingIssue ? 'Edit Issue' : 'Create New Issue'}</span>
-                  {editingIssue && <button className="btn btn-muted" onClick={cancelEditIssue}>Cancel Edit</button>}
+                  <span>Create New Issue</span>
                 </div>
 
                 <form onSubmit={handleNewIssueSubmit}>
@@ -630,7 +662,7 @@ export default function Pipeline() {
                   <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)' }}>
                     {formError && <div className="form-error-banner">{formError}</div>}
                     <button type="submit" className="btn btn-primary" disabled={submitLoading}>
-                      {submitLoading ? (editingIssue ? 'Updating...' : 'Adding...') : (editingIssue ? 'Update Issue' : '+ Add New Issue')}
+                      {submitLoading ? 'Adding...' : '+ Add New Issue'}
                     </button>
                   </div>
                 </form>
@@ -716,7 +748,7 @@ export default function Pipeline() {
                               {isAdmin && (
                                 <td>
                                   <div style={{ display: 'flex', gap: '8px' }}>
-                                    <button className="btn-icon" onClick={() => handleEditIssue(issue)} title="Edit">&#9998;</button>
+                                    <button className="btn-edit" onClick={() => handleEditIssue(issue)} title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                                     <button className="btn-icon" onClick={() => handleDeleteNewIssue(issue.id)} title="Delete">&#128465;</button>
                                   </div>
                                 </td>
@@ -975,7 +1007,7 @@ export default function Pipeline() {
                             <td>{order.createdBy}</td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <button className="btn-icon" onClick={() => startEditOrder(order)} title="Edit">&#9998;</button>
+                                <button className="btn-edit" onClick={() => startEditOrder(order)} title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                                 {isAdmin && <button className="btn-icon" onClick={() => handleDeleteOrder(order.id)} title="Delete (Admin only)">&#128465;</button>}
                               </div>
                             </td>
@@ -990,6 +1022,87 @@ export default function Pipeline() {
           </>
         )}
       </main>
+
+      {/* ======================== EDIT ISSUE MODAL ======================== */}
+      {showEditIssueModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', maxWidth: '700px', width: '95%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Edit Issue</h3>
+            <form onSubmit={handleEditIssueSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                  <div className="field-group">
+                    <label className="form-label">Issuer *</label>
+                    <input type="text" className="form-input" value={editIssueForm.issuerName}
+                      onChange={(e) => setEditIssueForm({ ...editIssueForm, issuerName: e.target.value })} />
+                  </div>
+                  <div className="field-group">
+                    <label className="form-label">Bookrunners</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
+                      {Object.keys(editIssueForm.bookrunners).map(key => (
+                        <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                          <input type="checkbox" checked={editIssueForm.bookrunners[key]}
+                            onChange={(e) => setEditIssueForm({ ...editIssueForm, bookrunners: { ...editIssueForm.bookrunners, [key]: e.target.checked } })}
+                            style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
+                          <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{key.toUpperCase()}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {editIssueForm.bookrunners.other && (
+                      <input type="text" className="form-input" placeholder="Specify other bookrunner" value={editIssueForm.otherBookrunner}
+                        onChange={(e) => setEditIssueForm({ ...editIssueForm, otherBookrunner: e.target.value })} style={{ marginTop: '6px', fontSize: '13px' }} />
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Tranches *</label>
+                    <button type="button" className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }} onClick={addEditTranche}>+ Add Tranche</button>
+                  </div>
+                  {editIssueForm.tranches.map((tranche, idx) => (
+                    <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '10px', marginBottom: '8px', padding: '10px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                      <div className="field-group">
+                        <label className="form-label" style={{ fontSize: '11px' }}>Tenor *</label>
+                        <select className="form-select" style={{ fontSize: '13px', padding: '8px 10px' }} value={tranche.tenor} onChange={(e) => updateEditTranche(idx, 'tenor', e.target.value)}>
+                          <option value="">Select</option>
+                          {TENOR_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                      </div>
+                      <div className="field-group">
+                        <label className="form-label" style={{ fontSize: '11px' }}>Currency *</label>
+                        <select className="form-select" style={{ fontSize: '13px', padding: '8px 10px' }} value={tranche.currency} onChange={(e) => updateEditTranche(idx, 'currency', e.target.value)}>
+                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div className="field-group">
+                        <label className="form-label" style={{ fontSize: '11px' }}>Issue Size (MM) *</label>
+                        <input type="number" step="0.01" className="form-input" style={{ fontSize: '13px', padding: '8px 10px' }} value={tranche.targetSize}
+                          onChange={(e) => updateEditTranche(idx, 'targetSize', e.target.value)} />
+                      </div>
+                      <div className="field-group">
+                        <label className="form-label" style={{ fontSize: '11px' }}>Internal Order Target (MM)</label>
+                        <input type="number" step="0.01" className="form-input" style={{ fontSize: '13px', padding: '8px 10px' }} value={tranche.internalTargetSize}
+                          onChange={(e) => updateEditTranche(idx, 'internalTargetSize', e.target.value)} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                        {editIssueForm.tranches.length > 1 && (
+                          <button type="button" className="btn-icon" onClick={() => removeEditTranche(idx)} title="Remove" style={{ color: '#dc2626' }}>x</button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {formError && showEditIssueModal && <div className="form-error-banner" style={{ marginTop: '12px' }}>{formError}</div>}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '16px' }}>
+                <button type="button" className="btn btn-muted" onClick={cancelEditIssue}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={submitLoading}>{submitLoading ? 'Saving...' : 'Save Changes'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ======================== ADD NEW CLIENT MODAL ======================== */}
       {showAddClientModal && (
@@ -1273,6 +1386,26 @@ export default function Pipeline() {
 
         .btn-icon:hover {
           transform: scale(1.2);
+        }
+
+        .btn-edit {
+          background: none;
+          border: 1px solid var(--accent);
+          border-radius: 6px;
+          cursor: pointer;
+          padding: 5px 7px;
+          color: var(--accent);
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+          background: var(--accent);
+          color: #fff;
+          transform: translateY(-1px);
+          box-shadow: 0 2px 8px var(--accent-glow);
         }
 
         .table-container {

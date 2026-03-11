@@ -552,8 +552,8 @@ export default function Team() {
                               className="form-select"
                               style={{padding: '8px 12px', fontSize: '13px', width: '130px'}}
                             >
-                              <option value="user">👤 User</option>
-                              <option value="admin">👑 Admin</option>
+                              <option value="user">User</option>
+                              <option value="admin">Admin</option>
                             </select>
                           </div>
                           <button
