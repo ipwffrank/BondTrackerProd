@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, updateDoc, serverTimestamp, orderBy, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
@@ -62,19 +62,15 @@ export default function Pipeline() {
     if (!userData?.organizationId) { setLoading(false); return; }
     const unsubscribes = [];
     try {
-      // New Issues with tranches
+      // New Issues (tranches stored as array field in each document)
       const newIssuesRef = collection(db, `organizations/${userData.organizationId}/newIssues`);
       const newIssuesQuery = query(newIssuesRef, orderBy('createdAt', 'desc'));
-      const newIssuesUnsub = onSnapshot(newIssuesQuery, async (snapshot) => {
-        const issues = [];
-        for (const docSnap of snapshot.docs) {
-          const issueData = { id: docSnap.id, ...docSnap.data(), createdAt: docSnap.data().createdAt?.toDate() };
-          // Load tranches sub-collection
-          const tranchesRef = collection(db, `organizations/${userData.organizationId}/newIssues/${docSnap.id}/tranches`);
-          const tranchesSnap = await getDocs(tranchesRef);
-          issueData.tranches = tranchesSnap.docs.map(t => ({ id: t.id, ...t.data() }));
-          issues.push(issueData);
-        }
+      const newIssuesUnsub = onSnapshot(newIssuesQuery, (snapshot) => {
+        const issues = snapshot.docs.map(docSnap => {
+          const data = docSnap.data();
+          const tranches = (data.tranches || []).map((t, idx) => ({ id: `t-${idx}`, ...t }));
+          return { id: docSnap.id, ...data, tranches, createdAt: data.createdAt?.toDate() };
+        });
         setNewIssues(issues);
         setLoading(false);
       }, (error) => { console.error('Error loading new issues:', error); setLoading(false); });
@@ -159,37 +155,31 @@ export default function Pipeline() {
         .map(([key]) => key === 'other' ? formData.otherBookrunner : key)
         .filter(Boolean);
 
+      const tranchesData = formData.tranches.map(t => ({
+        tenor: t.tenor,
+        currency: t.currency,
+        targetSize: parseFloat(t.targetSize) || 0
+      }));
+
       if (editingIssue) {
-        // Update existing issue
         const issueRef = doc(db, `organizations/${userData.organizationId}/newIssues`, editingIssue);
         await updateDoc(issueRef, {
           issuerName: formData.issuerName,
           bookrunners: selectedBookrunners,
+          tranches: tranchesData,
           updatedAt: serverTimestamp(),
           updatedBy: userData.name || userData.email
         });
-        // Delete old tranches, add new ones
-        const oldTranchesRef = collection(db, `organizations/${userData.organizationId}/newIssues/${editingIssue}/tranches`);
-        const oldTranches = await getDocs(oldTranchesRef);
-        for (const t of oldTranches.docs) { await deleteDoc(t.ref); }
-        for (const t of formData.tranches) {
-          await addDoc(oldTranchesRef, { tenor: t.tenor, currency: t.currency, targetSize: parseFloat(t.targetSize) || 0 });
-        }
         setEditingIssue(null);
       } else {
-        // Create new issue
         const newIssuesRef = collection(db, `organizations/${userData.organizationId}/newIssues`);
-        const issueDoc = await addDoc(newIssuesRef, {
+        await addDoc(newIssuesRef, {
           issuerName: formData.issuerName,
           bookrunners: selectedBookrunners,
+          tranches: tranchesData,
           createdAt: serverTimestamp(),
           createdBy: userData.name || userData.email
         });
-        // Add tranches as sub-collection
-        const tranchesRef = collection(db, `organizations/${userData.organizationId}/newIssues/${issueDoc.id}/tranches`);
-        for (const t of formData.tranches) {
-          await addDoc(tranchesRef, { tenor: t.tenor, currency: t.currency, targetSize: parseFloat(t.targetSize) || 0 });
-        }
       }
 
       setFormError('');
@@ -245,10 +235,6 @@ export default function Pipeline() {
     if (!isAdmin) { alert('Only org admins can delete issues.'); return; }
     if (!window.confirm('Are you sure you want to delete this issue and all its tranches?')) return;
     try {
-      // Delete tranches first
-      const tranchesRef = collection(db, `organizations/${userData.organizationId}/newIssues/${issueId}/tranches`);
-      const tranchesSnap = await getDocs(tranchesRef);
-      for (const t of tranchesSnap.docs) { await deleteDoc(t.ref); }
       await deleteDoc(doc(db, `organizations/${userData.organizationId}/newIssues`, issueId));
     } catch (error) { console.error('Error deleting issue:', error); alert('Failed to delete issue'); }
   }
@@ -403,9 +389,6 @@ export default function Pipeline() {
     if (!window.confirm(`Delete ${selectedIssueIds.size} selected issue${selectedIssueIds.size === 1 ? '' : 's'}?`)) return;
     try {
       for (const id of selectedIssueIds) {
-        const tranchesRef = collection(db, `organizations/${userData.organizationId}/newIssues/${id}/tranches`);
-        const tranchesSnap = await getDocs(tranchesRef);
-        for (const t of tranchesSnap.docs) { await deleteDoc(t.ref); }
         await deleteDoc(doc(db, `organizations/${userData.organizationId}/newIssues`, id));
       }
       setSelectedIssueIds(new Set());
