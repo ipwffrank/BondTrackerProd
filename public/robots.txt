@@ -1,0 +1,12 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /clients
+Disallow: /pipeline
+Disallow: /activities
+Disallow: /analytics
+Disallow: /team
+Disallow: /ai-assistant
+Disallow: /hostadmin
+
+Sitemap: https://axle-finance.com/sitemap.xml
