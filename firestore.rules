@@ -159,9 +159,15 @@ service cloud.firestore {
 
     match /organizations/{orgId}/newIssues/{issueId} {
       allow read: if isSameOrg(orgId) || isHostAdmin();
-      allow create: if isSameOrg(orgId);
-      allow update: if isSameOrg(orgId);
+      allow create: if isAdminInOrg(orgId);
+      allow update: if isAdminInOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
+
+      // Tranches sub-collection under each new issue
+      match /tranches/{trancheId} {
+        allow read: if isSameOrg(orgId) || isHostAdmin();
+        allow create, update, delete: if isAdminInOrg(orgId);
+      }
     }
 
     // ============================================
