@@ -46,7 +46,7 @@ exports.handler = async (event) => {
 
     // Generate password reset link
     const resetLink = await admin.auth().generatePasswordResetLink(email, {
-      url: 'https://www.axle-finance.com/login',
+      url: 'https://axle-finance.com/login',
     });
 
     // Send reset email via Resend

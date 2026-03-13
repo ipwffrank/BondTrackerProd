@@ -130,7 +130,7 @@ exports.handler = async (event) => {
                     </p>
                   </div>
 
-                  <a href="https://www.axle-finance.com/login" class="btn">
+                  <a href="https://axle-finance.com/login" class="btn">
                     Sign In to Axle
                   </a>
 

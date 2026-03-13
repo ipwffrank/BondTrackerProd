@@ -77,7 +77,7 @@ exports.handler = async (event) => {
                 <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on Axle.</p>
                 <p>Axle is the central intelligence platform for bond sales desks — managing activities, client relationships, and deal pipelines.</p>
                 <p style="text-align: center;">
-                  <a href="${signupUrl || 'https://www.axle-finance.com/signup'}" class="button">
+                  <a href="${signupUrl || 'https://axle-finance.com/signup'}" class="button">
                     Accept Invitation
                   </a>
                 </p>

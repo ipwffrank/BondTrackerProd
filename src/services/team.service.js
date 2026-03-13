@@ -111,7 +111,7 @@ export const teamService = {
       // Send invitation email via Netlify Function
       try {
         // Build the signup URL with invitation token
-        const baseUrl = window.location.origin;
+        const baseUrl = 'https://axle-finance.com';
         const signupUrl = `${baseUrl}/accept-invite?token=${invitation.id}&org=${organizationId}`;
 
         const response = await fetch('/.netlify/functions/send-invite', {
@@ -257,7 +257,7 @@ export const teamService = {
       if (invitationData) {
         try {
           // Build the signup URL with invitation token
-          const baseUrl = window.location.origin;
+          const baseUrl = 'https://axle-finance.com';
           const signupUrl = `${baseUrl}/accept-invite?token=${invitationId}&org=${organizationId}`;
 
           const response = await fetch('/.netlify/functions/send-invite', {
