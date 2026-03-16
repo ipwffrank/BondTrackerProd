@@ -84,6 +84,19 @@ export default function AIAssistant() {
     n => newClientForms[n].type && newClientForms[n].region
   ).length;
 
+  function isImageFile(file) {
+    return file && (file.type === 'image/png' || file.type === 'image/jpeg');
+  }
+
+  function readFileAsBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
   async function handleAiAnalysis() {
     if (!aiFile) return;
     setAiAnalyzing(true);
@@ -93,11 +106,24 @@ export default function AIAssistant() {
     setAnalysisFileName(aiFile.name);
 
     try {
-      const text = await aiFile.text();
+      const isImage = isImageFile(aiFile);
+      let payload;
+      let rawTextForHistory;
+
+      if (isImage) {
+        const base64 = await readFileAsBase64(aiFile);
+        payload = { imageBase64: base64, fileType: aiFile.type };
+        rawTextForHistory = null; // don't store large base64 in Firestore
+      } else {
+        const text = await aiFile.text();
+        payload = { transcript: text };
+        rawTextForHistory = text;
+      }
+
       const response = await fetch('/.netlify/functions/analyze-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transcript: text })
+        body: JSON.stringify(payload)
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || 'AI analysis failed');
@@ -111,9 +137,9 @@ export default function AIAssistant() {
         setAiError('No activities detected in the transcript');
       }
 
-      // Save upload history record (include raw text for admin download)
+      // Save upload history record
       if (userData?.organizationId) {
-        await addDoc(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), {
+        const uploadRecord = {
           fileName: aiFile.name,
           analyzedAt: serverTimestamp(),
           analyzedBy: userData.name || userData.email,
@@ -121,8 +147,10 @@ export default function AIAssistant() {
           tokensUsed: result.usage?.totalTokens || 0,
           promptTokens: result.usage?.promptTokens || 0,
           completionTokens: result.usage?.completionTokens || 0,
-          rawText: text
-        });
+          fileType: isImage ? 'image' : 'text',
+        };
+        if (rawTextForHistory) uploadRecord.rawText = rawTextForHistory;
+        await addDoc(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), uploadRecord);
       }
     } catch (error) {
       console.error('AI analysis error:', error);
@@ -167,7 +195,7 @@ export default function AIAssistant() {
           clientType: clientData.type || '',
           clientRegion: clientData.region || '',
           salesCoverage: clientData.salesCoverage || '',
-          activityType: 'Bloomberg Chat',
+          activityType: analysisFileName && /\.(png|jpe?g)$/i.test(analysisFileName) ? 'Chat Screenshot' : 'Bloomberg Chat',
           isin: activity.isin || '',
           ticker: activity.ticker || '',
           size: activity.size != null ? parseFloat(activity.size) : null,
@@ -256,16 +284,16 @@ export default function AIAssistant() {
           </div>
           <div style={{padding: '24px'}}>
             <div style={{marginBottom: '24px'}}>
-              <label className="form-label">Select Transcript File (.txt, .csv, .md)</label>
+              <label className="form-label">Select Transcript File (.txt, .csv, .md) or Chat Screenshot (.png, .jpg)</label>
               <input
                 type="file"
-                accept=".txt,.csv,.md"
+                accept=".txt,.csv,.md,.png,.jpg,.jpeg,image/png,image/jpeg"
                 className="form-input"
                 onChange={(e) => setAiFile(e.target.files[0])}
               />
               {aiFile && (
                 <p style={{fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px'}}>
-                  ✓ Selected: {aiFile.name}
+                  {isImageFile(aiFile) ? '🖼' : '✓'} Selected: {aiFile.name}{isImageFile(aiFile) ? ' (image — will use AI vision)' : ''}
                 </p>
               )}
             </div>
@@ -287,8 +315,10 @@ export default function AIAssistant() {
             <div style={{marginTop: '24px', padding: '16px', background: 'var(--badge-primary-bg)', borderRadius: '8px', border: '1px solid var(--badge-primary-text)'}}>
               <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>💡 How AI Analysis Works</h4>
               <ul style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
-                <li>Upload your Bloomberg chat or trading transcript</li>
+                <li>Upload your Bloomberg chat, trading transcript, or a screenshot of a chat conversation</li>
+                <li>Supported formats: text files (.txt, .csv, .md) and images (.png, .jpg)</li>
                 <li>AI automatically detects client names, ISINs, tickers, sizes, and directions</li>
+                <li>For screenshots, AI vision reads the chat dialogue and extracts the same structured data</li>
                 <li>Review the extracted activities before importing</li>
                 <li>Import all activities to your Activity Log with one click</li>
               </ul>
@@ -521,7 +551,7 @@ export default function AIAssistant() {
                                   }}
                                 >Download</button>
                               ) : (
-                                <span style={{fontSize: '12px', color: 'var(--text-muted)', padding: '4px 0'}}>N/A</span>
+                                <span style={{fontSize: '12px', color: 'var(--text-muted)', padding: '4px 0'}}>{h.fileType === 'image' ? 'Image' : 'N/A'}</span>
                               )}
                               <button
                                 className="btn"
