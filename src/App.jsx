@@ -15,6 +15,7 @@ import Team from './pages/Team';
 import LandingPage from './pages/LandingPage';
 import AuthAction from './pages/AuthAction';
 import HostAdmin from './pages/HostAdmin';
+import LegalPage from './pages/LegalPage';
 
 function LoadingScreen() {
   return (
@@ -44,6 +45,10 @@ function AppRoutes() {
         <Route path="/accept-invite" element={<AcceptInvite />} />
         <Route path="/auth-action" element={<AuthAction />} />
         <Route path="/hostadmin" element={<HostAdmin />} />
+        <Route path="/legal/:page" element={<LegalPage />} />
+        <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
+        <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+        <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
         
         {/* Main application routes */}
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />

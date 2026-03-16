@@ -94,9 +94,9 @@ export default function MarketingFooter() {
             {/* Legal */}
             <div>
               <p className="mkt-footer-heading">Legal</p>
-              <span className="mkt-footer-link" style={{ cursor: 'default' }}>Privacy Policy</span>
-              <span className="mkt-footer-link" style={{ cursor: 'default' }}>Terms of Service</span>
-              <span className="mkt-footer-link" style={{ cursor: 'default' }}>Security</span>
+              <Link to="/legal/privacy" className="mkt-footer-link">Privacy Policy</Link>
+              <Link to="/legal/terms" className="mkt-footer-link">Terms of Service</Link>
+              <Link to="/legal/disclaimer" className="mkt-footer-link">Disclaimer</Link>
             </div>
           </div>
 
@@ -108,7 +108,7 @@ export default function MarketingFooter() {
             alignItems: 'center', flexWrap: 'wrap', gap: '12px',
           }}>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
-              &copy; 2026 Alteri Group Pte. Ltd. All rights reserved.
+              &copy; 2026 Alteri LLC All rights reserved.
             </p>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.25)', margin: 0 }}>
               Singapore
