@@ -74,9 +74,14 @@ service cloud.firestore {
     match /users/{userId} {
       // Any authenticated user or host admin can read users
       allow read: if isAuthenticated() || isHostAdmin();
-      
+
       // Users can create their own profile during signup
       allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admins can create phantom/demo users in their org
+      allow create: if isAuthenticated()
+        && getUserData().isAdmin == true
+        && request.resource.data.organizationId == getUserData().organizationId;
       
       // Users can update their own profile
       allow update: if request.auth.uid == userId;
@@ -109,6 +114,9 @@ service cloud.firestore {
 
       // Users can create their own profile during signup
       allow create: if isAuthenticated() && request.auth.uid == userId;
+
+      // Admins can create phantom/demo users in their org
+      allow create: if isAdminInOrg(orgId);
 
       // Users can update their own profile
       allow update: if isAuthenticated() && request.auth.uid == userId;
