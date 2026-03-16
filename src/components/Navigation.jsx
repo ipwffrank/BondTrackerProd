@@ -4,6 +4,7 @@ import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
 import { AxleLogo } from '@alteri/ui';
+import { canAccessModule, getModuleGate } from '../config/moduleAccess';
 
 const NAV_LINKS = [
   {
@@ -66,7 +67,7 @@ const TEAM_LINK = {
 export default function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { userData } = useAuth();
+  const { userData, orgPlan } = useAuth();
   const [theme, setTheme] = useState('dark');
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebarCollapsed') === 'true'
@@ -184,16 +185,36 @@ export default function Navigation() {
       </div>
 
       <div className="nav-links">
-        {links.map((link) => (
-          <Link
-            key={link.to}
-            to={link.to}
-            className={`nav-link ${isActive(link.to) ? 'active' : ''}`}
-          >
-            <span className="nav-icon">{link.icon}</span>
-            <span className="nav-label">{link.label}</span>
-          </Link>
-        ))}
+        {links.map((link) => {
+          const locked = !canAccessModule(link.to, orgPlan);
+          const gate = getModuleGate(link.to);
+          if (locked) {
+            return (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="nav-link locked"
+                title={`Upgrade to ${gate?.tier} to unlock ${link.label}`}
+              >
+                <span className="nav-icon" style={{ opacity: 0.4 }}>{link.icon}</span>
+                <span className="nav-label" style={{ opacity: 0.4 }}>{link.label}</span>
+                <svg className="lock-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+              </Link>
+            );
+          }
+          return (
+            <Link
+              key={link.to}
+              to={link.to}
+              className={`nav-link ${isActive(link.to) ? 'active' : ''}`}
+            >
+              <span className="nav-icon">{link.icon}</span>
+              <span className="nav-label">{link.label}</span>
+            </Link>
+          );
+        })}
       </div>
 
       <div className="sidebar-footer">
@@ -323,6 +344,23 @@ export default function Navigation() {
           background: rgba(200, 162, 88, 0.12);
           color: #C8A258;
           border-color: rgba(200, 162, 88, 0.2);
+        }
+
+        .nav-link.locked {
+          color: var(--text-muted);
+          cursor: pointer;
+          position: relative;
+        }
+
+        .nav-link.locked:hover {
+          background: rgba(239, 68, 68, 0.06);
+          color: var(--text-muted);
+        }
+
+        .lock-icon {
+          color: var(--text-muted);
+          opacity: 0.6;
+          flex-shrink: 0;
         }
 
         .nav-icon {

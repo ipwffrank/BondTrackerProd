@@ -18,6 +18,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
+  const [orgPlan, setOrgPlan] = useState('essentials'); // subscription tier
   const [loading, setLoading] = useState(true);
 
   // Signup function
@@ -46,6 +47,7 @@ export function AuthProvider({ children }) {
         await setDoc(orgRef, {
           name: domain,
           domain: domain,
+          plan: 'essentials',
           createdAt: serverTimestamp(),
           userCount: 1,
           adminCount: 1
@@ -197,15 +199,14 @@ export function AuthProvider({ children }) {
     console.log('🔵 Setting up auth state listener');
 
     let orgUserUnsubscribe = null;
+    let orgDocUnsubscribe = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('🔵 Auth state changed:', user ? user.email : 'No user');
 
-      // Clean up previous org doc listener when user changes
-      if (orgUserUnsubscribe) {
-        orgUserUnsubscribe();
-        orgUserUnsubscribe = null;
-      }
+      // Clean up previous listeners when user changes
+      if (orgUserUnsubscribe) { orgUserUnsubscribe(); orgUserUnsubscribe = null; }
+      if (orgDocUnsubscribe) { orgDocUnsubscribe(); orgDocUnsubscribe = null; }
 
       setCurrentUser(user);
 
@@ -225,6 +226,14 @@ export function AuthProvider({ children }) {
           } else {
             console.log('🔍 No valid user mapping found, using domain-derived org:', orgId);
           }
+
+          // Subscribe to the org document for plan/tier updates
+          const orgDocRef = doc(db, `organizations/${orgId}`);
+          orgDocUnsubscribe = onSnapshot(orgDocRef, (orgSnap) => {
+            if (orgSnap.exists()) {
+              setOrgPlan(orgSnap.data().plan || 'essentials');
+            }
+          }, (err) => console.warn('Org doc listener error:', err));
 
           console.log('🔍 Subscribing to user data at:', `organizations/${orgId}/users/${user.uid}`);
 
@@ -363,6 +372,7 @@ export function AuthProvider({ children }) {
     return () => {
       console.log('🔵 Cleaning up auth state listener');
       if (orgUserUnsubscribe) orgUserUnsubscribe();
+      if (orgDocUnsubscribe) orgDocUnsubscribe();
       unsubscribe();
     };
   }, []);
@@ -372,6 +382,7 @@ export function AuthProvider({ children }) {
     currentUser,
     userData,
     isAdmin: userData?.isAdmin || false,
+    orgPlan,
     signup,
     signupWithInvitation,
     login,
