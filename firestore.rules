@@ -234,6 +234,17 @@ service cloud.firestore {
     }
 
     // ============================================
+    // MAINTENANCE COLLECTION (system-wide notices)
+    // ============================================
+
+    match /maintenance/{maintenanceId} {
+      // All authenticated users can read (for banner display)
+      allow read: if isAuthenticated();
+      // Only host admins can create, update, delete
+      allow create, update, delete: if isHostAdmin();
+    }
+
+    // ============================================
     // ARTIFACTS COLLECTION (if used)
     // ============================================
     

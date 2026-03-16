@@ -16,6 +16,7 @@ import LandingPage from './pages/LandingPage';
 import AuthAction from './pages/AuthAction';
 import HostAdmin from './pages/HostAdmin';
 import LegalPage from './pages/LegalPage';
+import MaintenanceBanner from './components/MaintenanceBanner';
 
 function LoadingScreen() {
   return (
@@ -99,7 +100,12 @@ function AuthLoadingWrapper() {
   if (isInitializing) {
     return <LoadingScreen />;
   }
-  return <AppRoutes />;
+  return (
+    <>
+      {currentUser && <MaintenanceBanner />}
+      <AppRoutes />
+    </>
+  );
 }
 
 export default App;
