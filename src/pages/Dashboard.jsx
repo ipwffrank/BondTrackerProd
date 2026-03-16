@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { canExport } from '../config/moduleAccess';
 import { Link, useNavigate } from 'react-router-dom';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, limit, updateDoc, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
 export default function Dashboard() {
-  const { userData, logout } = useAuth();
+  const { userData, logout, orgPlan } = useAuth();
   const navigate = useNavigate();
   
   // Theme state
@@ -1426,12 +1427,16 @@ export default function Dashboard() {
                 <div className="card-header">
                   <span>Client Directory ({clients.length})</span>
                   <div style={{display: 'flex', gap: '8px'}}>
-                    <button className="btn btn-muted" onClick={exportClientsToExcel}>
-                      📊 Export Excel
-                    </button>
-                    <button className="btn btn-muted" onClick={exportClientsToPDF}>
-                      📄 Export PDF
-                    </button>
+                    {canExport('excel', orgPlan) ? (
+                      <button className="btn btn-muted" onClick={exportClientsToExcel}>Export Excel</button>
+                    ) : (
+                      <button className="btn btn-muted" disabled title="Upgrade to Professional for Excel export" style={{opacity:0.4,cursor:'not-allowed'}}>Export Excel</button>
+                    )}
+                    {canExport('pdf', orgPlan) ? (
+                      <button className="btn btn-muted" onClick={exportClientsToPDF}>Export PDF</button>
+                    ) : (
+                      <button className="btn btn-muted" disabled title="Upgrade to Professional for PDF export" style={{opacity:0.4,cursor:'not-allowed'}}>Export PDF</button>
+                    )}
                   </div>
                 </div>
                 <div className="table-container">

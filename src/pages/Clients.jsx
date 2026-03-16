@@ -5,10 +5,11 @@ import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, update
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
+import { canExport } from '../config/moduleAccess';
 import { findSimilarClients } from '../utils/clientDedup';
 
 export default function Clients() {
-  const { userData, isAdmin, currentUser } = useAuth();
+  const { userData, isAdmin, currentUser, orgPlan } = useAuth();
   const [clientForm, setClientForm] = useState({ name:'',type:'FUND',region:'APAC',salesCoverage:'' });
   const [clients, setClients] = useState([]);
   const [editingClient, setEditingClient] = useState(null);
@@ -246,6 +247,18 @@ export default function Clients() {
   });
 
   // Export functions
+  function handleExportCSV() {
+    if(clients.length===0){ alert('No clients to export!'); return; }
+    const cols = ['Name','Type','Region','Sales Coverage','Created By'];
+    const rows = clients.map(c => [c.name,c.type,c.region,c.salesCoverage||'',c.createdBy||''].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+    const csv = [cols.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'clients-export.csv'; a.click();
+    URL.revokeObjectURL(url);
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_clients_csv',details:`Exported ${clients.length} clients to CSV`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
+  }
+
   function handleExportExcel() {
     if(clients.length===0){ alert('No clients to export!'); return; }
     exportToExcel(clients,[
@@ -338,8 +351,17 @@ export default function Clients() {
               {isAdmin && selectedIds.size > 0 && (
                 <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
               )}
-              <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
-              <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
+              <button onClick={handleExportCSV} className="btn btn-secondary">Export CSV</button>
+              {canExport('excel', orgPlan) ? (
+                <button onClick={handleExportExcel} className="btn btn-secondary">Export Excel</button>
+              ) : (
+                <button className="btn btn-secondary" disabled title="Upgrade to Professional for Excel export" style={{opacity:0.4,cursor:'not-allowed'}}>Export Excel</button>
+              )}
+              {canExport('pdf', orgPlan) ? (
+                <button onClick={handleExportPDF} className="btn btn-secondary">Export PDF</button>
+              ) : (
+                <button className="btn btn-secondary" disabled title="Upgrade to Professional for PDF export" style={{opacity:0.4,cursor:'not-allowed'}}>Export PDF</button>
+              )}
               <button onClick={() => csvInputRef.current?.click()} className="btn btn-secondary" disabled={csvUploading}>
                 {csvUploading ? '⏳ Uploading...' : '📤 Upload CSV'}
               </button>

@@ -5,9 +5,10 @@ import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, update
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
+import { canExport } from '../config/moduleAccess';
 
 export default function Activities() {
-  const { userData, currentUser, isAdmin } = useAuth();
+  const { userData, currentUser, isAdmin, orgPlan } = useAuth();
   const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:'' });
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
@@ -198,6 +199,16 @@ export default function Activities() {
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_pdf',details:`Exported ${activities.length} activities to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
+  function handleExportCSV(){
+    if(activities.length===0){alert('No activities to export!');return;}
+    const cols=[{h:'Date',f:'createdAt'},{h:'Client',f:'clientName'},{h:'Activity Type',f:'activityType'},{h:'ISIN',f:'isin'},{h:'Ticker',f:'ticker'},{h:'Size (MM)',f:'size'},{h:'Currency',f:'currency'},{h:'Direction',f:'direction'},{h:'Price',f:'price'},{h:'Status',f:'status'},{h:'Notes',f:'notes'},{h:'Created By',f:'createdBy'}];
+    const esc=v=>{const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s;};
+    const csv=[cols.map(c=>c.h).join(','),...activities.map(a=>cols.map(c=>esc(a[c.f])).join(','))].join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);const el=document.createElement('a');el.href=url;el.download='activity-log-export.csv';el.click();URL.revokeObjectURL(url);
+    if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_csv',details:`Exported ${activities.length} activities to CSV`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
+  }
+
   const filteredActivities = activities.filter(a => {
     if (actFilterDir && a.direction !== actFilterDir) return false;
     if (actFilterStatus && a.status !== actFilterStatus) return false;
@@ -337,8 +348,17 @@ export default function Activities() {
               {selectedIds.size > 0 && (
                 <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
               )}
-              <button onClick={handleExportExcel} className="btn btn-secondary">📊 Export Excel</button>
-              <button onClick={handleExportPDF} className="btn btn-secondary">📄 Export PDF</button>
+              <button onClick={handleExportCSV} className="btn btn-secondary">Export CSV</button>
+              {canExport('excel', orgPlan) ? (
+                <button onClick={handleExportExcel} className="btn btn-secondary">Export Excel</button>
+              ) : (
+                <button className="btn btn-secondary" disabled title="Upgrade to Professional for Excel export" style={{opacity:0.4,cursor:'not-allowed'}}>Export Excel</button>
+              )}
+              {canExport('pdf', orgPlan) ? (
+                <button onClick={handleExportPDF} className="btn btn-secondary">Export PDF</button>
+              ) : (
+                <button className="btn btn-secondary" disabled title="Upgrade to Professional for PDF export" style={{opacity:0.4,cursor:'not-allowed'}}>Export PDF</button>
+              )}
             </div>
           </div>
           {/* Filter bar */}

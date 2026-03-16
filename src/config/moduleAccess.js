@@ -25,4 +25,14 @@ export function getTierLabel(plan) {
   return { essentials: 'Essentials', professional: 'Professional', institutional: 'Institutional' }[plan] || 'Essentials';
 }
 
+// Export format access per tier
+// Essentials: CSV only | Professional: CSV, Excel, PDF | Institutional: all + API
+export function canExport(format, orgPlan) {
+  const rank = TIER_RANK[orgPlan] || 0;
+  if (format === 'csv') return true; // all tiers
+  if (format === 'excel' || format === 'pdf') return rank >= 2; // professional+
+  if (format === 'api') return rank >= 3; // institutional only
+  return false;
+}
+
 export const TIER_OPTIONS = ['essentials', 'professional', 'institutional'];
