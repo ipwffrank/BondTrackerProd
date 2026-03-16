@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc, doc, getDocs } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { findSimilarClients } from '../utils/clientDedup';
+
+const DIRECTION_OPTIONS = ['BUY', 'SELL', 'TWO-WAY'];
+const STATUS_OPTIONS = ['ENQUIRY', 'QUOTED', 'EXECUTED', 'PASSED', 'TRADED AWAY'];
 
 export default function AIAssistant() {
   const { userData, isAdmin } = useAuth();
@@ -11,11 +14,13 @@ export default function AIAssistant() {
   const [aiFile, setAiFile] = useState(null);
   const [aiAnalyzing, setAiAnalyzing] = useState(false);
   const [aiResults, setAiResults] = useState([]);
+  const [aiOriginals, setAiOriginals] = useState([]); // snapshot of AI output before user edits
   const [aiError, setAiError] = useState('');
   const [submitLoading, setSubmitLoading] = useState(false);
   const [analysisTimestamp, setAnalysisTimestamp] = useState(null);
   const [analysisFileName, setAnalysisFileName] = useState('');
-  const [tokensUsed, setTokensUsed] = useState(null); // { promptTokens, completionTokens, totalTokens }
+  const [tokensUsed, setTokensUsed] = useState(null);
+  const [aiCorrections, setAiCorrections] = useState([]); // past corrections for few-shot learning
 
   // Clients list (for new client detection)
   const [clients, setClients] = useState([]);
@@ -43,6 +48,12 @@ export default function AIAssistant() {
     unsubscribes.push(onSnapshot(
       query(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), orderBy('analyzedAt', 'desc'), limit(50)),
       (snap) => setUploadHistory(snap.docs.map(d => ({ id: d.id, ...d.data(), analyzedAt: d.data().analyzedAt?.toDate() })))
+    ));
+
+    // Load past AI corrections for few-shot learning (latest 20)
+    unsubscribes.push(onSnapshot(
+      query(collection(db, `organizations/${userData.organizationId}/aiCorrections`), orderBy('createdAt', 'desc'), limit(20)),
+      (snap) => setAiCorrections(snap.docs.map(d => d.data()))
     ));
 
     return () => unsubscribes.forEach(u => u());
@@ -97,6 +108,15 @@ export default function AIAssistant() {
     });
   }
 
+  function updateResult(idx, field, value) {
+    setAiResults(prev => prev.map((r, i) => i === idx ? { ...r, [field]: value } : r));
+  }
+
+  function deleteResult(idx) {
+    setAiResults(prev => prev.filter((_, i) => i !== idx));
+    setAiOriginals(prev => prev.filter((_, i) => i !== idx));
+  }
+
   async function handleAiAnalysis() {
     if (!aiFile) return;
     setAiAnalyzing(true);
@@ -120,6 +140,14 @@ export default function AIAssistant() {
         rawTextForHistory = text;
       }
 
+      // Include past corrections for few-shot learning
+      if (aiCorrections.length > 0) {
+        payload.corrections = aiCorrections.slice(0, 10).map(c => ({
+          original: c.original,
+          corrected: c.corrected
+        }));
+      }
+
       const response = await fetch('/.netlify/functions/analyze-transcript', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -129,7 +157,9 @@ export default function AIAssistant() {
       if (!response.ok) throw new Error(result.error || 'AI analysis failed');
 
       const ts = new Date();
-      setAiResults(result.activities || []);
+      const activities = result.activities || [];
+      setAiResults(activities);
+      setAiOriginals(activities.map(a => ({ ...a }))); // deep copy for diff tracking
       setAnalysisTimestamp(ts);
       setTokensUsed(result.usage || null);
 
@@ -209,7 +239,24 @@ export default function AIAssistant() {
         });
       }
 
+      // Save corrections (diffs between AI originals and user-edited values) for learning
+      const correctionsRef = collection(db, `organizations/${userData.organizationId}/aiCorrections`);
+      for (let i = 0; i < aiResults.length; i++) {
+        const orig = aiOriginals[i];
+        const edited = aiResults[i];
+        if (!orig) continue;
+        const fields = ['clientName', 'ticker', 'size', 'direction', 'price', 'status', 'notes'];
+        const changed = fields.filter(f => String(orig[f] ?? '') !== String(edited[f] ?? ''));
+        if (changed.length > 0) {
+          const original = {};
+          const corrected = {};
+          changed.forEach(f => { original[f] = orig[f]; corrected[f] = edited[f]; });
+          await addDoc(correctionsRef, { original, corrected, createdAt: serverTimestamp(), createdBy: userData.name || userData.email });
+        }
+      }
+
       setAiResults([]);
+      setAiOriginals([]);
       setAiFile(null);
       setNewClientForms({});
       setClientMappings({});
@@ -452,41 +499,125 @@ export default function AIAssistant() {
               </div>
             )}
 
-            <div className="table-container" style={{marginTop: newClientNames.length > 0 ? '16px' : '0'}}>
+            <div style={{margin: '16px 24px 0', display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <span className="step-number" style={{background: newClientNames.length > 0 ? 'var(--accent)' : 'var(--accent)', width: 22, height: 22, fontSize: 10}}>1</span>
+              <span style={{fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)'}}>Review & Edit Activities</span>
+              <span style={{fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px'}}>Click any cell to edit. Changes help AI learn.</span>
+            </div>
+            <div className="table-container" style={{marginTop: '8px'}}>
               <table className="table">
                 <thead>
                   <tr>
                     <th>Client</th>
                     <th>Ticker</th>
-                    <th>Size</th>
+                    <th>Size (MM)</th>
                     <th>Direction</th>
                     <th>Price</th>
                     <th>Status</th>
                     <th>Notes</th>
+                    <th style={{width: '40px'}}></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {aiResults.map((result, idx) => (
+                  {aiResults.map((result, idx) => {
+                    const orig = aiOriginals[idx];
+                    const isEdited = (field) => orig && String(orig[field] ?? '') !== String(result[field] ?? '');
+                    const editedStyle = (field) => isEdited(field) ? { background: 'rgba(200,162,88,0.12)', borderColor: 'var(--accent)' } : {};
+                    return (
                     <tr key={idx}>
-                      <td style={{fontWeight: 600}}>
-                        {clientMappings[result.clientName] ? (
-                          <><span style={{textDecoration:'line-through',opacity:0.5}}>{result.clientName}</span> → {clientMappings[result.clientName]}</>
-                        ) : result.clientName}
+                      <td style={{fontWeight: 600, position: 'relative'}}>
+                        <input
+                          type="text"
+                          className="form-input inline-edit"
+                          value={result.clientName || ''}
+                          onChange={e => updateResult(idx, 'clientName', e.target.value)}
+                          style={{fontWeight: 600, ...editedStyle('clientName')}}
+                        />
                         {!clientMappings[result.clientName] && newClientForms[result.clientName] !== undefined && (
-                          <span style={{marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW</span>
+                          <span style={{position:'absolute', right:6, top:'50%', transform:'translateY(-50%)', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '20px', background: '#d97706', color: '#fff'}}>NEW</span>
                         )}
                         {clientMappings[result.clientName] && (
-                          <span style={{marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '20px', background: 'var(--badge-success-bg)', color: 'var(--badge-success-text)'}}>MAPPED</span>
+                          <span style={{position:'absolute', right:6, top:'50%', transform:'translateY(-50%)', fontSize: '9px', fontWeight: 700, padding: '1px 5px', borderRadius: '20px', background: 'var(--badge-success-bg)', color: 'var(--badge-success-text)'}}>MAPPED</span>
                         )}
                       </td>
-                      <td>{result.ticker || result.isin || '-'}</td>
-                      <td>{result.size ? `${result.size}MM` : '-'}</td>
-                      <td><span className={`badge ${getDirectionBadge(result.direction)}`}>{result.direction}</span></td>
-                      <td>{result.price || '-'}</td>
-                      <td><span className={`badge ${getStatusBadge(result.status)}`}>{result.status}</span></td>
-                      <td style={{maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis'}}>{result.notes || '-'}</td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-input inline-edit"
+                          value={result.ticker || ''}
+                          onChange={e => updateResult(idx, 'ticker', e.target.value)}
+                          style={editedStyle('ticker')}
+                          placeholder="-"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="form-input inline-edit"
+                          value={result.size ?? ''}
+                          onChange={e => updateResult(idx, 'size', e.target.value === '' ? null : parseFloat(e.target.value))}
+                          style={{...editedStyle('size'), width: '80px'}}
+                          placeholder="-"
+                          step="any"
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="form-select inline-edit"
+                          value={result.direction || ''}
+                          onChange={e => updateResult(idx, 'direction', e.target.value)}
+                          style={editedStyle('direction')}
+                        >
+                          {DIRECTION_OPTIONS.map(d => <option key={d} value={d}>{d}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          className="form-input inline-edit"
+                          value={result.price ?? ''}
+                          onChange={e => updateResult(idx, 'price', e.target.value === '' ? null : parseFloat(e.target.value))}
+                          style={{...editedStyle('price'), width: '90px'}}
+                          placeholder="-"
+                          step="any"
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="form-select inline-edit"
+                          value={result.status || ''}
+                          onChange={e => updateResult(idx, 'status', e.target.value)}
+                          style={editedStyle('status')}
+                        >
+                          {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-input inline-edit"
+                          value={result.notes || ''}
+                          onChange={e => updateResult(idx, 'notes', e.target.value)}
+                          style={editedStyle('notes')}
+                          placeholder="-"
+                        />
+                      </td>
+                      <td>
+                        <button
+                          onClick={() => deleteResult(idx)}
+                          title="Remove this activity"
+                          style={{background:'none', border:'none', cursor:'pointer', color:'#64748b', padding:'4px', borderRadius:'4px', transition:'color 0.15s'}}
+                          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#64748b'}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/>
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -618,6 +749,9 @@ export default function AIAssistant() {
         .bottom-import-btn--ready{background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;box-shadow:0 2px 12px rgba(22,163,74,0.35);}
         .bottom-import-btn--ready:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 16px rgba(22,163,74,0.45);}
         .bottom-import-btn--blocked{background:var(--btn-muted-bg);color:var(--btn-muted-text);opacity:0.7;cursor:not-allowed;}
+        .inline-edit{padding:6px 8px !important;font-size:13px !important;border:1.5px solid transparent !important;background:transparent !important;border-radius:6px !important;transition:all 0.15s !important;width:100% !important;min-width:0 !important;}
+        .inline-edit:hover{border-color:var(--border) !important;background:var(--bg-input) !important;}
+        .inline-edit:focus{border-color:var(--border-focus) !important;background:var(--bg-input-focus) !important;box-shadow:0 0 0 2px var(--accent-glow) !important;}
       `}</style>
     </div>
   );

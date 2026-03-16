@@ -17,7 +17,7 @@ exports.handler = async (event) => {
     console.log('- OPENAI_API_KEY exists:', !!process.env.OPENAI_API_KEY);
 
     const body = JSON.parse(event.body || '{}');
-    const { transcript, imageBase64, fileType } = body;
+    const { transcript, imageBase64, fileType, corrections } = body;
     const isImage = !!imageBase64;
 
     if (!process.env.OPENAI_API_KEY) {
@@ -68,6 +68,17 @@ OTHER RULES:
 Return JSON array only (no markdown):
 [{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
 
+    // Build few-shot correction examples from user feedback
+    let correctionSection = '';
+    if (Array.isArray(corrections) && corrections.length > 0) {
+      const examples = corrections.map((c, i) => {
+        const origFields = Object.entries(c.original || {}).map(([k, v]) => `${k}: "${v ?? ''}"`).join(', ');
+        const fixedFields = Object.entries(c.corrected || {}).map(([k, v]) => `${k}: "${v ?? ''}"`).join(', ');
+        return `  ${i + 1}. AI output: {${origFields}} → Corrected: {${fixedFields}}`;
+      }).join('\n');
+      correctionSection = `\n\nIMPORTANT — LEARN FROM PAST CORRECTIONS:\nUsers have previously corrected these AI outputs. Apply these patterns:\n${examples}\n`;
+    }
+
     // Build messages based on input type
     let messages;
     let model;
@@ -90,7 +101,7 @@ ${prompt}`;
         {
           role: 'user',
           content: [
-            { type: 'text', text: imagePrompt },
+            { type: 'text', text: imagePrompt + correctionSection },
             { type: 'image_url', image_url: { url: imageBase64 } }
           ]
         }
@@ -100,7 +111,7 @@ ${prompt}`;
       model = 'gpt-3.5-turbo';
       messages = [
         { role: 'system', content: 'You are a bond trading analyst. Return only valid JSON.' },
-        { role: 'user', content: `${prompt}\n\nTranscript: ${transcript}` }
+        { role: 'user', content: `${prompt}${correctionSection}\n\nTranscript: ${transcript}` }
       ];
     }
 
