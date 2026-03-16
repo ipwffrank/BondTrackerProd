@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AxleLogo from './AxleLogo';
 
 const NAV_LINKS = [
@@ -108,6 +108,9 @@ const scrollTo = (id) => document.getElementById(id)?.scrollIntoView({ behavior:
 export default function MarketingNav() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
+  const isOnLandingPage = location.pathname === '/' || location.pathname === '/login';
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -117,7 +120,19 @@ export default function MarketingNav() {
 
   const handleNavClick = (id) => {
     setMenuOpen(false);
-    scrollTo(id);
+    if (isOnLandingPage) {
+      scrollTo(id);
+    } else {
+      navigate('/', { state: { scrollTo: id } });
+    }
+  };
+
+  const handleLogoClick = () => {
+    if (isOnLandingPage) {
+      scrollTo('home');
+    } else {
+      navigate('/');
+    }
   };
 
   return (
@@ -140,7 +155,7 @@ export default function MarketingNav() {
       >
         {/* Logo — scroll to top */}
         <button
-          onClick={() => scrollTo('home')}
+          onClick={handleLogoClick}
           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           aria-label="Go to top"
         >

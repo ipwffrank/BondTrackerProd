@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import MarketingNav from '../components/marketing/MarketingNav';
@@ -629,6 +629,20 @@ function LoginModal() {
 
 export default function LandingPage({ showLogin = false }) {
   const [activePreview, setActivePreview] = useState('crm');
+  const location = useLocation();
+
+  useEffect(() => {
+    if (location.state?.scrollTo) {
+      const id = location.state.scrollTo;
+      // Small delay to ensure the page has rendered
+      setTimeout(() => {
+        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+      // Clear the state so it doesn't re-scroll on re-renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
   return (
     <div className="lp2">
       <style>{STYLES}</style>
