@@ -150,7 +150,7 @@ const PrivacyPolicy = () => (
 
     <h2>15. Contact Information</h2>
     <p>For enquiries, data access requests, data correction requests, or complaints regarding this Privacy Policy or our data practices, please contact:</p>
-    <p><strong>Data Protection Officer</strong><br />Alteri LLC<br />Email: <a href="mailto:privacy@axle-finance.com">privacy@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p><strong>Data Protection Officer</strong><br />Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
     <p>For users in Hong Kong, you may also lodge a complaint with the Office of the Privacy Commissioner for Personal Data (PCPD) at <a href="https://www.pcpd.org.hk" target="_blank" rel="noopener noreferrer">https://www.pcpd.org.hk</a>.</p>
     <p>For users in Singapore, you may contact the Personal Data Protection Commission (PDPC) at <a href="https://www.pdpc.gov.sg" target="_blank" rel="noopener noreferrer">https://www.pdpc.gov.sg</a>.</p>
 
@@ -263,7 +263,7 @@ const TermsOfService = () => (
 
     <h2>19. Contact Information</h2>
     <p>If you have any questions or concerns about these Terms, please contact us at:</p>
-    <p>Alteri LLC<br />Email: <a href="mailto:legal@axle-finance.com">legal@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p>Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
 
     <p className="legal-effective"><em>These Terms of Service are effective as of 16 March 2026.</em></p>
   </>
@@ -334,7 +334,7 @@ const Disclaimer = () => (
 
     <h2>12. Contact Information</h2>
     <p>For any questions regarding this Disclaimer, please contact:</p>
-    <p>Alteri LLC<br />Email: <a href="mailto:legal@axle-finance.com">legal@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p>Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
 
     <p className="legal-effective"><em>This Disclaimer is effective as of 16 March 2026.</em></p>
   </>
