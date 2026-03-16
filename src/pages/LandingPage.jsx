@@ -506,9 +506,21 @@ function ContactSection() {
         <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 12px' }}>
           Request Received
         </h3>
-        <p style={{ fontFamily: "'Outfit', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: '0 auto', maxWidth: '400px' }}>
+        <p style={{ fontFamily: "'Outfit', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: '0 auto 24px', maxWidth: '400px' }}>
           Thank you, {form.firstName}. Our team will be in touch within one business day to schedule your demo.
         </p>
+        <button
+          type="button"
+          onClick={() => {
+            setSubmitted(false);
+            setForm({ firstName: '', lastName: '', jobTitle: '', email: '', company: '', employees: '', countryCode: '+65', phone: '' });
+            setErrors({});
+          }}
+          className="lp2-btn-gold"
+          style={{ fontSize: '14px', padding: '10px 24px' }}
+        >
+          Submit Another Request
+        </button>
       </div>
     );
   }
