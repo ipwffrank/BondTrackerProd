@@ -9,7 +9,7 @@ import { canExport } from '../config/moduleAccess';
 
 export default function Activities() {
   const { userData, currentUser, isAdmin, orgPlan } = useAuth();
-  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:'' });
+  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'' });
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [stats, setStats] = useState({ totalActivities:0,totalVolume:0,buyCount:0,sellCount:0,twoWayCount:0 });
@@ -92,11 +92,12 @@ export default function Activities() {
     const sc=getSelectedClient();
     setSubmitLoading(true);
     try{
-      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:activityForm.price?parseFloat(activityForm.price):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+      const isTwoWay = activityForm.direction === 'TWO-WAY';
+      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
       else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
       setFormError('');
-      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:''});
+      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:''});
     }catch(e){console.error(e);alert('Failed to save activity');}finally{setSubmitLoading(false);}
   }
 
@@ -146,7 +147,7 @@ export default function Activities() {
   }
 
   function handleEditActivity(a){
-    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||''});
+    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',bidPrice:a.bidPrice?.toString()||'',offerPrice:a.offerPrice?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||''});
     setEditingActivity(a.id);
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -177,12 +178,29 @@ export default function Activities() {
     }
   }
 
+  async function handleInlineBidOfferUpdate(activityId, field, value) {
+    setSavingPrice(p => ({...p, [activityId]: true}));
+    try {
+      await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, activityId), {
+        [field]: value !== '' ? parseFloat(value) : null
+      });
+    } catch(e) {
+      console.error(e);
+      alert('Failed to update price');
+    } finally {
+      setSavingPrice(p => ({...p, [activityId]: false}));
+    }
+  }
+
+  const formatDisplayPrice=(a)=>a.direction==='TWO-WAY'&&(a.bidPrice!=null||a.offerPrice!=null)?`${a.bidPrice??'-'} / ${a.offerPrice??'-'}`:a.price??'';
+  const activitiesWithDisplayPrice=()=>activities.map(a=>({...a,displayPrice:formatDisplayPrice(a)}));
+
   function handleExportExcel(){
     if(activities.length===0){alert('No activities to export!');return;}
-    exportToExcel(activities,[
+    exportToExcel(activitiesWithDisplayPrice(),[
       {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Activity Type',field:'activityType'},
       {header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},
-      {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},{header:'Price',field:'price'},
+      {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},{header:'Price',field:'displayPrice'},
       {header:'Status',field:'status'},{header:'Notes',field:'notes'},{header:'Created By',field:'createdBy'}
     ],'activity-log-export','Activity Log');
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_excel',details:`Exported ${activities.length} activities to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
@@ -190,20 +208,21 @@ export default function Activities() {
 
   function handleExportPDF(){
     if(activities.length===0){alert('No activities to export!');return;}
-    exportToPDF(activities,[
+    exportToPDF(activitiesWithDisplayPrice(),[
       {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Type',field:'activityType'},
       {header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},
       {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},
-      {header:'Price',field:'price'},{header:'Status',field:'status'},{header:'Notes',field:'notes'}
+      {header:'Price',field:'displayPrice'},{header:'Status',field:'status'},{header:'Notes',field:'notes'}
     ],'activity-log-export','Activity Log');
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_pdf',details:`Exported ${activities.length} activities to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportCSV(){
     if(activities.length===0){alert('No activities to export!');return;}
-    const cols=[{h:'Date',f:'createdAt'},{h:'Client',f:'clientName'},{h:'Activity Type',f:'activityType'},{h:'ISIN',f:'isin'},{h:'Ticker',f:'ticker'},{h:'Size (MM)',f:'size'},{h:'Currency',f:'currency'},{h:'Direction',f:'direction'},{h:'Price',f:'price'},{h:'Status',f:'status'},{h:'Notes',f:'notes'},{h:'Created By',f:'createdBy'}];
+    const exportData=activitiesWithDisplayPrice();
+    const cols=[{h:'Date',f:'createdAt'},{h:'Client',f:'clientName'},{h:'Activity Type',f:'activityType'},{h:'ISIN',f:'isin'},{h:'Ticker',f:'ticker'},{h:'Size (MM)',f:'size'},{h:'Currency',f:'currency'},{h:'Direction',f:'direction'},{h:'Price',f:'displayPrice'},{h:'Status',f:'status'},{h:'Notes',f:'notes'},{h:'Created By',f:'createdBy'}];
     const esc=v=>{const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s;};
-    const csv=[cols.map(c=>c.h).join(','),...activities.map(a=>cols.map(c=>esc(a[c.f])).join(','))].join('\n');
+    const csv=[cols.map(c=>c.h).join(','),...exportData.map(a=>cols.map(c=>esc(a[c.f])).join(','))].join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
     const url=URL.createObjectURL(blob);const el=document.createElement('a');el.href=url;el.download='activity-log-export.csv';el.click();URL.revokeObjectURL(url);
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_csv',details:`Exported ${activities.length} activities to CSV`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
@@ -251,7 +270,7 @@ export default function Activities() {
         <div className="card">
           <div className="card-header">
             <span>📝 {editingActivity?'Edit Activity':'New Activity'}</span>
-            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',direction:'',status:'',notes:''});}}>Cancel Edit</button>}
+            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:''});}}>Cancel Edit</button>}
           </div>
           <form onSubmit={handleActivitySubmit}>
             <div className="form-grid">
@@ -304,8 +323,16 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label className="form-label">Price{editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? ' (locked)' : ''}</label>
-                  <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} title={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? 'Price can only be edited for Enquiry and Quoted statuses' : ''}/>
+                  <label className="form-label">Price{editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? ' (locked)' : ''}{activityForm.direction==='TWO-WAY'?' (Bid / Offer)':''}</label>
+                  {activityForm.direction==='TWO-WAY'?(
+                    <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                      <input type="number" step="0.0001" className="form-input" placeholder="Bid" value={activityForm.bidPrice} onChange={e=>setActivityForm({...activityForm,bidPrice:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} style={{flex:1}}/>
+                      <span style={{color:'var(--text-muted)',fontWeight:600}}>/</span>
+                      <input type="number" step="0.0001" className="form-input" placeholder="Offer" value={activityForm.offerPrice} onChange={e=>setActivityForm({...activityForm,offerPrice:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} style={{flex:1}}/>
+                    </div>
+                  ):(
+                    <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} title={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? 'Price can only be edited for Enquiry and Quoted statuses' : ''}/>
+                  )}
                 </div>
                 <div className="field-group">
                   <label className="form-label">Direction *</label>
@@ -411,18 +438,21 @@ export default function Activities() {
                       <td>{a.currency}</td>
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>
                       <td>
-                        {['ENQUIRY','QUOTED'].includes(a.status) ? (
-                          <input
-                            type="number"
-                            step="0.0001"
-                            defaultValue={a.price||''}
-                            placeholder="Price"
-                            className="inline-price-input"
-                            onBlur={e=>handleInlinePriceUpdate(a.id,e.target.value)}
-                            onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}}
-                            title={savingPrice[a.id]?'Saving...':'Enter price, then press Enter or click away'}
-                          />
-                        ) : (a.price||'-')}
+                        {a.direction==='TWO-WAY'?(
+                          ['ENQUIRY','QUOTED'].includes(a.status)?(
+                            <div style={{display:'flex',gap:'2px',alignItems:'center'}}>
+                              <input type="number" step="0.0001" defaultValue={a.bidPrice||''} placeholder="Bid" className="inline-price-input" style={{width:'60px'}} onBlur={e=>handleInlineBidOfferUpdate(a.id,'bidPrice',e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Bid price'}/>
+                              <span style={{color:'var(--text-muted)'}}>/</span>
+                              <input type="number" step="0.0001" defaultValue={a.offerPrice||''} placeholder="Offer" className="inline-price-input" style={{width:'60px'}} onBlur={e=>handleInlineBidOfferUpdate(a.id,'offerPrice',e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Offer price'}/>
+                            </div>
+                          ):(
+                            (a.bidPrice||a.offerPrice)?`${a.bidPrice??'-'} / ${a.offerPrice??'-'}`:a.price||'-'
+                          )
+                        ):(
+                          ['ENQUIRY','QUOTED'].includes(a.status)?(
+                            <input type="number" step="0.0001" defaultValue={a.price||''} placeholder="Price" className="inline-price-input" onBlur={e=>handleInlinePriceUpdate(a.id,e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Enter price, then press Enter or click away'}/>
+                          ):(a.price||'-')
+                        )}
                       </td>
                       <td>
                         <select

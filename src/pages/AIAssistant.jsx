@@ -220,6 +220,7 @@ export default function AIAssistant() {
         const rawName = activity.clientName || 'UNKNOWN';
         const clientName = clientMappings[rawName] || rawName;
         const clientData = registeredClients[clientName] || existingClientMap[clientName] || registeredClients[rawName] || {};
+        const isTwoWay = activity.direction === 'TWO-WAY';
         await addDoc(activitiesRef, {
           clientName,
           clientType: clientData.type || '',
@@ -230,7 +231,9 @@ export default function AIAssistant() {
           ticker: activity.ticker || '',
           size: activity.size != null ? parseFloat(activity.size) : null,
           currency: activity.currency || 'USD',
-          price: parseFloat(activity.price) || null,
+          price: isTwoWay ? null : (parseFloat(activity.price) || null),
+          bidPrice: isTwoWay && activity.bidPrice != null ? parseFloat(activity.bidPrice) : null,
+          offerPrice: isTwoWay && activity.offerPrice != null ? parseFloat(activity.offerPrice) : null,
           direction: activity.direction || '',
           status: activity.status || 'ENQUIRY',
           notes: activity.notes || 'Imported from AI analysis',
@@ -245,7 +248,7 @@ export default function AIAssistant() {
         const orig = aiOriginals[i];
         const edited = aiResults[i];
         if (!orig) continue;
-        const fields = ['clientName', 'ticker', 'size', 'direction', 'price', 'status', 'notes'];
+        const fields = ['clientName', 'ticker', 'size', 'direction', 'price', 'bidPrice', 'offerPrice', 'status', 'notes'];
         const changed = fields.filter(f => String(orig[f] ?? '') !== String(edited[f] ?? ''));
         if (changed.length > 0) {
           const original = {};
@@ -512,7 +515,7 @@ export default function AIAssistant() {
                     <th>Ticker</th>
                     <th>Size (MM)</th>
                     <th>Direction</th>
-                    <th>Price</th>
+                    <th>Price (Bid/Offer)</th>
                     <th>Status</th>
                     <th>Notes</th>
                     <th style={{width: '40px'}}></th>
@@ -572,15 +575,15 @@ export default function AIAssistant() {
                         </select>
                       </td>
                       <td>
-                        <input
-                          type="number"
-                          className="form-input inline-edit"
-                          value={result.price ?? ''}
-                          onChange={e => updateResult(idx, 'price', e.target.value === '' ? null : parseFloat(e.target.value))}
-                          style={{...editedStyle('price'), width: '90px'}}
-                          placeholder="-"
-                          step="any"
-                        />
+                        {result.direction==='TWO-WAY'?(
+                          <div style={{display:'flex',gap:'2px',alignItems:'center'}}>
+                            <input type="number" className="form-input inline-edit" value={result.bidPrice ?? ''} onChange={e => updateResult(idx, 'bidPrice', e.target.value === '' ? null : parseFloat(e.target.value))} style={{...editedStyle('bidPrice'), width: '65px'}} placeholder="Bid" step="any"/>
+                            <span style={{color:'var(--text-muted)'}}>/</span>
+                            <input type="number" className="form-input inline-edit" value={result.offerPrice ?? ''} onChange={e => updateResult(idx, 'offerPrice', e.target.value === '' ? null : parseFloat(e.target.value))} style={{...editedStyle('offerPrice'), width: '65px'}} placeholder="Offer" step="any"/>
+                          </div>
+                        ):(
+                          <input type="number" className="form-input inline-edit" value={result.price ?? ''} onChange={e => updateResult(idx, 'price', e.target.value === '' ? null : parseFloat(e.target.value))} style={{...editedStyle('price'), width: '90px'}} placeholder="-" step="any"/>
+                        )}
                       </td>
                       <td>
                         <select

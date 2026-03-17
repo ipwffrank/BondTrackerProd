@@ -62,11 +62,12 @@ OTHER RULES:
    - "/99" means the dealer's offer price is 99 (leading slash = offer side)
    - "99/101" means bid 99 / offer 101
    - Any number the dealer says in reply to a price request IS the price.
-   Always return price as a plain number (e.g. 100, 101, 99.5). Never return null if the dealer quoted a number.
+   For BUY or SELL direction: return "price" as a plain number (e.g. 100, 101, 99.5). Never return null if the dealer quoted a number.
+   For TWO-WAY direction: return "bidPrice" and "offerPrice" as separate numbers. If both are quoted (e.g. "99/101"), set bidPrice=99, offerPrice=101. If only one side is quoted, set the other to null.
 6. SIZE must always be in millions (MM). Examples: "15MM" → 15, "2mm" → 2, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size is mentioned in the conversation, return null (not 0).
 
 Return JSON array only (no markdown):
-[{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
+[{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"bidPrice":null,"offerPrice":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
 
     // Build few-shot correction examples from user feedback
     let correctionSection = '';
@@ -162,6 +163,8 @@ ${prompt}`;
     ).map(a => {
       const parsedSize = a.size != null ? parseFloat(a.size) : null;
       const parsedPrice = a.price != null ? parseFloat(String(a.price).replace(/[^0-9.\-]/g, '')) : null;
+      const parsedBid = a.bidPrice != null ? parseFloat(String(a.bidPrice).replace(/[^0-9.\-]/g, '')) : null;
+      const parsedOffer = a.offerPrice != null ? parseFloat(String(a.offerPrice).replace(/[^0-9.\-]/g, '')) : null;
       return {
         clientName: a.clientName,
         contactPerson: a.contactPerson || '',
@@ -170,7 +173,9 @@ ${prompt}`;
         ticker: a.ticker || '',
         size: (parsedSize && !isNaN(parsedSize)) ? parsedSize : null,
         currency: 'USD',
-        price: (parsedPrice && !isNaN(parsedPrice)) ? parsedPrice : null,
+        price: a.direction === 'TWO-WAY' ? null : ((parsedPrice && !isNaN(parsedPrice)) ? parsedPrice : null),
+        bidPrice: a.direction === 'TWO-WAY' && parsedBid && !isNaN(parsedBid) ? parsedBid : null,
+        offerPrice: a.direction === 'TWO-WAY' && parsedOffer && !isNaN(parsedOffer) ? parsedOffer : null,
         direction: a.direction,
         status: a.status,
         notes: a.notes || ''
