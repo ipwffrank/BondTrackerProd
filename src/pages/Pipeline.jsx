@@ -9,7 +9,7 @@ import { findSimilarClients } from '../utils/clientDedup';
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'HKD', 'SGD', 'CNH'];
 const TENOR_OPTIONS = ['2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y', '30Y'];
-const CLIENT_TYPES = ['FUND', 'BANK', 'INSURANCE', 'PENSION', 'SOVEREIGN'];
+const CLIENT_TYPES = ['FUND', 'HEDGE FUND', 'BANK', 'CENTRAL BANK', 'INSURANCE', 'PENSION', 'SOVEREIGN', 'CORPORATE', 'PRIVATE BANK', 'FAMILY OFFICE'];
 const CLIENT_REGIONS = ['APAC', 'EMEA', 'AMERICAS'];
 
 const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '', internalTargetSize: '' };

@@ -182,7 +182,7 @@ export default function Clients() {
       const firstLineLower = lines[0].toLowerCase();
       if (firstLineLower.includes('name') || firstLineLower.includes('client') || firstLineLower.includes('type')) startIdx = 1;
 
-      const VALID_TYPES = ['FUND','BANK','INSURANCE','PENSION','SOVEREIGN'];
+      const VALID_TYPES = ['FUND','HEDGE FUND','BANK','CENTRAL BANK','INSURANCE','PENSION','SOVEREIGN','CORPORATE','PRIVATE BANK','FAMILY OFFICE'];
       const VALID_REGIONS = ['APAC','EMEA','AMERICAS'];
 
       const rows = lines.slice(startIdx).map(line => {
@@ -312,10 +312,15 @@ export default function Clients() {
                   <label className="form-label">Client Type *</label>
                   <select className="form-select" value={clientForm.type} onChange={e=>setClientForm({...clientForm,type:e.target.value})}>
                     <option value="FUND">Fund</option>
+                    <option value="HEDGE FUND">Hedge Fund</option>
                     <option value="BANK">Bank</option>
+                    <option value="CENTRAL BANK">Central Bank</option>
                     <option value="INSURANCE">Insurance</option>
                     <option value="PENSION">Pension</option>
                     <option value="SOVEREIGN">Sovereign</option>
+                    <option value="CORPORATE">Corporate</option>
+                    <option value="PRIVATE BANK">Private Bank</option>
+                    <option value="FAMILY OFFICE">Family Office</option>
                   </select>
                 </div>
               </div>
@@ -384,10 +389,15 @@ export default function Clients() {
             <select className="filter-select" value={filterType} onChange={e=>setFilterType(e.target.value)}>
               <option value="">All Types</option>
               <option value="FUND">Fund</option>
+              <option value="HEDGE FUND">Hedge Fund</option>
               <option value="BANK">Bank</option>
+              <option value="CENTRAL BANK">Central Bank</option>
               <option value="INSURANCE">Insurance</option>
               <option value="PENSION">Pension</option>
               <option value="SOVEREIGN">Sovereign</option>
+              <option value="CORPORATE">Corporate</option>
+              <option value="PRIVATE BANK">Private Bank</option>
+              <option value="FAMILY OFFICE">Family Office</option>
             </select>
             <select className="filter-select" value={filterRegion} onChange={e=>setFilterRegion(e.target.value)}>
               <option value="">All Regions</option>
@@ -519,7 +529,7 @@ export default function Clients() {
         <div style={{marginTop:'16px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
           <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>📋 CSV Bulk Upload Format</h4>
           <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, salesCoverage</strong> (header row optional)</p>
-          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'0 0 4px'}}>Valid types: FUND, BANK, INSURANCE, PENSION, SOVEREIGN</p>
+          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'0 0 4px'}}>Valid types: FUND, HEDGE FUND, BANK, CENTRAL BANK, INSURANCE, PENSION, SOVEREIGN, CORPORATE, PRIVATE BANK, FAMILY OFFICE</p>
           <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>Valid regions: APAC, EMEA, AMERICAS · Example row: <em>Temasek Holdings,FUND,APAC,Jane Doe</em></p>
         </div>
       </main>

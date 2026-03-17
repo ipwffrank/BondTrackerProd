@@ -1377,10 +1377,15 @@ export default function Dashboard() {
                             required
                           >
                             <option value="FUND">Fund</option>
+                            <option value="HEDGE FUND">Hedge Fund</option>
                             <option value="BANK">Bank</option>
+                            <option value="CENTRAL BANK">Central Bank</option>
                             <option value="INSURANCE">Insurance</option>
                             <option value="PENSION">Pension</option>
                             <option value="SOVEREIGN">Sovereign</option>
+                            <option value="CORPORATE">Corporate</option>
+                            <option value="PRIVATE BANK">Private Bank</option>
+                            <option value="FAMILY OFFICE">Family Office</option>
                           </select>
                         </div>
                       </div>
