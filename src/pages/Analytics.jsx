@@ -411,7 +411,7 @@ export default function Analytics() {
           <div className="hover-card-title">{clientName}</div>
           {clientObj && (
             <>
-              <div className="hover-card-row"><span className="hover-card-label">Type</span><span className="hover-card-value">{clientObj.clientType||'—'}</span></div>
+              <div className="hover-card-row"><span className="hover-card-label">Type</span><span className="hover-card-value">{clientObj.type||'—'}</span></div>
               <div className="hover-card-row"><span className="hover-card-label">Region</span><span className="hover-card-value">{clientObj.region||'—'}</span></div>
               <div className="hover-card-row"><span className="hover-card-label">Coverage</span><span className="hover-card-value">{clientObj.salesCoverage||'—'}</span></div>
               <div className="hover-card-row"><span className="hover-card-label">Created By</span><span className="hover-card-value">{clientObj.createdBy||'—'}</span></div>
