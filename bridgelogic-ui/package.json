@@ -1,7 +1,7 @@
 {
   "name": "@bridgelogic/ui",
   "version": "1.0.0",
-  "description": "Axle brand UI primitives — shared across BondTrackerProd and BondTrackerAdmin",
+  "description": "Axle brand UI primitives — shared across Axle platform repos",
   "type": "module",
   "main": "index.js",
   "exports": {

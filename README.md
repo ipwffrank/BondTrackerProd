@@ -1,6 +1,6 @@
-# Axle — Bond Tracker Admin
+# Axle — Platform Admin
 
-React + Vite admin dashboard for bond tracker. Deployed to Netlify, using Firebase (Firestore + Auth).
+React + Vite admin dashboard for the Axle platform. Deployed to Netlify, using Firebase (Firestore + Auth).
 
 ## Setup
 
