@@ -10,12 +10,12 @@ const PrivacyPolicy = () => (
     <p className="legal-meta">Last Updated: 16 March 2026</p>
 
     <h2>1. Introduction</h2>
-    <p>Alteri LLC ("Alteri", "we", "us", "our") is committed to protecting and respecting your privacy. Alteri is a company registered in Singapore and is the owner and operator of the Axle platform at axle-finance.com (the "Platform"). This Privacy Policy is issued in compliance with the Personal Data Protection Act 2012 of Singapore ("PDPA"), the Personal Data (Privacy) Ordinance (Cap. 486) of the Laws of Hong Kong ("PDPO"), and other applicable data protection laws in the jurisdictions in which we operate.</p>
+    <p>Bridge Logic LP ("Bridge Logic", "we", "us", "our") is committed to protecting and respecting your privacy. Bridge Logic is a company registered in Singapore and is the owner and operator of the Axle platform at axle-finance.com (the "Platform"). This Privacy Policy is issued in compliance with the Personal Data Protection Act 2012 of Singapore ("PDPA"), the Personal Data (Privacy) Ordinance (Cap. 486) of the Laws of Hong Kong ("PDPO"), and other applicable data protection laws in the jurisdictions in which we operate.</p>
     <p>This Privacy Policy explains how we collect, use, store, disclose, and protect your personal data when you access or use the Platform.</p>
     <p>By accessing or using the Platform, you acknowledge that you have read and understood this Privacy Policy. If you do not agree with the practices described herein, please do not use the Platform.</p>
 
     <h2>2. Data Controller</h2>
-    <p>Alteri is the data controller responsible for the personal data collected through the Platform. For any enquiries regarding this Privacy Policy or your personal data, please contact our Data Protection Officer at the contact details provided in Section 15 of this Policy.</p>
+    <p>Bridge Logic is the data controller responsible for the personal data collected through the Platform. For any enquiries regarding this Privacy Policy or your personal data, please contact our Data Protection Officer at the contact details provided in Section 15 of this Policy.</p>
 
     <h2>3. Personal Data We Collect</h2>
     <p>We may collect and process the following categories of personal data:</p>
@@ -143,14 +143,14 @@ const PrivacyPolicy = () => (
     <p>The Platform is not intended for use by individuals under the age of 18. We do not knowingly collect personal data from minors. If we become aware that we have inadvertently collected personal data from a person under 18, we will take reasonable steps to delete such data promptly.</p>
 
     <h2>13. Third-Party Links</h2>
-    <p>The Platform may contain links to third-party websites or services that are not operated or controlled by Alteri. This Privacy Policy does not apply to such third-party services. We encourage you to review the privacy policies of any third-party websites you visit. Alteri is not responsible for the content, privacy practices, or security of any third-party websites.</p>
+    <p>The Platform may contain links to third-party websites or services that are not operated or controlled by Bridge Logic. This Privacy Policy does not apply to such third-party services. We encourage you to review the privacy policies of any third-party websites you visit. Bridge Logic is not responsible for the content, privacy practices, or security of any third-party websites.</p>
 
     <h2>14. Changes to This Privacy Policy</h2>
     <p>We may update this Privacy Policy from time to time to reflect changes in our practices, technology, legal requirements, or other factors. Where material changes are made, we will notify you via the Platform or by email to the address associated with your account. Your continued use of the Platform after any changes to this Privacy Policy constitutes your acceptance of the revised policy. We encourage you to review this Privacy Policy periodically.</p>
 
     <h2>15. Contact Information</h2>
     <p>For enquiries, data access requests, data correction requests, or complaints regarding this Privacy Policy or our data practices, please contact:</p>
-    <p><strong>Data Protection Officer</strong><br />Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p><strong>Data Protection Officer</strong><br />Bridge Logic LP<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
     <p>For users in Hong Kong, you may also lodge a complaint with the Office of the Privacy Commissioner for Personal Data (PCPD) at <a href="https://www.pcpd.org.hk" target="_blank" rel="noopener noreferrer">https://www.pcpd.org.hk</a>.</p>
     <p>For users in Singapore, you may contact the Personal Data Protection Commission (PDPC) at <a href="https://www.pdpc.gov.sg" target="_blank" rel="noopener noreferrer">https://www.pdpc.gov.sg</a>.</p>
 
@@ -165,9 +165,9 @@ const TermsOfService = () => (
     <p className="legal-meta">Last Updated: 16 March 2026</p>
 
     <h2>1. Acceptance of Terms</h2>
-    <p>By accessing, browsing, or using the Axle platform at axle-finance.com (the "Platform"), you ("User", "you", "your") acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). The Platform is owned and operated by Alteri LLC ("Alteri", "we", "us", "our"), a company registered in Singapore.</p>
+    <p>By accessing, browsing, or using the Axle platform at axle-finance.com (the "Platform"), you ("User", "you", "your") acknowledge that you have read, understood, and agree to be bound by these Terms of Service ("Terms"). The Platform is owned and operated by Bridge Logic LP ("Bridge Logic", "we", "us", "our"), a company registered in Singapore.</p>
     <p>If you do not agree to these Terms, you must not access or use the Platform.</p>
-    <p>Alteri reserves the right to modify, amend, or update these Terms at any time. Changes will be effective upon posting to the Platform. Your continued use of the Platform after any modifications constitutes acceptance of the revised Terms.</p>
+    <p>Bridge Logic reserves the right to modify, amend, or update these Terms at any time. Changes will be effective upon posting to the Platform. Your continued use of the Platform after any modifications constitutes acceptance of the revised Terms.</p>
 
     <h2>2. Eligibility</h2>
     <p>By using the Platform, you represent and warrant that:</p>
@@ -179,7 +179,7 @@ const TermsOfService = () => (
     </ul>
 
     <h2>3. Description of Services</h2>
-    <p>Alteri provides the Axle platform, a cloud-based solution for bond trading activity tracking, client relationship management, pipeline management, analytics, and AI-powered transcript analysis for financial services professionals (the "Services"). The Platform is designed as a productivity and information management tool for use by authorised institutional users.</p>
+    <p>Bridge Logic provides the Axle platform, a cloud-based solution for bond trading activity tracking, client relationship management, pipeline management, analytics, and AI-powered transcript analysis for financial services professionals (the "Services"). The Platform is designed as a productivity and information management tool for use by authorised institutional users.</p>
     <p>The Services are provided for informational and operational purposes only. The Platform does not execute, settle, or facilitate any securities transactions, nor does it provide custody of any financial instruments or client funds.</p>
 
     <h2>4. Account Registration and Security</h2>
@@ -187,10 +187,10 @@ const TermsOfService = () => (
     <p>Access to the Platform requires registration through an invitation from an organisation administrator or through direct sign-up. You agree to provide accurate, current, and complete information during the registration process and to update such information as necessary.</p>
 
     <h3>4.2 Account Security</h3>
-    <p>You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account. You agree to notify Alteri immediately of any unauthorised use of your account or any other breach of security. Alteri shall not be liable for any loss or damage arising from your failure to protect your account credentials.</p>
+    <p>You are responsible for maintaining the confidentiality of your login credentials and for all activities conducted under your account. You agree to notify Bridge Logic immediately of any unauthorised use of your account or any other breach of security. Bridge Logic shall not be liable for any loss or damage arising from your failure to protect your account credentials.</p>
 
     <h3>4.3 Account Termination</h3>
-    <p>Alteri reserves the right to suspend or terminate your account at any time, with or without notice, if we reasonably believe that you have violated these Terms, engaged in fraudulent or unlawful activity, or if your continued access poses a risk to the Platform or other users.</p>
+    <p>Bridge Logic reserves the right to suspend or terminate your account at any time, with or without notice, if we reasonably believe that you have violated these Terms, engaged in fraudulent or unlawful activity, or if your continued access poses a risk to the Platform or other users.</p>
 
     <h2>5. Acceptable Use</h2>
     <p>You agree that you will not:</p>
@@ -208,62 +208,62 @@ const TermsOfService = () => (
     </ul>
 
     <h2>6. Intellectual Property</h2>
-    <h3>6.1 Alteri's Intellectual Property</h3>
-    <p>All content, materials, features, functionality, software, code, trademarks, logos, trade names (including the "Axle" name and brand), and other intellectual property on or related to the Platform are the exclusive property of Alteri or its licensors and are protected under applicable intellectual property laws of Singapore and international treaties. Nothing in these Terms grants you any right, title, or interest in any such intellectual property.</p>
+    <h3>6.1 Bridge Logic's Intellectual Property</h3>
+    <p>All content, materials, features, functionality, software, code, trademarks, logos, trade names (including the "Axle" name and brand), and other intellectual property on or related to the Platform are the exclusive property of Bridge Logic or its licensors and are protected under applicable intellectual property laws of Singapore and international treaties. Nothing in these Terms grants you any right, title, or interest in any such intellectual property.</p>
 
     <h3>6.2 User Content</h3>
-    <p>By uploading, submitting, or transmitting any content to the Platform (including transcripts, notes, and other data) ("User Content"), you grant Alteri a non-exclusive, worldwide, royalty-free licence to use, process, store, and display such User Content solely for the purpose of providing and improving the Services. You represent and warrant that you have all necessary rights to submit such User Content and that it does not infringe any third-party rights.</p>
-    <p>You retain ownership of your User Content. Alteri does not claim ownership of any content you submit to the Platform.</p>
+    <p>By uploading, submitting, or transmitting any content to the Platform (including transcripts, notes, and other data) ("User Content"), you grant Bridge Logic a non-exclusive, worldwide, royalty-free licence to use, process, store, and display such User Content solely for the purpose of providing and improving the Services. You represent and warrant that you have all necessary rights to submit such User Content and that it does not infringe any third-party rights.</p>
+    <p>You retain ownership of your User Content. Bridge Logic does not claim ownership of any content you submit to the Platform.</p>
 
     <h2>7. AI-Powered Features</h2>
     <p>The Platform utilises artificial intelligence ("AI") technologies, including third-party AI services, to analyse transcripts and generate insights, summaries, and recommendations. You acknowledge and agree that:</p>
     <ul>
       <li>AI-generated outputs are provided for informational and reference purposes only;</li>
-      <li>Alteri does not guarantee the accuracy, completeness, or reliability of any AI-generated content;</li>
+      <li>Bridge Logic does not guarantee the accuracy, completeness, or reliability of any AI-generated content;</li>
       <li>You are solely responsible for independently verifying any AI-generated output before relying on it for business, financial, or operational decisions;</li>
       <li>Transcript data submitted for AI analysis is processed via API calls to third-party AI providers and is not retained by such providers beyond the duration of the processing request; and</li>
       <li>AI-generated content does not constitute financial, investment, legal, or professional advice.</li>
     </ul>
 
     <h2>8. No Financial or Investment Advice</h2>
-    <p>Nothing on the Platform shall be construed as financial, investment, legal, tax, or other professional advice. The Platform provides tools for tracking, managing, and analysing bond trading activity and client relationships for informational purposes only. Alteri is not a licensed financial adviser, broker, dealer, or investment manager, and does not provide recommendations on the purchase, sale, or holding of any securities or financial instruments.</p>
+    <p>Nothing on the Platform shall be construed as financial, investment, legal, tax, or other professional advice. The Platform provides tools for tracking, managing, and analysing bond trading activity and client relationships for informational purposes only. Bridge Logic is not a licensed financial adviser, broker, dealer, or investment manager, and does not provide recommendations on the purchase, sale, or holding of any securities or financial instruments.</p>
     <p>Users should seek independent professional advice from appropriately qualified and licensed professionals before making any financial or investment decisions.</p>
 
     <h2>9. Third-Party Links and Services</h2>
-    <p>The Platform may contain links to third-party websites, services, or resources that are not owned or controlled by Alteri. We do not endorse, monitor, or assume any responsibility for the content, privacy policies, practices, or availability of any third-party services. Your interaction with any third-party service is governed by that third party's own terms and policies, and is at your sole risk.</p>
+    <p>The Platform may contain links to third-party websites, services, or resources that are not owned or controlled by Bridge Logic. We do not endorse, monitor, or assume any responsibility for the content, privacy policies, practices, or availability of any third-party services. Your interaction with any third-party service is governed by that third party's own terms and policies, and is at your sole risk.</p>
 
     <h2>10. Disclaimer of Warranties</h2>
     <p><strong>TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE PLATFORM AND SERVICES ARE PROVIDED ON AN "AS IS" AND "AS AVAILABLE" BASIS WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT.</strong></p>
-    <p><strong>ALTERI DOES NOT WARRANT THAT: THE PLATFORM WILL BE AVAILABLE AT ALL TIMES, UNINTERRUPTED, OR ERROR-FREE; THE PLATFORM WILL BE SECURE OR FREE FROM VIRUSES OR OTHER HARMFUL COMPONENTS; THE RESULTS OBTAINED FROM THE USE OF THE PLATFORM WILL BE ACCURATE, RELIABLE, OR COMPLETE; OR ANY DEFECTS OR ERRORS IN THE PLATFORM WILL BE CORRECTED.</strong></p>
+    <p><strong>BRIDGE LOGIC DOES NOT WARRANT THAT: THE PLATFORM WILL BE AVAILABLE AT ALL TIMES, UNINTERRUPTED, OR ERROR-FREE; THE PLATFORM WILL BE SECURE OR FREE FROM VIRUSES OR OTHER HARMFUL COMPONENTS; THE RESULTS OBTAINED FROM THE USE OF THE PLATFORM WILL BE ACCURATE, RELIABLE, OR COMPLETE; OR ANY DEFECTS OR ERRORS IN THE PLATFORM WILL BE CORRECTED.</strong></p>
 
     <h2>11. Limitation of Liability</h2>
-    <p><strong>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, ALTERI, ITS DIRECTORS, OFFICERS, EMPLOYEES, AGENTS, AND AFFILIATES SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM: YOUR ACCESS TO, USE OF, OR INABILITY TO USE THE PLATFORM; ANY ERRORS, OMISSIONS, OR INACCURACIES IN THE CONTENT PROVIDED; ANY UNAUTHORISED ACCESS TO OR ALTERATION OF YOUR DATA OR TRANSMISSIONS; ANY THIRD-PARTY CONDUCT OR CONTENT ON THE PLATFORM; ANY AI-GENERATED ANALYSIS, SUMMARIES, OR INSIGHTS PROVIDED THROUGH THE PLATFORM; OR ANY OTHER MATTER RELATING TO THE PLATFORM OR SERVICES.</strong></p>
-    <p><strong>IN NO EVENT SHALL ALTERI'S TOTAL AGGREGATE LIABILITY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THESE TERMS OR THE PLATFORM EXCEED THE AMOUNT PAID BY YOU, IF ANY, TO ALTERI FOR ACCESS TO THE PLATFORM DURING THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE EVENT GIVING RISE TO THE CLAIM.</strong></p>
+    <p><strong>TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW, BRIDGE LOGIC, ITS DIRECTORS, OFFICERS, EMPLOYEES, AGENTS, AND AFFILIATES SHALL NOT BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO LOSS OF PROFITS, REVENUE, DATA, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM: YOUR ACCESS TO, USE OF, OR INABILITY TO USE THE PLATFORM; ANY ERRORS, OMISSIONS, OR INACCURACIES IN THE CONTENT PROVIDED; ANY UNAUTHORISED ACCESS TO OR ALTERATION OF YOUR DATA OR TRANSMISSIONS; ANY THIRD-PARTY CONDUCT OR CONTENT ON THE PLATFORM; ANY AI-GENERATED ANALYSIS, SUMMARIES, OR INSIGHTS PROVIDED THROUGH THE PLATFORM; OR ANY OTHER MATTER RELATING TO THE PLATFORM OR SERVICES.</strong></p>
+    <p><strong>IN NO EVENT SHALL BRIDGE LOGIC'S TOTAL AGGREGATE LIABILITY TO YOU FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THESE TERMS OR THE PLATFORM EXCEED THE AMOUNT PAID BY YOU, IF ANY, TO BRIDGE LOGIC FOR ACCESS TO THE PLATFORM DURING THE TWELVE (12) MONTHS IMMEDIATELY PRECEDING THE EVENT GIVING RISE TO THE CLAIM.</strong></p>
 
     <h2>12. Indemnification</h2>
-    <p>You agree to indemnify, defend, and hold harmless Alteri and its directors, officers, employees, agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees and costs) arising from or related to: your access to or use of the Platform; your violation of these Terms; your violation of any applicable law or regulation; your User Content; or your infringement of any rights of any third party.</p>
+    <p>You agree to indemnify, defend, and hold harmless Bridge Logic and its directors, officers, employees, agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees and costs) arising from or related to: your access to or use of the Platform; your violation of these Terms; your violation of any applicable law or regulation; your User Content; or your infringement of any rights of any third party.</p>
 
     <h2>13. Privacy</h2>
     <p>Your use of the Platform is also governed by our <Link to="/privacy">Privacy Policy</Link>. By using the Platform, you consent to the collection, use, and disclosure of your personal data as described in the Privacy Policy.</p>
 
     <h2>14. Service Availability and Modification</h2>
-    <p>Alteri reserves the right to modify, suspend, or discontinue the Platform or any part thereof, temporarily or permanently, at any time and without prior notice. Alteri shall not be liable to you or any third party for any modification, suspension, or discontinuance of the Platform.</p>
+    <p>Bridge Logic reserves the right to modify, suspend, or discontinue the Platform or any part thereof, temporarily or permanently, at any time and without prior notice. Bridge Logic shall not be liable to you or any third party for any modification, suspension, or discontinuance of the Platform.</p>
 
     <h2>15. Severability</h2>
     <p>If any provision of these Terms is found to be invalid, illegal, or unenforceable by a court of competent jurisdiction, that provision shall be enforced to the maximum extent permissible, and the remaining provisions of these Terms shall remain in full force and effect.</p>
 
     <h2>16. Entire Agreement</h2>
-    <p>These Terms, together with the Privacy Policy and any other legal notices or agreements published by Alteri on the Platform, constitute the entire agreement between you and Alteri regarding your use of the Platform and supersede all prior or contemporaneous agreements, communications, and proposals, whether oral or written.</p>
+    <p>These Terms, together with the Privacy Policy and any other legal notices or agreements published by Bridge Logic on the Platform, constitute the entire agreement between you and Bridge Logic regarding your use of the Platform and supersede all prior or contemporaneous agreements, communications, and proposals, whether oral or written.</p>
 
     <h2>17. Waiver</h2>
-    <p>The failure of Alteri to exercise or enforce any right or provision of these Terms shall not constitute a waiver of such right or provision. Any waiver of any provision of these Terms will be effective only if in writing and signed by Alteri.</p>
+    <p>The failure of Bridge Logic to exercise or enforce any right or provision of these Terms shall not constitute a waiver of such right or provision. Any waiver of any provision of these Terms will be effective only if in writing and signed by Bridge Logic.</p>
 
     <h2>18. Governing Law and Jurisdiction</h2>
     <p>These Terms shall be governed by and construed in accordance with the laws of the Republic of Singapore, without regard to its conflict of law provisions. Any dispute arising out of or in connection with these Terms or the Platform shall be subject to the exclusive jurisdiction of the courts of Singapore.</p>
 
     <h2>19. Contact Information</h2>
     <p>If you have any questions or concerns about these Terms, please contact us at:</p>
-    <p>Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p>Bridge Logic LP<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
 
     <p className="legal-effective"><em>These Terms of Service are effective as of 16 March 2026.</em></p>
   </>
@@ -276,7 +276,7 @@ const Disclaimer = () => (
     <p className="legal-meta">Last Updated: 16 March 2026</p>
 
     <h2>1. General Disclaimer</h2>
-    <p>The information, materials, and services provided on the Axle platform at axle-finance.com (the "Platform") are provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement. The Platform is owned and operated by Alteri LLC ("Alteri"), a company registered in Singapore. Alteri does not warrant that the Platform will be uninterrupted, error-free, secure, or free from viruses or other harmful components.</p>
+    <p>The information, materials, and services provided on the Axle platform at axle-finance.com (the "Platform") are provided on an "as is" and "as available" basis without warranties of any kind, whether express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, and non-infringement. The Platform is owned and operated by Bridge Logic LP ("Bridge Logic"), a company registered in Singapore. Bridge Logic does not warrant that the Platform will be uninterrupted, error-free, secure, or free from viruses or other harmful components.</p>
     <p>The content on the Platform is intended solely for general information and operational purposes for authorised users. It does not constitute, and should not be construed as, a substitute for legal, commercial, financial, or other professional advice from an independent licensed or qualified professional.</p>
 
     <h2>2. No Financial or Investment Advice</h2>
@@ -287,20 +287,20 @@ const Disclaimer = () => (
       <li>An inducement or recommendation to purchase, sell, or hold any securities;</li>
       <li>A personalised financial, investment, or trading recommendation of any kind.</li>
     </ul>
-    <p>Alteri is not a licensed financial adviser, broker, dealer, or investment manager, and does not provide recommendations on the purchase, sale, or holding of any securities or financial instruments. Each user is solely responsible for its own independent decisions based on its own objectives, financial circumstances, and risk tolerance. Users should seek independent legal, tax, financial, and other professional advice before making any financial or investment decisions.</p>
+    <p>Bridge Logic is not a licensed financial adviser, broker, dealer, or investment manager, and does not provide recommendations on the purchase, sale, or holding of any securities or financial instruments. Each user is solely responsible for its own independent decisions based on its own objectives, financial circumstances, and risk tolerance. Users should seek independent legal, tax, financial, and other professional advice before making any financial or investment decisions.</p>
 
     <h2>3. AI-Generated Content Disclaimer</h2>
     <p>The Platform utilises artificial intelligence ("AI") technologies, including third-party AI services, to analyse transcripts and generate insights, summaries, and recommendations. Users acknowledge and agree that:</p>
     <ul>
       <li>AI-generated content is provided for informational and reference purposes only;</li>
-      <li>Alteri does not guarantee the accuracy, completeness, reliability, or timeliness of any AI-generated output;</li>
+      <li>Bridge Logic does not guarantee the accuracy, completeness, reliability, or timeliness of any AI-generated output;</li>
       <li>AI-generated content may contain errors, omissions, or inaccuracies and should not be relied upon as the sole basis for any business, financial, or operational decision;</li>
       <li>Users are responsible for independently verifying all AI-generated content before relying on it; and</li>
       <li>AI-generated content does not constitute professional advice of any kind.</li>
     </ul>
 
     <h2>4. Limitation of Liability</h2>
-    <p>To the fullest extent permitted by applicable law, Alteri, its directors, officers, employees, agents, and affiliates shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, revenue, data, goodwill, or other intangible losses, resulting from:</p>
+    <p>To the fullest extent permitted by applicable law, Bridge Logic, its directors, officers, employees, agents, and affiliates shall not be liable for any direct, indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, revenue, data, goodwill, or other intangible losses, resulting from:</p>
     <ul>
       <li>Your access to, use of, or inability to use the Platform;</li>
       <li>Any errors, omissions, or inaccuracies in the content provided on or through the Platform;</li>
@@ -312,29 +312,29 @@ const Disclaimer = () => (
     </ul>
 
     <h2>5. Intellectual Property</h2>
-    <p>All content, trademarks, logos, trade names (including the "Axle" name and brand), software, and other intellectual property on the Platform are the property of Alteri or its licensors and are protected under applicable intellectual property laws of Singapore and international treaties. Unauthorised reproduction, distribution, modification, display, or use of any materials on the Platform is strictly prohibited without the prior written consent of Alteri.</p>
+    <p>All content, trademarks, logos, trade names (including the "Axle" name and brand), software, and other intellectual property on the Platform are the property of Bridge Logic or its licensors and are protected under applicable intellectual property laws of Singapore and international treaties. Unauthorised reproduction, distribution, modification, display, or use of any materials on the Platform is strictly prohibited without the prior written consent of Bridge Logic.</p>
 
     <h2>6. Third-Party Links and Services</h2>
-    <p>The Platform may contain links to third-party websites, services, or resources that are not owned, operated, or controlled by Alteri. Alteri does not endorse, control, or assume any responsibility for the content, privacy policies, practices, or availability of any third-party services. We do not have control over the content or actions of external websites we may link to. Your use of any third-party services is at your own risk and subject to the terms and conditions of those services.</p>
+    <p>The Platform may contain links to third-party websites, services, or resources that are not owned, operated, or controlled by Bridge Logic. Bridge Logic does not endorse, control, or assume any responsibility for the content, privacy policies, practices, or availability of any third-party services. We do not have control over the content or actions of external websites we may link to. Your use of any third-party services is at your own risk and subject to the terms and conditions of those services.</p>
 
     <h2>7. Accuracy of Information</h2>
-    <p>While Alteri endeavours to ensure that the information provided on the Platform is accurate and up to date, we make no representations or warranties, express or implied, as to the accuracy, completeness, reliability, or currency of any information, data, or materials on the Platform. Market data, analytics, and other information displayed on the Platform may be subject to delays, errors, or omissions and should not be relied upon for time-sensitive decisions.</p>
+    <p>While Bridge Logic endeavours to ensure that the information provided on the Platform is accurate and up to date, we make no representations or warranties, express or implied, as to the accuracy, completeness, reliability, or currency of any information, data, or materials on the Platform. Market data, analytics, and other information displayed on the Platform may be subject to delays, errors, or omissions and should not be relied upon for time-sensitive decisions.</p>
 
     <h2>8. Service Availability</h2>
-    <p>Alteri makes reasonable efforts to maintain the availability and proper functioning of the Platform. However, the Platform may be subject to temporary interruptions due to maintenance, updates, technical issues, or circumstances beyond our control. Alteri does not guarantee continuous, uninterrupted, or secure access to the Platform and shall not be liable for any loss or inconvenience caused by any interruption or unavailability.</p>
+    <p>Bridge Logic makes reasonable efforts to maintain the availability and proper functioning of the Platform. However, the Platform may be subject to temporary interruptions due to maintenance, updates, technical issues, or circumstances beyond our control. Bridge Logic does not guarantee continuous, uninterrupted, or secure access to the Platform and shall not be liable for any loss or inconvenience caused by any interruption or unavailability.</p>
 
     <h2>9. Indemnification</h2>
-    <p>You agree to indemnify, defend, and hold harmless Alteri and its directors, officers, employees, agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising from or related to your use of the Platform, violation of this Disclaimer, or infringement of any rights of a third party.</p>
+    <p>You agree to indemnify, defend, and hold harmless Bridge Logic and its directors, officers, employees, agents, and affiliates from and against any and all claims, liabilities, damages, losses, costs, and expenses (including reasonable legal fees) arising from or related to your use of the Platform, violation of this Disclaimer, or infringement of any rights of a third party.</p>
 
     <h2>10. Governing Law and Jurisdiction</h2>
     <p>This Disclaimer shall be governed by and construed in accordance with the laws of the Republic of Singapore. Any disputes arising out of or in connection with this Disclaimer shall be subject to the exclusive jurisdiction of the courts of Singapore.</p>
 
     <h2>11. Amendments</h2>
-    <p>Alteri reserves the right to modify, update, or revise this Disclaimer at any time without prior notice. Continued use of the Platform following any changes constitutes acceptance of the revised terms. Users are encouraged to review this Disclaimer periodically.</p>
+    <p>Bridge Logic reserves the right to modify, update, or revise this Disclaimer at any time without prior notice. Continued use of the Platform following any changes constitutes acceptance of the revised terms. Users are encouraged to review this Disclaimer periodically.</p>
 
     <h2>12. Contact Information</h2>
     <p>For any questions regarding this Disclaimer, please contact:</p>
-    <p>Alteri LLC<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
+    <p>Bridge Logic LP<br />Email: <a href="mailto:info@axle-finance.com">info@axle-finance.com</a><br />Website: axle-finance.com</p>
 
     <p className="legal-effective"><em>This Disclaimer is effective as of 16 March 2026.</em></p>
   </>

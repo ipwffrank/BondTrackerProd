@@ -46,7 +46,7 @@ src/
   contexts/       # React contexts (AuthContext)
   styles/         # Global CSS
 
-alteri-ui/        # Local shared UI package (@alteri/ui)
+bridgelogic-ui/   # Local shared UI package (@bridgelogic/ui)
 netlify/functions/ # Serverless functions (send-invite, analyze-transcript, bloomberg-lookup)
 ```
 

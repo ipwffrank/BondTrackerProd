@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../services/firebase';
-import { AxleLogo } from '@alteri/ui';
+import { AxleLogo } from '@bridgelogic/ui';
 
 // ─── Constants ──────────────────────────────────────────────────────────────────
 const COUNTRIES = [

@@ -1,5 +1,5 @@
 // Axle brand design tokens
-// Usage: import { tokens } from '@alteri/ui'
+// Usage: import { tokens } from '@bridgelogic/ui'
 
 const tokens = {
   // Colours

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { verifyPasswordResetCode, confirmPasswordReset } from 'firebase/auth';
 import { auth } from '../services/firebase';
-import { AxleLogo } from '@alteri/ui';
+import { AxleLogo } from '@bridgelogic/ui';
 
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const STYLES = `

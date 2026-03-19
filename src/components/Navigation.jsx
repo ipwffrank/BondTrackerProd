@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import { useState, useEffect } from 'react';
-import { AxleLogo } from '@alteri/ui';
+import { AxleLogo } from '@bridgelogic/ui';
 import { canAccessModule, getModuleGate } from '../config/moduleAccess';
 
 const NAV_LINKS = [

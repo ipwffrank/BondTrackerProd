@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AxleLogo } from '@alteri/ui';
+import { AxleLogo } from '@bridgelogic/ui';
 
 const ACTION_LABELS = {
   export_activities_excel: 'Export Activities (Excel)',

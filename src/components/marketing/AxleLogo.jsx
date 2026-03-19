@@ -1,4 +1,4 @@
-// Re-export shim — canonical source lives in @alteri/ui
+// Re-export shim — canonical source lives in @bridgelogic/ui
 // All existing `import AxleLogo from './AxleLogo'` imports are unaffected.
-import { AxleLogo } from '@alteri/ui';
+import { AxleLogo } from '@bridgelogic/ui';
 export default AxleLogo;

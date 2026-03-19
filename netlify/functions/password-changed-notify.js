@@ -142,7 +142,7 @@ exports.handler = async (event) => {
                 <div class="footer">
                   <p>Axle &mdash; The central intelligence platform for bond sales desks</p>
                   <p style="margin-top: 6px;">
-                    &copy; ${now.getFullYear()} Alteri Group Pte. Ltd.
+                    &copy; ${now.getFullYear()} Bridge Logic LP
                   </p>
                 </div>
               </div>
