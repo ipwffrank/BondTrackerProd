@@ -12,9 +12,21 @@ const TENOR_OPTIONS = ['2Y', '3Y', '5Y', '7Y', '10Y', '15Y', '20Y', '30Y'];
 const CLIENT_TYPES = ['FUND', 'HEDGE FUND', 'BANK', 'CENTRAL BANK', 'INSURANCE', 'PENSION', 'SOVEREIGN', 'CORPORATE', 'PRIVATE BANK', 'FAMILY OFFICE'];
 const CLIENT_REGIONS = ['APAC', 'EMEA', 'AMERICAS'];
 
-const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '', internalTargetSize: '' };
+const DEAL_STATUS_OPTIONS = ['MANDATE', 'ANNOUNCED', 'BOOKS_OPEN', 'PRICED', 'ALLOCATED', 'CLOSED', 'PULLED'];
+const DEAL_STATUS_COLORS = {
+  MANDATE:   { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+  ANNOUNCED: { color: '#93c5fd', bg: 'rgba(147,197,253,0.12)' },
+  BOOKS_OPEN:{ color: '#fbbf24', bg: 'rgba(251,191,36,0.12)'  },
+  PRICED:    { color: '#22c55e', bg: 'rgba(34,197,94,0.12)'   },
+  ALLOCATED: { color: '#c084fc', bg: 'rgba(192,132,252,0.12)' },
+  CLOSED:    { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+  PULLED:    { color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+};
+
+const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '', internalTargetSize: '', ipt: '', guidance: '', finalSpread: '', pricingDate: '' };
 const EMPTY_NEW_ISSUE_FORM = {
   issuerName: '',
+  dealStatus: 'MANDATE',
   bookrunners: { JPM: false, GS: false, MS: false, HSBC: false, SCB: false, BOCHK: false, other: false },
   otherBookrunner: '',
   tranches: [{ ...EMPTY_TRANCHE }]
@@ -61,6 +73,11 @@ export default function Pipeline() {
   const [clientDedupMatches, setClientDedupMatches] = useState([]);
   const [showClientDedupModal, setShowClientDedupModal] = useState(false);
   const [pendingClientData, setPendingClientData] = useState(null);
+
+  // Delete confirm + notification toast
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, type, label }
+  const [notification, setNotification] = useState(null);
+  React.useEffect(() => { if (notification) { const t = setTimeout(() => setNotification(null), 3000); return () => clearTimeout(t); } }, [notification]);
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -163,13 +180,18 @@ export default function Pipeline() {
         tenor: t.tenor,
         currency: t.currency,
         targetSize: parseFloat(t.targetSize) || 0,
-        internalTargetSize: parseFloat(t.internalTargetSize) || 0
+        internalTargetSize: parseFloat(t.internalTargetSize) || 0,
+        ipt: t.ipt || '',
+        guidance: t.guidance || '',
+        finalSpread: t.finalSpread || '',
+        pricingDate: t.pricingDate || '',
       }));
 
       if (editingIssue) {
         const issueRef = doc(db, `organizations/${userData.organizationId}/newIssues`, editingIssue);
         await updateDoc(issueRef, {
           issuerName: formData.issuerName,
+          dealStatus: formData.dealStatus || 'MANDATE',
           bookrunners: selectedBookrunners,
           tranches: tranchesData,
           updatedAt: serverTimestamp(),
@@ -180,6 +202,7 @@ export default function Pipeline() {
         const newIssuesRef = collection(db, `organizations/${userData.organizationId}/newIssues`);
         await addDoc(newIssuesRef, {
           issuerName: formData.issuerName,
+          dealStatus: formData.dealStatus || 'MANDATE',
           bookrunners: selectedBookrunners,
           tranches: tranchesData,
           createdAt: serverTimestamp(),
@@ -191,7 +214,7 @@ export default function Pipeline() {
       setNewIssueForm({ ...EMPTY_NEW_ISSUE_FORM, tranches: [{ ...EMPTY_TRANCHE }] });
     } catch (error) {
       console.error('Error saving new issue:', error);
-      alert('Failed to save new issue');
+      setNotification('Failed to save new issue. Please try again.');
     } finally { setSubmitLoading(false); }
   }
 
@@ -209,16 +232,17 @@ export default function Pipeline() {
   }
 
   function handleEditIssue(issue) {
-    if (!isAdmin) { alert('Only org admins can edit issues.'); return; }
+    if (!isAdmin) return;
     const bookrunners = { JPM: false, GS: false, MS: false, HSBC: false, SCB: false, BOCHK: false, other: false };
     let otherBookrunner = '';
     (issue.bookrunners || []).forEach(b => {
       if (bookrunners.hasOwnProperty(b)) bookrunners[b] = true;
       else { bookrunners.other = true; otherBookrunner = b; }
     });
-    const tranches = (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize), internalTargetSize: String(t.internalTargetSize || '') }));
+    const tranches = (issue.tranches || []).map(t => ({ tenor: t.tenor, currency: t.currency, targetSize: String(t.targetSize), internalTargetSize: String(t.internalTargetSize || ''), ipt: t.ipt || '', guidance: t.guidance || '', finalSpread: t.finalSpread || '', pricingDate: t.pricingDate || '' }));
     setEditIssueForm({
       issuerName: issue.issuerName,
+      dealStatus: issue.dealStatus || 'MANDATE',
       bookrunners,
       otherBookrunner,
       tranches: tranches.length > 0 ? tranches : [{ ...EMPTY_TRANCHE }]
@@ -266,11 +290,15 @@ export default function Pipeline() {
 
   // ============ DELETE ISSUE ============
   async function handleDeleteNewIssue(issueId) {
-    if (!isAdmin) { alert('Only org admins can delete issues.'); return; }
-    if (!window.confirm('Are you sure you want to delete this issue and all its tranches?')) return;
+    if (!isAdmin) return;
+    const issue = newIssues.find(i => i.id === issueId);
+    setDeleteConfirm({ id: issueId, type: 'issue', label: issue?.issuerName || 'this issue' });
+  }
+
+  async function executeDeleteIssue(issueId) {
     try {
       await deleteDoc(doc(db, `organizations/${userData.organizationId}/newIssues`, issueId));
-    } catch (error) { console.error('Error deleting issue:', error); alert('Failed to delete issue'); }
+    } catch (error) { console.error('Error deleting issue:', error); setNotification('Failed to delete issue.'); }
   }
 
   // ============ ORDER BOOK ============
@@ -304,15 +332,18 @@ export default function Pipeline() {
         createdBy: userData.name || userData.email
       });
       setOrderBookForm({ ...EMPTY_ORDER_FORM });
-    } catch (error) { console.error('Error saving order:', error); alert('Failed to save order'); }
+    } catch (error) { console.error('Error saving order:', error); setNotification('Failed to save order.'); }
     finally { setSubmitLoading(false); }
   }
 
   async function handleDeleteOrder(orderId) {
-    if (!isAdmin) { alert('Only org admins can delete orders.'); return; }
-    if (!window.confirm('Are you sure you want to delete this order?')) return;
+    if (!isAdmin) return;
+    setDeleteConfirm({ id: orderId, type: 'order', label: 'this order' });
+  }
+
+  async function executeDeleteOrder(orderId) {
     try { await deleteDoc(doc(db, `organizations/${userData.organizationId}/orderBooks`, orderId)); }
-    catch (error) { console.error('Error deleting order:', error); alert('Failed to delete order'); }
+    catch (error) { console.error('Error deleting order:', error); setNotification('Failed to delete order.'); }
   }
 
   // ============ EDIT ORDER (all users) ============
@@ -599,6 +630,14 @@ export default function Pipeline() {
                           onChange={(e) => setNewIssueForm({ ...newIssueForm, issuerName: e.target.value })} />
                       </div>
                       <div className="field-group">
+                        <label className="form-label">Deal Status</label>
+                        <select className="form-select" value={newIssueForm.dealStatus} onChange={e => setNewIssueForm({ ...newIssueForm, dealStatus: e.target.value })}>
+                          {DEAL_STATUS_OPTIONS.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="field-row">
+                      <div className="field-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="form-label">Bookrunners</label>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
                           {Object.keys(newIssueForm.bookrunners).map(key => (
@@ -625,34 +664,54 @@ export default function Pipeline() {
                       </div>
 
                       {newIssueForm.tranches.map((tranche, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '12px', marginBottom: '10px', padding: '12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                          <div className="field-group">
-                            <label className="form-label">Tenor *</label>
-                            <select className="form-select" value={tranche.tenor} onChange={(e) => updateTranche(idx, 'tenor', e.target.value)}>
-                              <option value="">Select Tenor</option>
-                              {TENOR_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
-                            </select>
+                        <div key={idx} style={{ marginBottom: '10px', padding: '12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr auto', gap: '12px', marginBottom: '10px' }}>
+                            <div className="field-group">
+                              <label className="form-label">Tenor *</label>
+                              <select className="form-select" value={tranche.tenor} onChange={(e) => updateTranche(idx, 'tenor', e.target.value)}>
+                                <option value="">Select Tenor</option>
+                                {TENOR_OPTIONS.map(t => <option key={t} value={t}>{t}</option>)}
+                              </select>
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Currency *</label>
+                              <select className="form-select" value={tranche.currency} onChange={(e) => updateTranche(idx, 'currency', e.target.value)}>
+                                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Issue Size (MM) *</label>
+                              <input type="number" step="0.01" className="form-input" placeholder="e.g., 5000" value={tranche.targetSize}
+                                onChange={(e) => updateTranche(idx, 'targetSize', e.target.value)} />
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Internal Order Target (MM)</label>
+                              <input type="number" step="0.01" className="form-input" placeholder="e.g., 200" value={tranche.internalTargetSize}
+                                onChange={(e) => updateTranche(idx, 'internalTargetSize', e.target.value)} />
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
+                              {newIssueForm.tranches.length > 1 && (
+                                <button type="button" className="btn-icon" onClick={() => removeTranche(idx)} title="Remove tranche" style={{ color: '#dc2626' }}>x</button>
+                              )}
+                            </div>
                           </div>
-                          <div className="field-group">
-                            <label className="form-label">Currency *</label>
-                            <select className="form-select" value={tranche.currency} onChange={(e) => updateTranche(idx, 'currency', e.target.value)}>
-                              {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
-                            </select>
-                          </div>
-                          <div className="field-group">
-                            <label className="form-label">Issue Size (MM) *</label>
-                            <input type="number" step="0.01" className="form-input" placeholder="e.g., 5000" value={tranche.targetSize}
-                              onChange={(e) => updateTranche(idx, 'targetSize', e.target.value)} />
-                          </div>
-                          <div className="field-group">
-                            <label className="form-label">Internal Order Target (MM)</label>
-                            <input type="number" step="0.01" className="form-input" placeholder="e.g., 200" value={tranche.internalTargetSize}
-                              onChange={(e) => updateTranche(idx, 'internalTargetSize', e.target.value)} />
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'flex-end', paddingBottom: '4px' }}>
-                            {newIssueForm.tranches.length > 1 && (
-                              <button type="button" className="btn-icon" onClick={() => removeTranche(idx)} title="Remove tranche" style={{ color: '#dc2626' }}>x</button>
-                            )}
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '12px' }}>
+                            <div className="field-group">
+                              <label className="form-label">IPT</label>
+                              <input type="text" className="form-input" placeholder="e.g., T+180bps area" value={tranche.ipt} onChange={e => updateTranche(idx, 'ipt', e.target.value)} />
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Guidance</label>
+                              <input type="text" className="form-input" placeholder="e.g., T+165bps area" value={tranche.guidance} onChange={e => updateTranche(idx, 'guidance', e.target.value)} />
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Final Spread</label>
+                              <input type="text" className="form-input" placeholder="e.g., T+160bps" value={tranche.finalSpread} onChange={e => updateTranche(idx, 'finalSpread', e.target.value)} />
+                            </div>
+                            <div className="field-group">
+                              <label className="form-label">Pricing Date</label>
+                              <input type="date" className="form-input" value={tranche.pricingDate} onChange={e => updateTranche(idx, 'pricingDate', e.target.value)} />
+                            </div>
                           </div>
                         </div>
                       ))}
@@ -737,7 +796,10 @@ export default function Pipeline() {
                                 </button>
                               </td>
                               <td>{issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '-'}</td>
-                              <td style={{ fontWeight: 600 }}>{issue.issuerName}</td>
+                              <td style={{ fontWeight: 600 }}>
+                                {issue.issuerName}
+                                {issue.dealStatus && (() => { const s = DEAL_STATUS_COLORS[issue.dealStatus] || {}; return <span style={{ marginLeft: '8px', fontSize: '10px', fontWeight: 700, padding: '2px 7px', borderRadius: '10px', background: s.bg, color: s.color, letterSpacing: '0.04em' }}>{issue.dealStatus.replace('_', ' ')}</span>; })()}
+                              </td>
                               <td>
                                 {(issue.tranches || []).map(t => (
                                   <span key={t.id} className="badge badge-primary" style={{ marginRight: '4px', marginBottom: '2px' }}>{t.tenor} {t.currency}</span>
@@ -1194,6 +1256,30 @@ export default function Pipeline() {
               <button className="btn btn-primary" onClick={confirmAddClientDespiteDupes}>Add Anyway</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ======================== DELETE CONFIRM MODAL ======================== */}
+      {deleteConfirm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: '15px', marginBottom: '24px' }}>Delete <strong>{deleteConfirm.label}</strong>? This cannot be undone.</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-muted" onClick={() => setDeleteConfirm(null)}>Cancel</button>
+              <button className="btn btn-danger" onClick={async () => {
+                if (deleteConfirm.type === 'issue') await executeDeleteIssue(deleteConfirm.id);
+                else if (deleteConfirm.type === 'order') await executeDeleteOrder(deleteConfirm.id);
+                setDeleteConfirm(null);
+              }}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================== NOTIFICATION TOAST ======================== */}
+      {notification && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--card-bg)', border: '1px solid rgba(200,162,88,0.4)', borderRadius: '8px', padding: '12px 20px', color: 'var(--text-primary)', fontSize: '14px', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.3)', maxWidth: '320px' }}>
+          {notification}
         </div>
       )}
 

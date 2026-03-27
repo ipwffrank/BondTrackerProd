@@ -32,10 +32,10 @@ service cloud.firestore {
     // ============================================
 
     match /hostAdmins/{uid} {
-      // Host admins can verify their own status
-      allow read: if isAuthenticated() && request.auth.uid == uid;
-      // Only manageable via Firebase console
-      allow write: if false;
+      // Host admins can list all; authenticated users can check their own status
+      allow read: if isHostAdmin() || (isAuthenticated() && request.auth.uid == uid);
+      // Only existing host admins can add/remove other host admins
+      allow write: if isHostAdmin();
     }
 
     // ============================================
@@ -159,6 +159,13 @@ service cloud.firestore {
 
       // Only admins can update or delete clients
       allow update, delete: if isAdminInOrg(orgId);
+
+      // Contacts sub-collection (people within a client institution)
+      match /contacts/{contactId} {
+        allow read: if isSameOrg(orgId) || isHostAdmin();
+        allow create: if isSameOrg(orgId);
+        allow update, delete: if isAdminInOrg(orgId);
+      }
     }
     
     // ============================================

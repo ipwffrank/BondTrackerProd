@@ -9,6 +9,8 @@ import AcceptInvite from './pages/AcceptInvite';
 import Activities from './pages/Activities';
 import AIAssistant from './pages/AIAssistant';
 import Clients from './pages/Clients';
+import Contacts from './pages/Contacts';
+import SecurityPage from './pages/SecurityPage';
 import Analytics from './pages/Analytics';
 import Pipeline from './pages/Pipeline';
 import Team from './pages/Team';
@@ -47,6 +49,7 @@ function AppRoutes() {
         <Route path="/auth-action" element={<AuthAction />} />
         <Route path="/hostadmin" element={<HostAdmin />} />
         <Route path="/legal/:page" element={<LegalPage />} />
+        <Route path="/security" element={<SecurityPage />} />
         <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
         <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
         <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
@@ -56,6 +59,7 @@ function AppRoutes() {
         <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
         <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
         <Route path="/clients" element={<ProtectedRoute><Clients /></ProtectedRoute>} />
+        <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
         

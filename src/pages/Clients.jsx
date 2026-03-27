@@ -26,6 +26,7 @@ export default function Clients() {
   const [dedupMatches, setDedupMatches] = useState([]);
   const [showDedupModal, setShowDedupModal] = useState(false);
   const [pendingClientData, setPendingClientData] = useState(null);
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, label }
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -89,10 +90,14 @@ export default function Clients() {
   }
 
   async function handleDeleteClient(id) {
-    if(!isAdmin){ alert('Only admins can delete clients'); return; }
-    if(!window.confirm('Delete this client?')) return;
+    if(!isAdmin){ return; }
+    const client = clients.find(c => c.id === id);
+    setDeleteConfirm({ id, label: client?.name || 'this client', mode: 'single' });
+  }
+
+  async function executeDeleteClient(id) {
     try{ await deleteDoc(doc(db,`organizations/${userData.organizationId}/clients`,id)); }
-    catch(e){ alert('Failed to delete client'); }
+    catch(e){ console.error(e); }
   }
 
   const [showEditModal, setShowEditModal] = useState(false);
@@ -153,9 +158,11 @@ export default function Clients() {
   }
 
   async function handleBulkDelete() {
-    if (selectedIds.size === 0) return;
-    if (!isAdmin) { alert('Only admins can delete clients'); return; }
-    if (!window.confirm(`Delete ${selectedIds.size} selected client${selectedIds.size === 1 ? '' : 's'}?`)) return;
+    if (selectedIds.size === 0 || !isAdmin) return;
+    setDeleteConfirm({ id: null, label: `${selectedIds.size} selected client${selectedIds.size === 1 ? '' : 's'}`, mode: 'bulk' });
+  }
+
+  async function executeBulkDelete() {
     try {
       for (const id of selectedIds) {
         await deleteDoc(doc(db, `organizations/${userData.organizationId}/clients`, id));
@@ -163,7 +170,6 @@ export default function Clients() {
       setSelectedIds(new Set());
     } catch (e) {
       console.error(e);
-      alert('Failed to delete some clients');
     }
   }
 
@@ -436,7 +442,8 @@ export default function Clients() {
                       <td>{c.salesCoverage||'-'}</td>
                       <td>{c.createdBy}</td>
                       <td>
-                        <div style={{display:'flex',gap:'8px'}}>
+                        <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
+                          <a href={`/contacts?clientId=${c.id}&clientName=${encodeURIComponent(c.name)}`} style={{fontSize:'12px',color:'#C8A258',textDecoration:'none',padding:'4px 8px',border:'1px solid rgba(200,162,88,0.3)',borderRadius:'4px',whiteSpace:'nowrap'}}>Contacts</a>
                           <button className="btn-edit" onClick={()=>handleEditClient(c)} title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                           {isAdmin&&<button className="btn-icon" onClick={()=>handleDeleteClient(c.id)} title="Delete (Admin only)">🗑️</button>}
                         </div>
@@ -499,6 +506,22 @@ export default function Clients() {
                   <button type="submit" className="btn btn-primary" disabled={submitLoading}>{submitLoading?'Saving...':'Save Changes'}</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+        {/* Delete Confirmation Modal */}
+        {deleteConfirm && (
+          <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center',zIndex:1000}}>
+            <div style={{background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'12px',padding:'32px',maxWidth:'400px',width:'90%',boxShadow:'0 8px 32px rgba(0,0,0,0.4)'}}>
+              <p style={{color:'var(--text-primary)',fontSize:'15px',marginBottom:'24px'}}>Delete <strong>{deleteConfirm.label}</strong>? This cannot be undone.</p>
+              <div style={{display:'flex',gap:'12px',justifyContent:'flex-end'}}>
+                <button className="btn btn-muted" onClick={()=>setDeleteConfirm(null)}>Cancel</button>
+                <button className="btn btn-danger" onClick={async()=>{
+                  if(deleteConfirm.mode==='bulk') await executeBulkDelete();
+                  else await executeDeleteClient(deleteConfirm.id);
+                  setDeleteConfirm(null);
+                }}>Delete</button>
+              </div>
             </div>
           </div>
         )}

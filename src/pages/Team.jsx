@@ -110,7 +110,9 @@ export default function Team() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [activityStats, setActivityStats] = useState([]);
   const [activeSubTab, setActiveSubTab] = useState('members');
-  
+  const [toast, setToast] = useState(null);
+  const [confirmModal, setConfirmModal] = useState(null);
+
   const [inviteForm, setInviteForm] = useState({
     email: '',
     role: 'user'
@@ -154,6 +156,8 @@ export default function Team() {
     teamService.getActivityLog(userData.organizationId, members).then(setActivityStats).catch(console.error);
   }, [userData?.organizationId, isAdmin, members]);
 
+  useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
+
 
 
   async function handleInvite(e) {
@@ -172,7 +176,7 @@ export default function Team() {
       
       setShowInviteModal(false);
       setInviteForm({ email: '', role: 'user' });
-      alert('Invitation sent successfully! An email has been sent to the invitee.');
+      setToast('Invitation sent successfully! An email has been sent to the invitee.');
     } catch (error) {
       setInviteError(error.message || 'Failed to send invitation');
     } finally {
@@ -182,7 +186,7 @@ export default function Team() {
 
   async function handleRoleChange(memberId, newRole) {
     if (memberId === currentUser?.uid) {
-      alert("You cannot change your own role");
+      setToast("You cannot change your own role");
       return;
     }
 
@@ -190,40 +194,44 @@ export default function Team() {
 
     try {
       await teamService.updateRole(memberId, newIsAdmin, userData.organizationId);
-      alert(`User role updated to ${newRole === 'admin' ? 'Admin' : 'User'} successfully!`);
+      setToast(`User role updated to ${newRole === 'admin' ? 'Admin' : 'User'} successfully!`);
     } catch (error) {
       console.error('Error updating role:', error);
-      alert('Failed to update role');
+      setToast('Failed to update role');
     }
   }
 
   async function handleRemoveMember(member) {
     if (member.id === currentUser?.uid) {
-      alert("You cannot remove yourself");
+      setToast("You cannot remove yourself");
       return;
     }
 
-    if (!confirm(`Are you sure you want to remove ${member.name} from the organization?`)) {
-      return;
-    }
-
-    try {
-      await teamService.removeUser(member.id);
-    } catch (error) {
-      console.error('Error removing member:', error);
-      alert('Failed to remove member');
-    }
+    setConfirmModal({
+      message: `Are you sure you want to remove ${member.name} from the organization?`,
+      onConfirm: async () => {
+        try {
+          await teamService.removeUser(member.id);
+        } catch (error) {
+          console.error('Error removing member:', error);
+          setToast('Failed to remove member');
+        }
+      }
+    });
   }
 
   async function handleCancelInvitation(invitationId) {
-    if (!confirm('Are you sure you want to cancel this invitation?')) return;
-
-    try {
-      await teamService.cancelInvitation(userData.organizationId, invitationId);
-    } catch (error) {
-      console.error('Error cancelling invitation:', error);
-      alert('Failed to cancel invitation');
-    }
+    setConfirmModal({
+      message: 'Are you sure you want to cancel this invitation?',
+      onConfirm: async () => {
+        try {
+          await teamService.cancelInvitation(userData.organizationId, invitationId);
+        } catch (error) {
+          console.error('Error cancelling invitation:', error);
+          setToast('Failed to cancel invitation');
+        }
+      }
+    });
   }
 
   async function handleResendInvitation(invitation) {
@@ -234,10 +242,10 @@ export default function Team() {
         invitedBy: invitation.invitedBy,
         role: invitation.role
       });
-      alert('Invitation resent successfully!');
+      setToast('Invitation resent successfully!');
     } catch (error) {
       console.error('Error resending invitation:', error);
-      alert('Failed to resend invitation');
+      setToast('Failed to resend invitation');
     }
   }
 
@@ -751,6 +759,24 @@ export default function Team() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {toast && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--card-bg)', border: '1px solid rgba(200,162,88,0.3)', borderRadius: '8px', padding: '12px 20px', color: 'var(--text-primary)', fontSize: '14px', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.3)' }}>
+          {toast}
+        </div>
+      )}
+
+      {confirmModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', maxWidth: '400px', width: '90%' }}>
+            <p style={{ color: 'var(--text-primary)', marginBottom: '24px', fontSize: '15px' }}>{confirmModal.message}</p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setConfirmModal(null)} style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Cancel</button>
+              <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Confirm</button>
+            </div>
           </div>
         </div>
       )}

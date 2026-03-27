@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
@@ -9,7 +9,7 @@ import { canExport } from '../config/moduleAccess';
 
 export default function Activities() {
   const { userData, currentUser, isAdmin, orgPlan } = useAuth();
-  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'' });
+  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:'' });
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [stats, setStats] = useState({ totalActivities:0,totalVolume:0,buyCount:0,sellCount:0,twoWayCount:0 });
@@ -26,6 +26,17 @@ export default function Activities() {
   const [actFilterDir, setActFilterDir] = useState('');
   const [actFilterStatus, setActFilterStatus] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  // Toast and confirm modal state
+  const [toastMsg, setToastMsg] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, label } or { bulk: true, count: N }
+  const [followUpBannerOpen, setFollowUpBannerOpen] = useState(true);
+  const toastTimerRef = useRef(null);
+
+  function showToast(msg) {
+    setToastMsg(msg);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMsg(''), 3000);
+  }
 
   useEffect(() => {
     if (!userData?.organizationId) { setLoading(false); return; }
@@ -93,31 +104,43 @@ export default function Activities() {
     setSubmitLoading(true);
     try{
       const isTwoWay = activityForm.direction === 'TWO-WAY';
-      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,followUpDate:activityForm.followUpDate||null,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
       else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
       setFormError('');
-      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:''});
-    }catch(e){console.error(e);alert('Failed to save activity');}finally{setSubmitLoading(false);}
+      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});
+    }catch(e){console.error(e);showToast('Failed to save activity');}finally{setSubmitLoading(false);}
   }
 
   async function handleDeleteActivity(id){
-    if(!window.confirm('Delete this activity?')) return;
-    try{await deleteDoc(doc(db,`organizations/${userData.organizationId}/activities`,id));}catch(e){alert('Failed to delete');}
+    setDeleteConfirm({ id, label: 'this activity' });
+  }
+
+  async function confirmDelete() {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.bulk) {
+      try {
+        for (const id of selectedIds) {
+          await deleteDoc(doc(db, `organizations/${userData.organizationId}/activities`, id));
+        }
+        setSelectedIds(new Set());
+      } catch (e) {
+        console.error(e);
+        showToast('Failed to delete some activities');
+      }
+    } else {
+      try {
+        await deleteDoc(doc(db,`organizations/${userData.organizationId}/activities`,deleteConfirm.id));
+      } catch(e) {
+        showToast('Failed to delete');
+      }
+    }
+    setDeleteConfirm(null);
   }
 
   async function handleBulkDelete() {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.size} selected activit${selectedIds.size === 1 ? 'y' : 'ies'}?`)) return;
-    try {
-      for (const id of selectedIds) {
-        await deleteDoc(doc(db, `organizations/${userData.organizationId}/activities`, id));
-      }
-      setSelectedIds(new Set());
-    } catch (e) {
-      console.error(e);
-      alert('Failed to delete some activities');
-    }
+    setDeleteConfirm({ bulk: true, count: selectedIds.size });
   }
 
   function toggleSelect(id) {
@@ -147,7 +170,7 @@ export default function Activities() {
   }
 
   function handleEditActivity(a){
-    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',bidPrice:a.bidPrice?.toString()||'',offerPrice:a.offerPrice?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||''});
+    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',bidPrice:a.bidPrice?.toString()||'',offerPrice:a.offerPrice?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||'',followUpDate:a.followUpDate||''});
     setEditingActivity(a.id);
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -158,7 +181,7 @@ export default function Activities() {
       await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, activityId), { status: newStatus });
     } catch(e) {
       console.error(e);
-      alert('Failed to update status');
+      showToast('Failed to update status');
     } finally {
       setSavingStatus(p => ({...p, [activityId]: false}));
     }
@@ -172,7 +195,7 @@ export default function Activities() {
       });
     } catch(e) {
       console.error(e);
-      alert('Failed to update price');
+      showToast('Failed to update price');
     } finally {
       setSavingPrice(p => ({...p, [activityId]: false}));
     }
@@ -186,7 +209,7 @@ export default function Activities() {
       });
     } catch(e) {
       console.error(e);
-      alert('Failed to update price');
+      showToast('Failed to update price');
     } finally {
       setSavingPrice(p => ({...p, [activityId]: false}));
     }
@@ -196,18 +219,18 @@ export default function Activities() {
   const activitiesWithDisplayPrice=()=>activities.map(a=>({...a,displayPrice:formatDisplayPrice(a)}));
 
   function handleExportExcel(){
-    if(activities.length===0){alert('No activities to export!');return;}
+    if(activities.length===0){showToast('No activities to export!');return;}
     exportToExcel(activitiesWithDisplayPrice(),[
       {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Activity Type',field:'activityType'},
       {header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},
       {header:'Currency',field:'currency'},{header:'Direction',field:'direction'},{header:'Price',field:'displayPrice'},
-      {header:'Status',field:'status'},{header:'Notes',field:'notes'},{header:'Created By',field:'createdBy'}
+      {header:'Status',field:'status'},{header:'Notes',field:'notes'},{header:'Follow-Up Date',field:'followUpDate'},{header:'Created By',field:'createdBy'}
     ],'activity-log-export','Activity Log');
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_excel',details:`Exported ${activities.length} activities to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
   function handleExportPDF(){
-    if(activities.length===0){alert('No activities to export!');return;}
+    if(activities.length===0){showToast('No activities to export!');return;}
     exportToPDF(activitiesWithDisplayPrice(),[
       {header:'Date',field:'createdAt'},{header:'Client',field:'clientName'},{header:'Type',field:'activityType'},
       {header:'ISIN',field:'isin'},{header:'Ticker',field:'ticker'},{header:'Size (MM)',field:'size'},
@@ -218,9 +241,9 @@ export default function Activities() {
   }
 
   function handleExportCSV(){
-    if(activities.length===0){alert('No activities to export!');return;}
+    if(activities.length===0){showToast('No activities to export!');return;}
     const exportData=activitiesWithDisplayPrice();
-    const cols=[{h:'Date',f:'createdAt'},{h:'Client',f:'clientName'},{h:'Activity Type',f:'activityType'},{h:'ISIN',f:'isin'},{h:'Ticker',f:'ticker'},{h:'Size (MM)',f:'size'},{h:'Currency',f:'currency'},{h:'Direction',f:'direction'},{h:'Price',f:'displayPrice'},{h:'Status',f:'status'},{h:'Notes',f:'notes'},{h:'Created By',f:'createdBy'}];
+    const cols=[{h:'Date',f:'createdAt'},{h:'Client',f:'clientName'},{h:'Activity Type',f:'activityType'},{h:'ISIN',f:'isin'},{h:'Ticker',f:'ticker'},{h:'Size (MM)',f:'size'},{h:'Currency',f:'currency'},{h:'Direction',f:'direction'},{h:'Price',f:'displayPrice'},{h:'Status',f:'status'},{h:'Notes',f:'notes'},{h:'Follow-Up Date',f:'followUpDate'},{h:'Created By',f:'createdBy'}];
     const esc=v=>{const s=String(v??'');return s.includes(',')||s.includes('"')||s.includes('\n')?`"${s.replace(/"/g,'""')}"`:s;};
     const csv=[cols.map(c=>c.h).join(','),...exportData.map(a=>cols.map(c=>esc(a[c.f])).join(','))].join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
@@ -245,6 +268,16 @@ export default function Activities() {
     return true;
   });
 
+  // Compute follow-ups due within 7 days
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const dueSoon = activities.filter(a => {
+    if (!a.followUpDate) return false;
+    const d = new Date(a.followUpDate);
+    d.setHours(0,0,0,0);
+    return d <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+  }).sort((a,b)=>new Date(a.followUpDate)-new Date(b.followUpDate));
+
   const dirBadge=(d)=>({'BUY':'badge-success','SELL':'badge-danger','TWO-WAY':'badge-warning'}[d]||'badge-primary');
   const stsBadge=(s)=>({'ENQUIRY':'badge-primary','QUOTED':'badge-warning','EXECUTED':'badge-success','PASSED':'badge-danger','TRADED AWAY':'badge-danger'}[s]||'badge-primary');
 
@@ -267,10 +300,51 @@ export default function Activities() {
           </div>
         </div>
 
+        {/* Follow-Up Banner */}
+        {dueSoon.length > 0 && (
+          <div style={{marginBottom:'24px',border:'1px solid rgba(200,162,88,0.4)',borderRadius:'10px',background:'rgba(200,162,88,0.08)',overflow:'hidden'}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',cursor:'pointer',userSelect:'none'}} onClick={()=>setFollowUpBannerOpen(p=>!p)}>
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <span style={{fontSize:'16px'}}>⏰</span>
+                <span style={{fontWeight:700,fontSize:'14px',color:'#C8A258'}}>Follow-Ups Due</span>
+                <span style={{background:'#C8A258',color:'#0F2137',borderRadius:'12px',padding:'2px 8px',fontSize:'12px',fontWeight:700}}>{dueSoon.length}</span>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'12px'}}>
+                <span style={{fontSize:'12px',color:'var(--text-muted)'}}>{followUpBannerOpen?'▲ Collapse':'▼ Expand'}</span>
+                <button onClick={e=>{e.stopPropagation();setFollowUpBannerOpen(false);}} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'18px',lineHeight:1,padding:'0 4px'}} title="Dismiss">×</button>
+              </div>
+            </div>
+            {followUpBannerOpen && (
+              <div style={{borderTop:'1px solid rgba(200,162,88,0.2)',padding:'4px 0 8px'}}>
+                {dueSoon.map(a => {
+                  const dDate = new Date(a.followUpDate);
+                  dDate.setHours(0,0,0,0);
+                  const isOverdue = dDate < today;
+                  const isToday = dDate.getTime() === today.getTime();
+                  const label = isOverdue ? 'Overdue' : isToday ? 'Today' : a.followUpDate;
+                  return (
+                    <div key={a.id} style={{display:'flex',alignItems:'center',gap:'16px',padding:'8px 20px',borderBottom:'1px solid rgba(200,162,88,0.1)'}}>
+                      <span style={{fontWeight:600,fontSize:'13px',color:'var(--text-primary)',minWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.clientName}</span>
+                      <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px'}}>{a.isin||a.ticker||'—'}</span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:isOverdue?'#ef4444':isToday?'#f59e0b':'#C8A258',minWidth:'80px'}}>{label}</span>
+                      <button
+                        onClick={()=>{setActSearch(a.clientName);window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}}
+                        style={{marginLeft:'auto',background:'none',border:'1px solid rgba(200,162,88,0.4)',borderRadius:'6px',padding:'3px 10px',fontSize:'12px',fontWeight:600,color:'#C8A258',cursor:'pointer'}}
+                      >
+                        View
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="card">
           <div className="card-header">
             <span>📝 {editingActivity?'Edit Activity':'New Activity'}</span>
-            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:''});}}>Cancel Edit</button>}
+            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});}}>Cancel Edit</button>}
           </div>
           <form onSubmit={handleActivitySubmit}>
             <div className="form-grid">
@@ -357,6 +431,19 @@ export default function Activities() {
                   <textarea className="form-textarea" rows="2" placeholder="e.g., Client requested pricing for 3Y maturity" value={activityForm.notes} onChange={e=>setActivityForm({...activityForm,notes:e.target.value})}/>
                 </div>
               </div>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Follow-Up Date</label>
+                  <input
+                    type="date"
+                    className="form-input"
+                    value={activityForm.followUpDate}
+                    onChange={e=>setActivityForm(p=>({...p,followUpDate:e.target.value}))}
+                  />
+                  <div className="form-hint">Set a reminder date for follow-up with this client</div>
+                </div>
+                <div className="field-group"/>
+              </div>
             </div>
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
               {formError && <div className="form-error-banner">{formError}</div>}
@@ -422,10 +509,10 @@ export default function Activities() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr><th style={{width:'40px'}}><input type="checkbox" checked={filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).length > 0 && filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).every(a => selectedIds.has(a.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Actions</th></tr>
+                <tr><th style={{width:'40px'}}><input type="checkbox" checked={filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).length > 0 && filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).every(a => selectedIds.has(a.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Follow-Up</th><th>Actions</th></tr>
               </thead>
               <tbody>
-                {filteredActivities.length===0?(<tr><td colSpan="13" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(
+                {filteredActivities.length===0?(<tr><td colSpan="14" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(
                   filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).map(a=>(
                     <tr key={a.id} style={selectedIds.has(a.id) ? {background:'var(--accent-glow)'} : undefined}>
                       <td><input type="checkbox" checked={selectedIds.has(a.id)} onChange={()=>toggleSelect(a.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>
@@ -469,6 +556,13 @@ export default function Activities() {
                         </select>
                       </td>
                       <td style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={a.notes||''}>{a.notes||'-'}</td>
+                      <td>
+                        {a.followUpDate ? (
+                          <span style={{fontSize:'12px',fontWeight:600,color:new Date(a.followUpDate)<today?'#ef4444':new Date(a.followUpDate).getTime()===today.getTime()?'#f59e0b':'#C8A258'}}>
+                            {a.followUpDate}
+                          </span>
+                        ) : '-'}
+                      </td>
                       <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete">🗑️</button></div></td>
                     </tr>
                   ))
@@ -489,6 +583,35 @@ export default function Activities() {
           )}
         </div>
       </main>
+
+      {/* Toast notification */}
+      {toastMsg && (
+        <div style={{position:'fixed',top:'20px',right:'20px',zIndex:10000,background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px 20px',boxShadow:'0 8px 32px rgba(0,0,0,0.3)',fontSize:'14px',fontWeight:600,color:'var(--text-primary)',display:'flex',alignItems:'center',gap:'10px',maxWidth:'320px'}}>
+          <span style={{fontSize:'16px'}}>ℹ️</span>
+          {toastMsg}
+          <button onClick={()=>setToastMsg('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'18px',lineHeight:1,padding:'0 4px'}}>×</button>
+        </div>
+      )}
+
+      {/* Delete confirm modal */}
+      {deleteConfirm && (
+        <div style={{position:'fixed',inset:0,zIndex:10001,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setDeleteConfirm(null)}>
+          <div style={{background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'14px',padding:'32px',maxWidth:'380px',width:'90%',boxShadow:'0 16px 48px rgba(0,0,0,0.4)'}} onClick={e=>e.stopPropagation()}>
+            <div style={{fontSize:'32px',textAlign:'center',marginBottom:'16px'}}>🗑️</div>
+            <div style={{fontSize:'18px',fontWeight:700,color:'var(--text-primary)',textAlign:'center',marginBottom:'8px'}}>Confirm Delete</div>
+            <div style={{fontSize:'14px',color:'var(--text-secondary)',textAlign:'center',marginBottom:'28px'}}>
+              {deleteConfirm.bulk
+                ? `Delete ${deleteConfirm.count} selected activit${deleteConfirm.count===1?'y':'ies'}? This cannot be undone.`
+                : 'Delete this activity? This cannot be undone.'}
+            </div>
+            <div style={{display:'flex',gap:'12px',justifyContent:'center'}}>
+              <button className="btn btn-muted" onClick={()=>setDeleteConfirm(null)} style={{minWidth:'100px'}}>Cancel</button>
+              <button className="btn btn-danger" onClick={confirmDelete} style={{minWidth:'100px'}}>Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style jsx>{`
         .app-container{min-height:100vh;background:var(--bg-base);color:var(--text-primary);}
         .main-content{max-width:1400px;margin:0 auto;padding:32px 24px;}

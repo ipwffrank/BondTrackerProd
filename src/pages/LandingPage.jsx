@@ -728,13 +728,16 @@ export default function LandingPage({ showLogin = false }) {
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <button onClick={() => scrollTo('contact')} className="lp2-btn-gold" style={{ fontSize: '15px', padding: '14px 32px' }}>
+            <a href="/signup" className="lp2-btn-gold" style={{ fontSize: '15px', padding: '14px 32px' }}>
+              Start free 14-day trial
+            </a>
+            <button onClick={() => scrollTo('contact')} className="lp2-btn-ghost" style={{ fontSize: '15px', padding: '14px 32px' }}>
               Request a Demo
             </button>
-            <button onClick={() => scrollTo('product')} className="lp2-btn-ghost" style={{ fontSize: '15px', padding: '14px 32px' }}>
-              See how it works &rarr;
-            </button>
           </div>
+          <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(240,237,232,0.35)', marginTop: '16px' }}>
+            No credit card required · 14-day free trial
+          </p>
         </div>
       </section>
 
@@ -1092,6 +1095,93 @@ export default function LandingPage({ showLogin = false }) {
         </div>
       </section>
 
+      {/* ── 5b. PRICING ─────────────────────────────────────────────────────────── */}
+      <section id="pricing" style={{ background: '#0F2137', padding: '100px 24px' }}>
+        <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
+          <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <SectionLabel>Pricing</SectionLabel>
+            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#F0EDE8', margin: '0 auto 16px', lineHeight: '1.2' }}>
+              Simple, transparent pricing.
+            </h2>
+            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
+              Start free. Upgrade when your desk is ready.
+            </p>
+          </AnimatedSection>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'start' }}>
+            {/* Starter */}
+            <AnimatedSection delay={0}>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Starter</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$49</span>
+                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+                  </div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Up to 5 users. Activities, Clients, CSV export. Get your desk off spreadsheets.</p>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Activity logging', 'Client CRM', 'CSV export', 'Team management'].map(f => (
+                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="/signup" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Start free trial</a>
+              </div>
+            </AnimatedSection>
+
+            {/* Growth — highlighted */}
+            <AnimatedSection delay={100}>
+              <div style={{ background: 'rgba(200,162,88,0.07)', border: '2px solid rgba(200,162,88,0.5)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+                <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#C8A258', color: '#0F2137', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Most Popular</div>
+                <div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$99</span>
+                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+                  </div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Minimum 3 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Everything in Starter', 'Pipeline & order book', 'Analytics dashboard', 'AI transcript analysis', 'Excel & PDF export'].map(f => (
+                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="/signup" className="lp2-btn-gold" style={{ textAlign: 'center', marginTop: '8px' }}>Start free trial</a>
+              </div>
+            </AnimatedSection>
+
+            {/* Desk */}
+            <AnimatedSection delay={200}>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                <div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Desk</p>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$3,500</span>
+                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/month flat</span>
+                  </div>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Unlimited users. API access, dedicated onboarding, SLA, and compliance support.</p>
+                </div>
+                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {['Everything in Growth', 'Unlimited users', 'API access', 'Dedicated onboarding', 'SLA & compliance docs'].map(f => (
+                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+                <a href="mailto:info@axle-finance.com?subject=Desk Plan Enquiry" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Contact us</a>
+              </div>
+            </AnimatedSection>
+          </div>
+        </div>
+      </section>
+
       {/* ── 6. COMPARISON TABLE ──────────────────────────────────────────────────── */}
       <section id="compare" style={{ background: '#FFFFFF', padding: '100px 24px' }}>
         <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
@@ -1130,7 +1220,7 @@ export default function LandingPage({ showLogin = false }) {
                   { label: 'AI transcript analysis', axle:'yes', sf:'addon', hub:'no', gen:'no' },
                   { label: 'Real-time analytics', axle:'yes', sf:'limited', hub:'limited', gen:'no' },
                   { label: 'PDF & Excel export', axle:'yes', sf:'addon', hub:'addon', gen:'limited' },
-                  { label: 'Bloomberg integration', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'Bloomberg chat import (AI)', axle:'yes', sf:'no', hub:'no', gen:'no' },
                   { label: 'Onboarding time', axle:'1 day', sf:'3–6 months', hub:'1–3 months', gen:'2–4 weeks' },
                 ].map((row, i) => (
                   <tr key={row.label} style={{ background: i % 2 === 0 ? '#FFFFFF' : '#FAFAF8' }}>
@@ -1175,6 +1265,7 @@ export default function LandingPage({ showLogin = false }) {
           </AnimatedSection>
 
           <div className="lp2-testimonial-grid">
+
             {[
               {
                 quote: "We replaced three separate spreadsheets with Axle in a week. Our hit rate visibility went from a monthly manual exercise to something we check every morning.",
@@ -1240,6 +1331,9 @@ export default function LandingPage({ showLogin = false }) {
               </AnimatedSection>
             ))}
           </div>
+          <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(240,237,232,0.3)', marginTop: '32px', fontFamily: "'Outfit', sans-serif" }}>
+            Quotes reflect early customer feedback. Names abbreviated for privacy.
+          </p>
         </div>
       </section>
 

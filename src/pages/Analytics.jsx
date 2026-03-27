@@ -7,13 +7,14 @@ import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
 
 export default function Analytics() {
-  const { userData, currentUser } = useAuth();
+  const { userData, currentUser, isAdmin } = useAuth();
   const _audit = (action, details) => { if(userData?.organizationId) logAudit(userData.organizationId,{action,details,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email}); };
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [viewMode, setViewMode] = useState(isAdmin ? 'desk' : 'my');
   const [stats, setStats] = useState({
     totalActivities:0,totalVolume:0,totalClients:0,
     buyCount:0,sellCount:0,twoWayCount:0,
@@ -41,19 +42,21 @@ export default function Analytics() {
     return ()=>unsubscribes.forEach(u=>u());
   },[userData?.organizationId]);
 
-  // Derive filteredActivities from activities + date range
+  // Derive filteredActivities from activities + date range + viewMode
   const filteredActivities = activities.filter(a => {
     const d = a.createdAt;
-    if (!d) return true;
-    if (startDate && d < new Date(startDate)) return false;
-    if (endDate && d > new Date(endDate + 'T23:59:59')) return false;
-    return true;
+    if (d) {
+      if (startDate && d < new Date(startDate)) return false;
+      if (endDate && d > new Date(endDate + 'T23:59:59')) return false;
+    }
+    if (viewMode === 'my') return a.createdBy === userData?.email || a.createdBy === userData?.name || a.userId === currentUser?.uid;
+    return true; // desk view: all activities
   });
 
-  // Recalculate stats whenever activities or dates change
+  // Recalculate stats whenever activities or dates or viewMode change
   useEffect(() => {
     calculateStats(filteredActivities);
-  }, [startDate, endDate, activities]);
+  }, [startDate, endDate, activities, viewMode]);
 
   function calculateStats(data) {
     const totalActivities = data.length;
@@ -614,6 +617,19 @@ export default function Analytics() {
     _audit('export_analytics_csv','Exported currency breakdown CSV');
   }
 
+  // ─── Desk View: Performance by Salesperson ─────────────────────────────────
+  function getSalespersonBreakdown() {
+    const map = {};
+    filteredActivities.forEach(a => {
+      const key = a.createdBy || 'Unknown';
+      if (!map[key]) map[key] = { name: key, count: 0, volume: 0, executed: 0 };
+      map[key].count++;
+      map[key].volume += parseFloat(a.size) || 0;
+      if (a.status === 'EXECUTED') map[key].executed++;
+    });
+    return Object.values(map).sort((a,b) => b.volume - a.volume);
+  }
+
   if(loading) return(<div className="app-container"><Navigation/><div style={{display:'flex',justifyContent:'center',alignItems:'center',minHeight:'50vh'}}><div style={{textAlign:'center'}}><div className="spinner" style={{width:'40px',height:'40px',margin:'0 auto 16px'}}></div><div style={{color:'var(--text-primary)'}}>Loading analytics...</div></div></div></div>);
 
   const statCards = [
@@ -625,6 +641,8 @@ export default function Analytics() {
     {value:`${stats.conversionRate}%`, label:'Conversion Rate', type:'stat-conversion'},
     {value:`$${stats.avgTicketSize}MM`, label:'Avg Ticket Size', type:'stat-avg-ticket'},
   ];
+
+  const salespersonRows = viewMode === 'desk' ? getSalespersonBreakdown() : [];
 
   return (
     <div className="app-container">
@@ -643,9 +661,25 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Date Range Filter */}
+        {/* Date Range Filter + View Toggle */}
         <div className="card" style={{marginBottom:'24px'}}>
           <div style={{padding:'16px 24px',display:'flex',alignItems:'center',gap:'16px',flexWrap:'wrap'}}>
+            {/* View Mode Toggle */}
+            <div style={{display:'flex',gap:'8px',alignItems:'center',marginRight:'8px'}}>
+              {['my', 'desk'].map(mode => (
+                <button key={mode} onClick={() => setViewMode(mode)} style={{
+                  padding:'6px 16px', borderRadius:'6px', border:'1px solid',
+                  borderColor: viewMode === mode ? '#C8A258' : 'var(--border)',
+                  background: viewMode === mode ? 'rgba(200,162,88,0.1)' : 'transparent',
+                  color: viewMode === mode ? '#C8A258' : 'var(--text-secondary)',
+                  fontSize:'13px', fontWeight:600, cursor:'pointer', fontFamily:'inherit',
+                  transition:'all 0.2s'
+                }}>
+                  {mode === 'my' ? 'My Activities' : 'Desk View'}
+                </button>
+              ))}
+            </div>
+            <div style={{width:'1px',height:'24px',background:'var(--border)',flexShrink:0}}/>
             <span style={{fontSize:'13px',fontWeight:600,color:'var(--text-secondary)'}}>Date Range:</span>
             <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
               <label style={{fontSize:'12px',color:'var(--text-muted)'}}>From</label>
@@ -659,7 +693,7 @@ export default function Analytics() {
               <button className="btn btn-muted" style={{padding:'6px 12px',fontSize:'12px'}} onClick={()=>{setStartDate('');setEndDate('');}}>Reset</button>
             )}
             <span style={{fontSize:'13px',color:'var(--text-muted)',marginLeft:'auto'}}>
-              {(startDate||endDate) ? `Showing ${filteredActivities.length} of ${activities.length} activities` : `${activities.length} activities`}
+              {(startDate||endDate||viewMode==='my') ? `Showing ${filteredActivities.length} of ${activities.length} activities` : `${activities.length} activities`}
             </span>
           </div>
         </div>
@@ -891,6 +925,53 @@ export default function Analytics() {
             </table>
           </div>
         </div>
+
+        {/* Desk View: Performance by Salesperson */}
+        {viewMode === 'desk' && (
+          <div className="card" style={{marginBottom:'24px'}}>
+            <div className="card-header">
+              <span>Performance by Salesperson</span>
+            </div>
+            <div className="table-container">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Salesperson</th>
+                    <th>Activities</th>
+                    <th>Volume (MM)</th>
+                    <th>Executed</th>
+                    <th>Hit Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {salespersonRows.length === 0 ? (
+                    <tr><td colSpan="5" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>No data yet</td></tr>
+                  ) : (
+                    salespersonRows.map((row, i) => {
+                      const hitRate = row.count > 0 ? ((row.executed / row.count) * 100).toFixed(1) : '0.0';
+                      return (
+                        <tr key={i}>
+                          <td style={{fontWeight:600}}>{row.name}</td>
+                          <td>{row.count}</td>
+                          <td style={{fontWeight:600,color:'var(--accent)'}}>${row.volume.toFixed(2)}MM</td>
+                          <td>{row.executed}</td>
+                          <td>
+                            <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                              <div style={{width:'60px',height:'6px',background:'var(--border)',borderRadius:'3px',overflow:'hidden'}}>
+                                <div style={{width:`${hitRate}%`,height:'100%',background:'var(--accent)',borderRadius:'3px'}}/>
+                              </div>
+                              <span style={{fontSize:'12px',fontWeight:600,color:'var(--text-secondary)'}}>{hitRate}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </main>
 
