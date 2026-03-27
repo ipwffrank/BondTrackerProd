@@ -18,7 +18,7 @@ export function useAuth() {
 export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
-  const [orgPlan, setOrgPlan] = useState('essentials'); // subscription tier
+  const [orgPlan, setOrgPlan] = useState('essential'); // subscription tier
   const [loading, setLoading] = useState(true);
 
   // Signup function
@@ -231,7 +231,7 @@ export function AuthProvider({ children }) {
           const orgDocRef = doc(db, `organizations/${orgId}`);
           orgDocUnsubscribe = onSnapshot(orgDocRef, (orgSnap) => {
             if (orgSnap.exists()) {
-              setOrgPlan(orgSnap.data().plan || 'essentials');
+              setOrgPlan(orgSnap.data().plan || 'essential');
             }
           }, (err) => console.warn('Org doc listener error:', err));
 

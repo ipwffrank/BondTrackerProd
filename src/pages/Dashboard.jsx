@@ -1435,18 +1435,18 @@ export default function Dashboard() {
                     {canExport('excel', orgPlan) ? (
                       <button className="btn btn-muted" onClick={exportClientsToExcel}>Export Excel</button>
                     ) : (
-                      <button className="btn btn-muted" disabled title="Upgrade to Professional for Excel export" style={{opacity:0.5,cursor:'not-allowed'}}>Export Excel <span style={{fontSize:'9px',fontWeight:700,background:'rgba(200,162,88,0.15)',color:'#C8A258',padding:'2px 6px',borderRadius:'4px',marginLeft:'4px',letterSpacing:'0.05em',border:'1px solid rgba(200,162,88,0.3)'}}>PRO</span></button>
+                      <button className="btn btn-muted" disabled title="Upgrade to Growth for Excel export" style={{opacity:0.5,cursor:'not-allowed'}}>Export Excel <span style={{fontSize:'9px',fontWeight:700,background:'rgba(200,162,88,0.15)',color:'#C8A258',padding:'2px 6px',borderRadius:'4px',marginLeft:'4px',letterSpacing:'0.05em',border:'1px solid rgba(200,162,88,0.3)'}}>PRO</span></button>
                     )}
                     {canExport('pdf', orgPlan) ? (
                       <button className="btn btn-muted" onClick={exportClientsToPDF}>Export PDF</button>
                     ) : (
-                      <button className="btn btn-muted" disabled title="Upgrade to Professional for PDF export" style={{opacity:0.5,cursor:'not-allowed'}}>Export PDF <span style={{fontSize:'9px',fontWeight:700,background:'rgba(200,162,88,0.15)',color:'#C8A258',padding:'2px 6px',borderRadius:'4px',marginLeft:'4px',letterSpacing:'0.05em',border:'1px solid rgba(200,162,88,0.3)'}}>PRO</span></button>
+                      <button className="btn btn-muted" disabled title="Upgrade to Growth for PDF export" style={{opacity:0.5,cursor:'not-allowed'}}>Export PDF <span style={{fontSize:'9px',fontWeight:700,background:'rgba(200,162,88,0.15)',color:'#C8A258',padding:'2px 6px',borderRadius:'4px',marginLeft:'4px',letterSpacing:'0.05em',border:'1px solid rgba(200,162,88,0.3)'}}>PRO</span></button>
                     )}
                   </div>
                   {!canExport('excel', orgPlan) && (
                     <div style={{fontSize:'11px',color:'#64748b',textAlign:'right',paddingRight:'4px',marginTop:'6px'}}>
-                      Excel and PDF exports are available on the <span style={{color:'#C8A258',fontWeight:600}}>Professional</span> plan.{' '}
-                      <a href="mailto:info@axle-finance.com?subject=Upgrade%20to%20Professional" style={{color:'#C8A258',textDecoration:'underline',cursor:'pointer'}}>Learn more</a>
+                      Excel and PDF exports are available on the <span style={{color:'#C8A258',fontWeight:600}}>Growth</span> plan.{' '}
+                      <a href="mailto:info@axle-finance.com?subject=Upgrade%20to%20Growth" style={{color:'#C8A258',textDecoration:'underline',cursor:'pointer'}}>Learn more</a>
                     </div>
                   )}
                 </div>

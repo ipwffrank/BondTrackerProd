@@ -2,12 +2,12 @@
 // Routes not listed here are accessible to all tiers
 
 const MODULE_ACCESS = {
-  '/pipeline':     { minTier: 'professional', label: 'Pipeline', tier: 'Professional' },
-  '/analytics':    { minTier: 'professional', label: 'Analytics', tier: 'Professional' },
-  '/ai-assistant': { minTier: 'professional', label: 'AI Assistant', tier: 'Professional' },
+  '/pipeline':     { minTier: 'growth', label: 'Pipeline', tier: 'Growth' },
+  '/analytics':    { minTier: 'growth', label: 'Analytics', tier: 'Growth' },
+  '/ai-assistant': { minTier: 'growth', label: 'AI Assistant', tier: 'Growth' },
 };
 
-const TIER_RANK = { essentials: 1, professional: 2, institutional: 3 };
+const TIER_RANK = { essential: 1, growth: 2, professional: 3 };
 
 export function canAccessModule(route, orgPlan) {
   const rule = MODULE_ACCESS[route];
@@ -22,17 +22,17 @@ export function getModuleGate(route) {
 }
 
 export function getTierLabel(plan) {
-  return { essentials: 'Essentials', professional: 'Professional', institutional: 'Institutional' }[plan] || 'Essentials';
+  return { essential: 'Essential', growth: 'Growth', professional: 'Professional' }[plan] || 'Essential';
 }
 
 // Export format access per tier
-// Essentials: CSV only | Professional: CSV, Excel, PDF | Institutional: all + API
+// Essential: CSV only | Growth: CSV, Excel, PDF | Professional: all + API
 export function canExport(format, orgPlan) {
   const rank = TIER_RANK[orgPlan] || 0;
   if (format === 'csv') return true; // all tiers
-  if (format === 'excel' || format === 'pdf') return rank >= 2; // professional+
-  if (format === 'api') return rank >= 3; // institutional only
+  if (format === 'excel' || format === 'pdf') return rank >= 2; // growth+
+  if (format === 'api') return rank >= 3; // professional only
   return false;
 }
 
-export const TIER_OPTIONS = ['essentials', 'professional', 'institutional'];
+export const TIER_OPTIONS = ['essential', 'growth', 'professional'];

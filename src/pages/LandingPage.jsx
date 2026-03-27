@@ -728,15 +728,15 @@ export default function LandingPage({ showLogin = false }) {
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            <a href="/signup" className="lp2-btn-gold" style={{ fontSize: '15px', padding: '14px 32px' }}>
-              Start free 14-day trial
+            <a href="mailto:info@axle-finance.com?subject=Axle%20Pilot%20Request" className="lp2-btn-gold" style={{ fontSize: '15px', padding: '14px 32px' }}>
+              Request a Pilot
             </a>
             <button onClick={() => scrollTo('contact')} className="lp2-btn-ghost" style={{ fontSize: '15px', padding: '14px 32px' }}>
               Request a Demo
             </button>
           </div>
           <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(240,237,232,0.35)', marginTop: '16px' }}>
-            No credit card required · 14-day free trial
+            30-day paid pilot · First month credited on subscription
           </p>
         </div>
       </section>
@@ -1104,31 +1104,31 @@ export default function LandingPage({ showLogin = false }) {
               Simple, transparent pricing.
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
-              Start free. Upgrade when your desk is ready.
+              Enterprise pricing built for institutional fixed income desks.
             </p>
           </AnimatedSection>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'start' }}>
-            {/* Starter */}
+            {/* Essential */}
             <AnimatedSection delay={0}>
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Starter</p>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Essential</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$49</span>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$250</span>
                     <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Up to 5 users. Activities, Clients, CSV export. Get your desk off spreadsheets.</p>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 5 seats. Activities, Clients, Contacts, CSV export. Get your desk off spreadsheets.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Activity logging', 'Client CRM', 'CSV export', 'Team management'].map(f => (
+                  {['Activity logging', 'Client & contact CRM', 'Team management', 'CSV export', '12-month data retention'].map(f => (
                     <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <a href="/signup" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Start free trial</a>
+                <a href="mailto:info@axle-finance.com?subject=Axle%20Essential%20Pilot%20Request" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Request a Pilot</a>
               </div>
             </AnimatedSection>
 
@@ -1139,43 +1139,43 @@ export default function LandingPage({ showLogin = false }) {
                 <div>
                   <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$99</span>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$400</span>
                     <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Minimum 3 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 8 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Everything in Starter', 'Pipeline & order book', 'Analytics dashboard', 'AI transcript analysis', 'Excel & PDF export'].map(f => (
+                  {['Everything in Essential', 'Pipeline & DCM deal tracking', 'Analytics dashboard', 'AI transcript analysis (Bloomberg, Symphony, WeChat, Email)', 'Excel & PDF export', '36-month data retention'].map(f => (
                     <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <a href="/signup" className="lp2-btn-gold" style={{ textAlign: 'center', marginTop: '8px' }}>Start free trial</a>
+                <a href="mailto:info@axle-finance.com?subject=Axle%20Growth%20Pilot%20Request" className="lp2-btn-gold" style={{ textAlign: 'center', marginTop: '8px' }}>Request a Pilot</a>
               </div>
             </AnimatedSection>
 
-            {/* Desk */}
+            {/* Professional */}
             <AnimatedSection delay={200}>
               <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Desk</p>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Professional</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$3,500</span>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/month flat</span>
+                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$450</span>
+                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Unlimited users. API access, dedicated onboarding, SLA, and compliance support.</p>
+                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 15 seats. SSO, API access, dedicated CSM, white-glove onboarding, unlimited retention.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Everything in Growth', 'Unlimited users', 'API access', 'Dedicated onboarding', 'SLA & compliance docs'].map(f => (
+                  {['Everything in Growth', 'SSO / SAML', 'API access', 'Custom branding', 'Dedicated CSM (4hr SLA)', 'Unlimited data retention'].map(f => (
                     <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <a href="mailto:info@axle-finance.com?subject=Desk Plan Enquiry" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Contact us</a>
+                <a href="mailto:info@axle-finance.com?subject=Professional%20Plan%20Enquiry" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Talk to Sales</a>
               </div>
             </AnimatedSection>
           </div>
