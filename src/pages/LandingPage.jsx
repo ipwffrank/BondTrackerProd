@@ -724,7 +724,7 @@ export default function LandingPage({ showLogin = false }) {
             maxWidth: '560px',
             lineHeight: '1.7',
           }}>
-            Axle turns Bloomberg chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
+            Axle turns Bloomberg, Symphony, and WeChat chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -841,7 +841,7 @@ export default function LandingPage({ showLogin = false }) {
               {
                 icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>,
                 title: 'AI Transcript Analysis',
-                desc: 'Paste a Bloomberg chat or call transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours of manual entry now takes seconds.',
+                desc: 'Paste a Bloomberg IB, Symphony, WeChat, or email transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours now takes seconds.',
               },
               {
                 icon: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
@@ -942,7 +942,7 @@ export default function LandingPage({ showLogin = false }) {
               <span style={{ color: '#C8A258' }}>in seconds.</span>
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
-              Stop re-keying trades from Bloomberg chats. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
+              Stop re-keying trades from Bloomberg IB, Symphony, and WeChat. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
             </p>
           </AnimatedSection>
 
@@ -950,7 +950,7 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection delay={100}>
             <div className="lp2-ai-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' }}>
               {[
-                { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg chat, call note, or meeting transcript.' },
+                { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg IB, Symphony, WeChat, email, or call note transcript.' },
                 { num: '02', title: 'AI extracts trades', desc: 'GPT identifies clients, ISINs, tickers, sizes, directions, prices, and deal status automatically.' },
                 { num: '03', title: 'Import with one click', desc: 'Review extracted activities, register new clients, and import everything to your activity log instantly.' },
               ].map((step, i) => (
@@ -1220,7 +1220,7 @@ export default function LandingPage({ showLogin = false }) {
                   { label: 'AI transcript analysis', axle:'yes', sf:'addon', hub:'no', gen:'no' },
                   { label: 'Real-time analytics', axle:'yes', sf:'limited', hub:'limited', gen:'no' },
                   { label: 'PDF & Excel export', axle:'yes', sf:'addon', hub:'addon', gen:'limited' },
-                  { label: 'Bloomberg chat import (AI)', axle:'yes', sf:'no', hub:'no', gen:'no' },
+                  { label: 'Multi-format chat import (AI)', axle:'yes', sf:'no', hub:'no', gen:'no' },
                   { label: 'Onboarding time', axle:'1 day', sf:'3–6 months', hub:'1–3 months', gen:'2–4 weeks' },
                 ].map((row, i) => (
                   <tr key={row.label} style={{ background: i % 2 === 0 ? '#FFFFFF' : '#FAFAF8' }}>
