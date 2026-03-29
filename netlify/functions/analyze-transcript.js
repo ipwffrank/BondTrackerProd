@@ -88,7 +88,7 @@ Return JSON array only (no markdown):
       // Vision path: use GPT-4o-mini for image analysis
       model = 'gpt-4o-mini';
 
-      const imagePrompt = `You are looking at a screenshot of a bond trading chat conversation (e.g., Bloomberg IB, WhatsApp, WeChat, or similar messaging platform).
+      const imagePrompt = `You are looking at a screenshot of a bond trading chat conversation (e.g., Bloomberg IB, WhatsApp, or similar messaging platform).
 
 Read the conversation EXACTLY as displayed in the image. Identify:
 - The CLIENT company name from the chat header, window title, "(From Company)" notation, or contact name context

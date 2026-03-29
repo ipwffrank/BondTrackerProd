@@ -92,6 +92,11 @@ export default function Activities() {
     if(!activityForm.status) missing.push('Status');
     if(activityForm.currency==='OTHER' && !activityForm.otherCurrency) missing.push('Currency');
     if(missing.length){ setFormError(`Please fill in: ${missing.join(', ')}`); return; }
+    if(activityForm.status==='EXECUTED'){
+      const isTW=activityForm.direction==='TWO-WAY';
+      if(isTW && !activityForm.bidPrice && !activityForm.offerPrice){ setFormError('Price is required for Executed activities. Please enter at least a bid or offer price.'); return; }
+      if(!isTW && !activityForm.price){ setFormError('Price is required for Executed activities.'); return; }
+    }
     if(!userData?.organizationId){
       if(currentUser) {
         setFormError('Session loading — please wait a moment and try again.');
@@ -397,15 +402,15 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label className="form-label">Price{editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? ' (locked)' : ''}{activityForm.direction==='TWO-WAY'?' (Bid / Offer)':''}</label>
+                  <label className="form-label">Price{activityForm.status==='EXECUTED'?' *':''}{activityForm.direction==='TWO-WAY'?' (Bid / Offer)':''}</label>
                   {activityForm.direction==='TWO-WAY'?(
                     <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
-                      <input type="number" step="0.0001" className="form-input" placeholder="Bid" value={activityForm.bidPrice} onChange={e=>setActivityForm({...activityForm,bidPrice:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} style={{flex:1}}/>
+                      <input type="number" step="0.0001" className="form-input" placeholder="Bid" value={activityForm.bidPrice} onChange={e=>setActivityForm({...activityForm,bidPrice:e.target.value})} style={{flex:1}}/>
                       <span style={{color:'var(--text-muted)',fontWeight:600}}>/</span>
-                      <input type="number" step="0.0001" className="form-input" placeholder="Offer" value={activityForm.offerPrice} onChange={e=>setActivityForm({...activityForm,offerPrice:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} style={{flex:1}}/>
+                      <input type="number" step="0.0001" className="form-input" placeholder="Offer" value={activityForm.offerPrice} onChange={e=>setActivityForm({...activityForm,offerPrice:e.target.value})} style={{flex:1}}/>
                     </div>
                   ):(
-                    <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})} disabled={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status)} title={editingActivity && !['ENQUIRY','QUOTED'].includes(activityForm.status) ? 'Price can only be edited for Enquiry and Quoted statuses' : ''}/>
+                    <input type="number" step="0.0001" className="form-input" placeholder="e.g., 98.75" value={activityForm.price} onChange={e=>setActivityForm({...activityForm,price:e.target.value})}/>
                   )}
                 </div>
                 <div className="field-group">
@@ -526,19 +531,13 @@ export default function Activities() {
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>
                       <td>
                         {a.direction==='TWO-WAY'?(
-                          ['ENQUIRY','QUOTED'].includes(a.status)?(
                             <div style={{display:'flex',gap:'2px',alignItems:'center'}}>
                               <input type="number" step="0.0001" defaultValue={a.bidPrice||''} placeholder="Bid" className="inline-price-input" style={{width:'60px'}} onBlur={e=>handleInlineBidOfferUpdate(a.id,'bidPrice',e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Bid price'}/>
                               <span style={{color:'var(--text-muted)'}}>/</span>
                               <input type="number" step="0.0001" defaultValue={a.offerPrice||''} placeholder="Offer" className="inline-price-input" style={{width:'60px'}} onBlur={e=>handleInlineBidOfferUpdate(a.id,'offerPrice',e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Offer price'}/>
                             </div>
-                          ):(
-                            (a.bidPrice||a.offerPrice)?`${a.bidPrice??'-'} / ${a.offerPrice??'-'}`:a.price||'-'
-                          )
                         ):(
-                          ['ENQUIRY','QUOTED'].includes(a.status)?(
                             <input type="number" step="0.0001" defaultValue={a.price||''} placeholder="Price" className="inline-price-input" onBlur={e=>handleInlinePriceUpdate(a.id,e.target.value)} onKeyDown={e=>{if(e.key==='Enter')e.target.blur();}} title={savingPrice[a.id]?'Saving...':'Enter price, then press Enter or click away'}/>
-                          ):(a.price||'-')
                         )}
                       </td>
                       <td>

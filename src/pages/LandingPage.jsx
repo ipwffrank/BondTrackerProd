@@ -4,6 +4,7 @@ import { db } from '../services/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import MarketingNav from '../components/marketing/MarketingNav';
 import MarketingFooter from '../components/marketing/MarketingFooter';
+import AITranscriptAnimation from '../components/AITranscriptAnimation';
 import { LoginView, ForgotPasswordView, ContactView, LOGIN_STYLES } from './Login';
 import { AxleLogo } from '@bridgelogic/ui';
 
@@ -251,8 +252,9 @@ function DarkBadge({ text, color, bg }) {
 function ActivityCRMPreview() {
   const rows = [
     { date:'03 Mar', client:'Temasek Holdings', type:'Phone Call', isin:'US4592001014', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'98.75' },
-    { date:'03 Mar', client:'Fullerton Fund Mgmt', type:'Bloomberg Chat', isin:'SG2134587890', dir:'SELL', dirClr:'#f87171', dirBg:'rgba(248,113,113,0.12)', sts:'QUOTED', stsClr:'#fbbf24', stsBg:'rgba(251,191,36,0.12)', price:'101.25' },
-    { date:'02 Mar', client:'Lion Global Investors', type:'Email', isin:'US5949181045', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
+    { date:'03 Mar', client:'Fullerton Fund Mgmt', type:'Bloomberg Chat', isin:'SG2134587890', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'QUOTED', stsClr:'#fbbf24', stsBg:'rgba(251,191,36,0.12)', price:'99.50 / 100.25' },
+    { date:'02 Mar', client:'Lion Global Investors', type:'Email', isin:'US5949181045', dir:'SELL', dirClr:'#f87171', dirBg:'rgba(248,113,113,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'101.25' },
+    { date:'02 Mar', client:'GIC Private Ltd', type:'Symphony', isin:'XS2485790445', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -292,9 +294,9 @@ function ActivityCRMPreview() {
 
 function PipelinePreview() {
   const issues = [
-    { date:'03 Mar', issuer:'Sembcorp Industries', size:'500', ccy:'USD', runners:'JPM, GS, HSBC' },
-    { date:'02 Mar', issuer:'CapitaLand Investments', size:'300', ccy:'SGD', runners:'HSBC, SCB' },
-    { date:'01 Mar', issuer:'DBS Bank', size:'750', ccy:'USD', runners:'JPM, MS, GS' },
+    { date:'03 Mar', issuer:'Sembcorp Industries', tranches:'3Y USD / 5Y USD', size:'500', runners:'JPM, GS, HSBC', filled:85 },
+    { date:'02 Mar', issuer:'CapitaLand Investments', tranches:'5Y SGD / 10Y SGD', size:'300', runners:'HSBC, SCB', filled:62 },
+    { date:'01 Mar', issuer:'DBS Bank', tranches:'3Y USD / 5Y USD / 10Y USD', size:'750', runners:'JPM, MS, GS', filled:94 },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -306,7 +308,7 @@ function PipelinePreview() {
       <div style={{ overflowX:'auto' }}>
         <table style={{ width:'100%', borderCollapse:'collapse', fontSize:'12px' }}>
           <thead>
-            <tr>{['Date','Issuer','Target Size','Currency','Bookrunners'].map(h=>(
+            <tr>{['Date','Issuer','Tranches','Target Size','Bookrunners','Order Book'].map(h=>(
               <th key={h} style={{ padding:'8px 12px', textAlign:'left', color:'rgba(255,255,255,0.3)', fontWeight:600, fontSize:'10px', textTransform:'uppercase', letterSpacing:'0.07em', borderBottom:'1px solid rgba(255,255,255,0.06)' }}>{h}</th>
             ))}</tr>
           </thead>
@@ -315,9 +317,17 @@ function PipelinePreview() {
               <tr key={i} style={{ background:i%2===0?'rgba(255,255,255,0.02)':'transparent', borderBottom:'1px solid rgba(255,255,255,0.04)' }}>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.4)', whiteSpace:'nowrap' }}>{r.date}</td>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.9)', fontWeight:600 }}>{r.issuer}</td>
+                <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)', fontSize:'11px' }}>{r.tranches}</td>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.7)' }}>{r.size}MM</td>
-                <td style={{ padding:'10px 12px' }}><DarkBadge text={r.ccy} color='#C8A258' bg='rgba(200,162,88,0.12)' /></td>
                 <td style={{ padding:'10px 12px', color:'rgba(255,255,255,0.5)' }}>{r.runners}</td>
+                <td style={{ padding:'10px 12px', width:'100px' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:'6px' }}>
+                    <div style={{ flex:1, background:'rgba(255,255,255,0.06)', borderRadius:'3px', height:'5px' }}>
+                      <div style={{ width:`${r.filled}%`, background:r.filled>80?'#22c55e':'#C8A258', borderRadius:'3px', height:'100%' }} />
+                    </div>
+                    <span style={{ fontSize:'10px', color:'rgba(255,255,255,0.4)', whiteSpace:'nowrap' }}>{r.filled}%</span>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -381,8 +391,8 @@ function AnalyticsPreview() {
 function AIPreview() {
   const results = [
     { client:'GIC Private Ltd', isin:'HSBC 5.25 2028', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'10', ccy:'USD', price:'100.15', status:'EXECUTED', statusClr:'#22c55e' },
-    { client:'Fidelity Intl', isin:'STANCHART 6.17 2027', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'15', ccy:'USD', price:'52', status:'TRADED AWAY', statusClr:'#ef4444' },
-    { client:'Ping An Asset Mgmt', isin:'BOC 5.00 2026', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'50', ccy:'USD', price:'-', status:'ENQUIRY', statusClr:'#60a5fa' },
+    { client:'Fidelity Intl', isin:'STANCHART 6.17 2027', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'15', ccy:'USD', price:'99.75 / 100.25', status:'QUOTED', statusClr:'#fbbf24' },
+    { client:'Ping An Asset Mgmt', isin:'BOC 5.00 2026', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'50', ccy:'USD', price:'101.50', status:'EXECUTED', statusClr:'#22c55e' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -724,7 +734,7 @@ export default function LandingPage({ showLogin = false }) {
             maxWidth: '560px',
             lineHeight: '1.7',
           }}>
-            Axle turns Bloomberg, Symphony, and WeChat chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
+            Axle turns Bloomberg and Symphony chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -841,7 +851,7 @@ export default function LandingPage({ showLogin = false }) {
               {
                 icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>,
                 title: 'AI Transcript Analysis',
-                desc: 'Paste a Bloomberg IB, Symphony, WeChat, or email transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours now takes seconds.',
+                desc: 'Paste a Bloomberg IB, Symphony, or email transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours now takes seconds.',
               },
               {
                 icon: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
@@ -942,7 +952,7 @@ export default function LandingPage({ showLogin = false }) {
               <span style={{ color: '#C8A258' }}>in seconds.</span>
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
-              Stop re-keying trades from Bloomberg IB, Symphony, and WeChat. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
+              Stop re-keying trades from Bloomberg IB and Symphony. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
             </p>
           </AnimatedSection>
 
@@ -950,7 +960,7 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection delay={100}>
             <div className="lp2-ai-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' }}>
               {[
-                { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg IB, Symphony, WeChat, email, or call note transcript.' },
+                { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg IB, Symphony, email, or call note transcript.' },
                 { num: '02', title: 'AI extracts trades', desc: 'GPT identifies clients, ISINs, tickers, sizes, directions, prices, and deal status automatically.' },
                 { num: '03', title: 'Import with one click', desc: 'Review extracted activities, register new clients, and import everything to your activity log instantly.' },
               ].map((step, i) => (
@@ -974,54 +984,9 @@ export default function LandingPage({ showLogin = false }) {
             </div>
           </AnimatedSection>
 
-          {/* Before/After visual */}
+          {/* Animated transcript-to-data illustration */}
           <AnimatedSection delay={200}>
-            <div className="lp2-ai-compare" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', alignItems: 'stretch' }}>
-              {/* Before: Raw transcript */}
-              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#ef4444' }} />
-                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Raw Bloomberg Chat</span>
-                </div>
-                <div style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '11px', color: 'rgba(255,255,255,0.45)', lineHeight: '1.8', flex: 1 }}>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:14]</span> GIC: can you show me axe on HSBC 5.25 2028?</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:14]</span> looking for 10mm usd</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:15]</span> Dealer: 100.15/100.25</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:16]</span> GIC: done at 100.15, bought 10mm</div>
-                  <div style={{ marginTop: '10px' }}><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:32]</span> Fidelity: any interest in STANCHART 6.17 2027?</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:32]</span> we can offer 15mm at 52</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:33]</span> Dealer: let me check with desk</div>
-                  <div><span style={{ color: 'rgba(200,162,88,0.7)' }}>[09:45]</span> Dealer: goldman executed @ 51.75, traded away</div>
-                </div>
-              </div>
-
-              {/* After: Extracted data */}
-              <div style={{ background: 'rgba(200,162,88,0.04)', border: '1px solid rgba(200,162,88,0.2)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' }} />
-                  <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: 600, color: '#C8A258', textTransform: 'uppercase', letterSpacing: '0.06em' }}>AI-Extracted Activities</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                  {[
-                    { client: 'GIC', bond: 'HSBC 5.25 2028', size: '10MM', dir: 'BUY', dirClr: '#22c55e', price: '100.15', status: 'EXECUTED', statusClr: '#22c55e' },
-                    { client: 'Fidelity', bond: 'STANCHART 6.17 2027', size: '15MM', dir: 'SELL', dirClr: '#ef4444', price: '52', status: 'TRADED AWAY', statusClr: '#ef4444' },
-                  ].map((r, i) => (
-                    <div key={i} style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '8px', padding: '12px 14px', border: '1px solid rgba(255,255,255,0.06)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: 600, color: '#F0EDE8' }}>{r.client}</span>
-                        <div style={{ display: 'flex', gap: '6px' }}>
-                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: `${r.dirClr}18`, color: r.dirClr }}>{r.dir}</span>
-                          <span style={{ padding: '2px 8px', borderRadius: '20px', fontSize: '10px', fontWeight: 600, background: `${r.statusClr}18`, color: r.statusClr }}>{r.status}</span>
-                        </div>
-                      </div>
-                      <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: 'rgba(240,237,232,0.5)' }}>
-                        {r.bond} · {r.size} USD · @ {r.price}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <AITranscriptAnimation />
           </AnimatedSection>
 
           {/* Stats row */}
@@ -1145,7 +1110,7 @@ export default function LandingPage({ showLogin = false }) {
                   <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 8 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Everything in Essential', 'Pipeline & DCM deal tracking', 'Analytics dashboard', 'AI transcript analysis (Bloomberg, Symphony, WeChat, Email)', 'Excel & PDF export', '36-month data retention'].map(f => (
+                  {['Everything in Essential', 'Pipeline & DCM deal tracking', 'Analytics dashboard', 'AI transcript analysis (Bloomberg, Symphony, Email)', 'Excel & PDF export', '36-month data retention'].map(f => (
                     <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
@@ -1247,8 +1212,8 @@ export default function LandingPage({ showLogin = false }) {
         </div>
       </section>
 
-      {/* ── 7. TESTIMONIALS ──────────────────────────────────────────────────────── */}
-      <section id="about" style={{
+      {/* ── 7. TESTIMONIALS (hidden until later) ─────────────────────────────── */}
+      {false && (<section id="about" style={{
         background: 'linear-gradient(160deg, #0A1929 0%, #0F2137 60%, #162B44 100%)',
         padding: '100px 24px',
       }}>
@@ -1336,6 +1301,7 @@ export default function LandingPage({ showLogin = false }) {
           </p>
         </div>
       </section>
+      )}
 
       {/* ── 7. CONTACT / DEMO REQUEST ────────────────────────────────────────────── */}
       <section id="contact" style={{ background: '#FFFFFF', padding: '100px 24px' }}>

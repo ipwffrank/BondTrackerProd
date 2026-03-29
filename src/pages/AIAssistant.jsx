@@ -339,7 +339,7 @@ export default function AIAssistant() {
             <div style={{marginBottom: '12px'}}>
               <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Chat Format</label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {['auto', 'bloomberg', 'symphony', 'wechat', 'email'].map(fmt => (
+                {['auto', 'bloomberg', 'symphony', 'email'].map(fmt => (
                   <button key={fmt} onClick={() => setChatFormat(fmt)} style={{
                     padding: '5px 12px', borderRadius: '5px', border: '1px solid',
                     borderColor: chatFormat === fmt ? '#C8A258' : 'var(--border)',
@@ -382,7 +382,7 @@ export default function AIAssistant() {
             <div style={{marginTop: '24px', padding: '16px', background: 'var(--badge-primary-bg)', borderRadius: '8px', border: '1px solid var(--badge-primary-text)'}}>
               <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>💡 How AI Analysis Works</h4>
               <ul style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
-                <li>Paste a Bloomberg IB, Symphony, WeChat, or email transcript — or upload a file or screenshot</li>
+                <li>Paste a Bloomberg IB, Symphony, or email transcript — or upload a file or screenshot</li>
                 <li>Supported formats: text files (.txt, .csv, .md) and images (.png, .jpg)</li>
                 <li>AI automatically detects client names, ISINs, tickers, sizes, and directions</li>
                 <li>For screenshots, AI vision reads the chat dialogue and extracts the same structured data</li>
