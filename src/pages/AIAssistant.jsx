@@ -9,7 +9,7 @@ const DIRECTION_OPTIONS = ['BUY', 'SELL', 'TWO-WAY'];
 const STATUS_OPTIONS = ['ENQUIRY', 'QUOTED', 'EXECUTED', 'PASSED', 'TRADED AWAY'];
 
 export default function AIAssistant() {
-  const { userData, isAdmin } = useAuth();
+  const { userData, isAdmin, currentUser } = useAuth();
 
   const [aiFile, setAiFile] = useState(null);
   const [chatFormat, setChatFormat] = useState('auto');
@@ -129,16 +129,12 @@ export default function AIAssistant() {
     try {
       const isImage = isImageFile(aiFile);
       let payload;
-      let rawTextForHistory;
-
       if (isImage) {
         const base64 = await readFileAsBase64(aiFile);
         payload = { imageBase64: base64, fileType: aiFile.type };
-        rawTextForHistory = null; // don't store large base64 in Firestore
       } else {
         const text = await aiFile.text();
         payload = { transcript: text };
-        rawTextForHistory = text;
       }
 
       // Include past corrections for few-shot learning
@@ -151,9 +147,10 @@ export default function AIAssistant() {
 
       payload.chatFormat = chatFormat;
 
+      const idToken = currentUser ? await currentUser.getIdToken() : '';
       const response = await fetch('/.netlify/functions/analyze-transcript', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
         body: JSON.stringify(payload)
       });
       const result = await response.json();
@@ -182,7 +179,6 @@ export default function AIAssistant() {
           completionTokens: result.usage?.completionTokens || 0,
           fileType: isImage ? 'image' : 'text',
         };
-        if (rawTextForHistory) uploadRecord.rawText = rawTextForHistory;
         await addDoc(collection(db, `organizations/${userData.organizationId}/transcriptUploads`), uploadRecord);
       }
     } catch (error) {
@@ -687,23 +683,7 @@ export default function AIAssistant() {
                         {isAdmin && (
                           <td>
                             <div style={{display:'flex',gap:'6px'}}>
-                              {h.rawText ? (
-                                <button
-                                  className="btn btn-secondary"
-                                  style={{padding: '4px 10px', fontSize: '12px'}}
-                                  onClick={() => {
-                                    const blob = new Blob([h.rawText], { type: 'text/plain' });
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = h.fileName || 'transcript.txt';
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                  }}
-                                >Download</button>
-                              ) : (
-                                <span style={{fontSize: '12px', color: 'var(--text-muted)', padding: '4px 0'}}>{h.fileType === 'image' ? 'Image' : 'N/A'}</span>
-                              )}
+                              <span style={{fontSize: '12px', color: 'var(--text-muted)', padding: '4px 0'}}>{h.fileType === 'image' ? 'Image' : 'Text'}</span>
                               <button
                                 className="btn"
                                 style={{padding: '4px 10px', fontSize: '12px', background:'#dc2626', color:'#fff'}}

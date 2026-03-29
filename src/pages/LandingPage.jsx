@@ -1237,7 +1237,7 @@ export default function LandingPage({ showLogin = false }) {
               {
                 icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
                 title: 'Transcript Privacy',
-                desc: 'Transcripts are processed in real time and never stored. Only the structured output (client, bond, price, status) is saved to your organisation\u2019s database. Raw text is discarded after analysis.',
+                desc: 'Transcripts are processed in real time and only the structured output (client, bond, price, status) is saved to your organisation\u2019s database. Raw transcript text is never stored. All data is encrypted in transit (TLS 1.2+) and at rest (AES-256).',
               },
               {
                 icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>,
@@ -1246,18 +1246,18 @@ export default function LandingPage({ showLogin = false }) {
               },
               {
                 icon: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>,
-                title: 'No Axle Staff Access',
-                desc: 'Axle employees cannot view your activities, transcripts, or client data. There is no admin backdoor. Platform administration is limited to account provisioning and billing.',
+                title: 'Restricted Platform Access',
+                desc: 'Axle platform operations are limited to account provisioning and billing. Client trading data (activities, transcripts, pipeline) is protected by strict security rules that prevent cross-organisation access.',
               },
               {
                 icon: <><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></>,
                 title: 'API-Only AI Processing',
-                desc: 'Transcript analysis uses OpenAI\u2019s API (not ChatGPT). API inputs are not used for model training and are deleted after 30 days per OpenAI\u2019s data policy.',
+                desc: 'Transcript analysis uses OpenAI\u2019s API (not ChatGPT). Per OpenAI\u2019s current API data usage policy, inputs are not used for model training. All API requests are authenticated and origin-restricted.',
               },
               {
                 icon: <><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></>,
                 title: 'SSO / SAML (Professional)',
-                desc: 'Professional tier supports single sign-on via your company\u2019s identity provider (Okta, Azure AD, Google Workspace). No separate passwords to manage.',
+                desc: 'Professional tier includes single sign-on via your company\u2019s identity provider (Okta, Azure AD, Google Workspace). SSO is enabled upon request during onboarding \u2014 no separate passwords to manage.',
               },
               {
                 icon: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,

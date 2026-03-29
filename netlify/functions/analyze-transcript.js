@@ -1,15 +1,25 @@
 exports.handler = async (event) => {
   console.log('=== Function Started ===');
 
+  const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || 'https://axle-finance.com,https://www.axle-finance.com,http://localhost:5173,http://localhost:8888').split(',');
+  const origin = event.headers?.origin || '';
+  const allowedOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+
   const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Origin': allowedOrigin,
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
   if (event.httpMethod === 'OPTIONS') {
     console.log('OPTIONS request');
     return { statusCode: 200, headers, body: '' };
+  }
+
+  // Verify Firebase ID token
+  const authHeader = event.headers?.authorization || '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Missing authentication token' }) };
   }
 
   try {
