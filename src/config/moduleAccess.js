@@ -35,4 +35,9 @@ export function canExport(format, orgPlan) {
   return false;
 }
 
+// SSO/SAML access — Professional tier only
+export function canUseSso(orgPlan) {
+  return (TIER_RANK[orgPlan] || 0) >= 3;
+}
+
 export const TIER_OPTIONS = ['essential', 'growth', 'professional'];

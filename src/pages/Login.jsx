@@ -186,6 +186,25 @@ const STYLES = `
   }
   .login-contact-btn:hover { color: #D4B06A; }
 
+  .login-sso-divider {
+    display: flex; align-items: center; gap: 12px;
+    margin: 18px 0; color: #475569; font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.08em;
+  }
+  .login-sso-divider::before, .login-sso-divider::after {
+    content: ''; flex: 1; height: 1px; background: #334155;
+  }
+  .login-sso-btn {
+    width: 100%; padding: 13px;
+    background: transparent;
+    color: #f8fafc; border: 1px solid #334155; border-radius: 10px;
+    font-size: 15px; font-weight: 600; font-family: inherit;
+    cursor: pointer; transition: background 0.2s, border-color 0.2s;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .login-sso-btn:hover:not(:disabled) { background: rgba(200,162,88,0.06); border-color: #C8A258; }
+  .login-sso-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
   .login-forgot-btn {
     background: none; border: none; cursor: pointer;
     color: #C8A258; font-size: 13px; font-weight: 500;
@@ -455,9 +474,25 @@ function LoginView({ onForgotPassword, onOpenDemo, onContact }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [ssoAvailable, setSsoAvailable] = useState(false);
+  const [ssoCheckedDomain, setSsoCheckedDomain] = useState('');
 
-  const { login } = useAuth();
+  const { login, loginWithSso, getSsoProviderForEmail } = useAuth();
   const navigate = useNavigate();
+
+  // Check if the email domain has SSO enabled (runs on blur)
+  async function checkSsoForEmail() {
+    const domain = email.trim().split('@')[1];
+    if (!domain || domain === ssoCheckedDomain) return;
+    setSsoCheckedDomain(domain);
+    try {
+      const info = await getSsoProviderForEmail(email.trim());
+      setSsoAvailable(!!info);
+    } catch {
+      setSsoAvailable(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -480,6 +515,23 @@ function LoginView({ onForgotPassword, onOpenDemo, onContact }) {
     }
   }
 
+  async function handleSsoLogin() {
+    try {
+      setError('');
+      setSsoLoading(true);
+      await loginWithSso(email.trim());
+      navigate('/activities');
+    } catch (err) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('SSO sign-in was cancelled.');
+      } else {
+        setError('SSO sign-in failed. Please try again or use password login.');
+      }
+    } finally {
+      setSsoLoading(false);
+    }
+  }
+
   return (
     <>
       <h1 className="login-title">Welcome back</h1>
@@ -492,7 +544,9 @@ function LoginView({ onForgotPassword, onOpenDemo, onContact }) {
           <label className="login-label">Email</label>
           <div className="login-input-wrap" style={{ marginBottom: '6px' }}>
             <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)}
+              type="email" value={email}
+              onChange={e => { setEmail(e.target.value); setSsoAvailable(false); setSsoCheckedDomain(''); }}
+              onBlur={checkSsoForEmail}
               className="login-input" placeholder="you@firm.com" required autoComplete="email"
             />
           </div>
@@ -518,10 +572,23 @@ function LoginView({ onForgotPassword, onOpenDemo, onContact }) {
           </div>
         </div>
 
-        <button type="submit" disabled={loading} className="login-btn" style={{ marginTop: '8px' }}>
+        <button type="submit" disabled={loading || ssoLoading} className="login-btn" style={{ marginTop: '8px' }}>
           {loading ? 'Signing in...' : 'Sign In'}
         </button>
       </form>
+
+      {ssoAvailable && (
+        <>
+          <div className="login-sso-divider">or</div>
+
+          <button type="button" disabled={ssoLoading || loading} className="login-sso-btn" onClick={handleSsoLogin}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            {ssoLoading ? 'Connecting to SSO...' : 'Sign in with Company SSO'}
+          </button>
+        </>
+      )}
 
       <div className="login-footer-link">
         New to Axle?{' '}

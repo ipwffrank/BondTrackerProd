@@ -5,8 +5,10 @@ import {
   signOut,
   onAuthStateChanged,
   sendPasswordResetEmail,
+  SAMLAuthProvider,
+  signInWithPopup,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
 const AuthContext = createContext({});
@@ -179,6 +181,78 @@ export function AuthProvider({ children }) {
   // => https://axle-finance.com
   async function sendPasswordReset(email) {
     return sendPasswordResetEmail(auth, email);
+  }
+
+  // Look up SSO provider for an email domain by querying organizations with ssoEnabled
+  async function getSsoProviderForEmail(email) {
+    const domain = email.split('@')[1];
+    if (!domain) return null;
+    try {
+      // Check domain-derived org first
+      const orgId = `org_${domain.replace(/\./g, '_')}`;
+      const orgSnap = await getDoc(doc(db, `organizations/${orgId}`));
+      if (orgSnap.exists() && orgSnap.data().ssoEnabled && orgSnap.data().samlProviderId) {
+        return { orgId, providerId: orgSnap.data().samlProviderId, orgName: orgSnap.data().name };
+      }
+      // Fallback: search orgs by allowedDomains array
+      const q = query(collection(db, 'organizations'), where('ssoEnabled', '==', true), where('allowedDomains', 'array-contains', domain));
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const orgDoc = snap.docs[0];
+        return { orgId: orgDoc.id, providerId: orgDoc.data().samlProviderId, orgName: orgDoc.data().name };
+      }
+      return null;
+    } catch (err) {
+      console.error('SSO lookup error:', err);
+      return null;
+    }
+  }
+
+  // SSO/SAML sign-in with JIT user provisioning
+  async function loginWithSso(email) {
+    const ssoInfo = await getSsoProviderForEmail(email);
+    if (!ssoInfo) throw new Error('SSO is not configured for this email domain.');
+
+    const provider = new SAMLAuthProvider(ssoInfo.providerId);
+    const result = await signInWithPopup(auth, provider);
+    const user = result.user;
+
+    // JIT provisioning: create user docs if they don't exist
+    const userMappingRef = doc(db, `users/${user.uid}`);
+    const userMappingSnap = await getDoc(userMappingRef);
+
+    if (!userMappingSnap.exists()) {
+      const displayName = user.displayName || email.split('@')[0];
+      const userDocData = {
+        email: user.email || email,
+        name: displayName,
+        organizationId: ssoInfo.orgId,
+        organizationName: ssoInfo.orgName,
+        isAdmin: false,
+        role: 'user',
+        ssoUser: true,
+        createdAt: serverTimestamp(),
+        lastLogin: serverTimestamp(),
+      };
+
+      await setDoc(doc(db, `organizations/${ssoInfo.orgId}/users/${user.uid}`), userDocData);
+      await setDoc(userMappingRef, {
+        organizationId: ssoInfo.orgId,
+        email: user.email || email,
+        name: displayName,
+        isAdmin: false,
+        role: 'user',
+        ssoUser: true,
+        createdAt: serverTimestamp(),
+      });
+    } else {
+      // Existing user — update lastLogin
+      await setDoc(doc(db, `organizations/${ssoInfo.orgId}/users/${user.uid}`), {
+        lastLogin: serverTimestamp(),
+      }, { merge: true });
+    }
+
+    return result;
   }
 
   // Logout function
@@ -386,6 +460,8 @@ export function AuthProvider({ children }) {
     signup,
     signupWithInvitation,
     login,
+    loginWithSso,
+    getSsoProviderForEmail,
     logout,
     sendPasswordReset,
     loading

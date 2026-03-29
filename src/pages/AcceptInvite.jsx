@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { teamService } from '../services/team.service';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const STYLES = `
   .invite-root {
@@ -156,8 +158,10 @@ export default function AcceptInvite() {
   const [loading, setLoading] = useState(false);
   const [invitationLoading, setInvitationLoading] = useState(true);
   const [invitation, setInvitation] = useState(null);
+  const [orgSsoEnabled, setOrgSsoEnabled] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
 
-  const { signupWithInvitation } = useAuth();
+  const { signupWithInvitation, loginWithSso } = useAuth();
   const navigate = useNavigate();
 
   const token = searchParams.get('token');
@@ -194,6 +198,15 @@ export default function AcceptInvite() {
         }
 
         setInvitation(invitationData);
+
+        // Check if org has SSO enabled
+        try {
+          const orgSnap = await getDoc(doc(db, `organizations/${orgId}`));
+          if (orgSnap.exists() && orgSnap.data().ssoEnabled) {
+            setOrgSsoEnabled(true);
+          }
+        } catch {}
+
         setInvitationLoading(false);
       } catch (err) {
         console.error('Error loading invitation:', err);
@@ -204,6 +217,24 @@ export default function AcceptInvite() {
 
     loadInvitation();
   }, [token, orgId]);
+
+  async function handleSsoAccept() {
+    try {
+      setError('');
+      setSsoLoading(true);
+      await loginWithSso(invitation.email);
+      await teamService.acceptInvitation(orgId, token);
+      navigate('/activities');
+    } catch (err) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('SSO sign-in was cancelled.');
+      } else {
+        setError('SSO sign-in failed: ' + err.message);
+      }
+    } finally {
+      setSsoLoading(false);
+    }
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -318,6 +349,21 @@ export default function AcceptInvite() {
             </div>
           </div>
 
+          {orgSsoEnabled ? (
+            <div>
+              <p style={{ color: '#94a3b8', fontSize: '13px', lineHeight: 1.6, marginBottom: '20px' }}>
+                Your organization uses Single Sign-On. Click below to sign in with your company identity provider.
+              </p>
+              <button type="button" disabled={ssoLoading} className="invite-btn" onClick={handleSsoAccept}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                  </svg>
+                  {ssoLoading ? 'Connecting to SSO...' : 'Accept & Sign in with SSO'}
+                </span>
+              </button>
+            </div>
+          ) : (
           <form onSubmit={handleSubmit} noValidate>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
@@ -376,6 +422,7 @@ export default function AcceptInvite() {
               {loading ? 'Creating account...' : 'Accept Invitation & Create Account'}
             </button>
           </form>
+          )}
 
           <div className="invite-footer">
             Already have an account?{' '}

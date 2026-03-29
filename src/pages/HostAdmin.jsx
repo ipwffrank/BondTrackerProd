@@ -91,6 +91,15 @@ export default function HostAdmin() {
   const [auditLoading, setAuditLoading] = useState(false);
   const [auditLoaded, setAuditLoaded] = useState(false);
 
+  // SSO provisioning state
+  const [ssoOrgId, setSsoOrgId] = useState('');
+  const [ssoProviderId, setSsoProviderId] = useState('');
+  const [ssoDomains, setSsoDomains] = useState('');
+  const [ssoSaving, setSsoSaving] = useState(false);
+  const [ssoMessage, setSsoMessage] = useState(null);
+  const [ssoLookupLoading, setSsoLookupLoading] = useState(false);
+  const [ssoCurrentConfig, setSsoCurrentConfig] = useState(null);
+
   const handleAuth = (e) => {
     e.preventDefault();
     if (hostKey.trim()) setAuthenticated(true);
@@ -150,6 +159,87 @@ export default function HostAdmin() {
     return new Date(ts).toLocaleString();
   };
 
+  const handleSsoLookup = async () => {
+    if (!ssoOrgId.trim()) { setSsoMessage({ type: 'error', text: 'Enter an organization ID.' }); return; }
+    setSsoLookupLoading(true);
+    setSsoMessage(null);
+    try {
+      const res = await fetch('/.netlify/functions/host-sso-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostKey: hostKey.trim(), action: 'get', orgId: ssoOrgId.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setSsoCurrentConfig(data.config || null);
+      if (data.config) {
+        setSsoProviderId(data.config.samlProviderId || '');
+        setSsoDomains((data.config.allowedDomains || []).join(', '));
+      } else {
+        setSsoProviderId('');
+        setSsoDomains('');
+      }
+    } catch (err) {
+      setSsoMessage({ type: 'error', text: err.message });
+    } finally {
+      setSsoLookupLoading(false);
+    }
+  };
+
+  const handleSsoSave = async () => {
+    if (!ssoOrgId.trim() || !ssoProviderId.trim()) {
+      setSsoMessage({ type: 'error', text: 'Organization ID and SAML Provider ID are required.' });
+      return;
+    }
+    setSsoSaving(true);
+    setSsoMessage(null);
+    try {
+      const domains = ssoDomains.split(',').map(d => d.trim()).filter(Boolean);
+      const res = await fetch('/.netlify/functions/host-sso-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hostKey: hostKey.trim(),
+          action: 'set',
+          orgId: ssoOrgId.trim(),
+          samlProviderId: ssoProviderId.trim(),
+          allowedDomains: domains,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setSsoMessage({ type: 'success', text: 'SSO configuration saved successfully.' });
+      setSsoCurrentConfig({ ssoEnabled: true, samlProviderId: ssoProviderId.trim(), allowedDomains: domains });
+    } catch (err) {
+      setSsoMessage({ type: 'error', text: err.message });
+    } finally {
+      setSsoSaving(false);
+    }
+  };
+
+  const handleSsoDisable = async () => {
+    if (!ssoOrgId.trim()) return;
+    setSsoSaving(true);
+    setSsoMessage(null);
+    try {
+      const res = await fetch('/.netlify/functions/host-sso-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostKey: hostKey.trim(), action: 'disable', orgId: ssoOrgId.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      setSsoMessage({ type: 'success', text: 'SSO disabled for this organization.' });
+      setSsoCurrentConfig(null);
+      setSsoProviderId('');
+      setSsoDomains('');
+    } catch (err) {
+      setSsoMessage({ type: 'error', text: err.message });
+    } finally {
+      setSsoSaving(false);
+    }
+  };
+
   return (
     <>
       <style>{STYLES}</style>
@@ -182,6 +272,9 @@ export default function HostAdmin() {
               <button className={`ha-tab ${activeTab === 'reset' ? 'active' : ''}`} onClick={() => setActiveTab('reset')}>
                 Password Reset
               </button>
+              <button className={`ha-tab ${activeTab === 'sso' ? 'active' : ''}`} onClick={() => setActiveTab('sso')}>
+                SSO Config
+              </button>
               <button className={`ha-tab ${activeTab === 'audit' ? 'active' : ''}`} onClick={() => setActiveTab('audit')}>
                 Audit Trail
               </button>
@@ -203,6 +296,78 @@ export default function HostAdmin() {
                   {loading ? 'Sending...' : 'Send Password Reset'}
                 </button>
               </form>
+            )}
+
+            {activeTab === 'sso' && (
+              <div>
+                {ssoMessage && (
+                  <div className={`ha-msg ${ssoMessage.type === 'success' ? 'ha-msg-success' : 'ha-msg-error'}`}>
+                    {ssoMessage.text}
+                  </div>
+                )}
+
+                <label className="ha-label">Organization ID</label>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                  <input
+                    type="text" value={ssoOrgId} onChange={e => setSsoOrgId(e.target.value)}
+                    className="ha-input" placeholder="org_example_com" style={{ marginBottom: 0, flex: 1 }}
+                  />
+                  <button
+                    type="button" className="ha-btn" disabled={ssoLookupLoading}
+                    style={{ width: 'auto', padding: '11px 20px', fontSize: '13px' }}
+                    onClick={handleSsoLookup}
+                  >
+                    {ssoLookupLoading ? '...' : 'Lookup'}
+                  </button>
+                </div>
+
+                {ssoCurrentConfig && (
+                  <div className="ha-msg ha-msg-success" style={{ marginBottom: '16px' }}>
+                    SSO is currently <strong>enabled</strong> — Provider: {ssoCurrentConfig.samlProviderId}
+                  </div>
+                )}
+
+                <label className="ha-label">SAML Provider ID</label>
+                <input
+                  type="text" value={ssoProviderId} onChange={e => setSsoProviderId(e.target.value)}
+                  className="ha-input" placeholder="saml.okta-clientname"
+                />
+
+                <label className="ha-label">Allowed Domains (comma-separated)</label>
+                <input
+                  type="text" value={ssoDomains} onChange={e => setSsoDomains(e.target.value)}
+                  className="ha-input" placeholder="firm.com, subsidiary.com"
+                />
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    type="button" className="ha-btn" disabled={ssoSaving}
+                    style={{ flex: 1 }} onClick={handleSsoSave}
+                  >
+                    {ssoSaving ? 'Saving...' : 'Enable / Update SSO'}
+                  </button>
+                  {ssoCurrentConfig && (
+                    <button
+                      type="button" disabled={ssoSaving}
+                      style={{
+                        padding: '13px 20px', background: 'transparent',
+                        border: '1px solid rgba(239,68,68,0.4)', borderRadius: '10px',
+                        color: '#fca5a5', fontSize: '13px', fontWeight: 600,
+                        fontFamily: 'inherit', cursor: 'pointer',
+                        transition: 'background 0.2s',
+                      }}
+                      onClick={handleSsoDisable}
+                    >
+                      Disable
+                    </button>
+                  )}
+                </div>
+
+                <p style={{ color: '#475569', fontSize: '11px', marginTop: '16px', lineHeight: 1.5 }}>
+                  The SAML provider must be configured in Firebase Console &rarr; Authentication &rarr; Sign-in method &rarr; SAML.
+                  The Provider ID here must match the one created in Firebase.
+                </p>
+              </div>
             )}
 
             {activeTab === 'audit' && (

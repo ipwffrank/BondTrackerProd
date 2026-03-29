@@ -4,6 +4,8 @@ import { useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { teamService } from '../services/team.service';
 import { getAuditLogs } from '../services/audit.service';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 
 const ACTION_LABELS = {
   export_activities_excel: 'Export Activities (Excel)',
@@ -102,7 +104,7 @@ function AuditTrailTab({ orgId }) {
 }
 
 export default function Team() {
-  const { userData, currentUser, isAdmin } = useAuth();
+  const { userData, currentUser, isAdmin, orgPlan } = useAuth();
   const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [invitations, setInvitations] = useState([]);
@@ -112,6 +114,7 @@ export default function Team() {
   const [activeSubTab, setActiveSubTab] = useState('members');
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
+  const [ssoStatus, setSsoStatus] = useState(null);
 
   const [inviteForm, setInviteForm] = useState({
     email: '',
@@ -158,7 +161,15 @@ export default function Team() {
 
   useEffect(() => { if (toast) { const t = setTimeout(() => setToast(null), 3000); return () => clearTimeout(t); } }, [toast]);
 
-
+  // Load SSO status for this org
+  useEffect(() => {
+    if (!userData?.organizationId) return;
+    getDoc(doc(db, `organizations/${userData.organizationId}`)).then(snap => {
+      if (snap.exists() && snap.data().ssoEnabled) {
+        setSsoStatus({ enabled: true, provider: snap.data().samlProviderId || 'SAML' });
+      }
+    }).catch(() => {});
+  }, [userData?.organizationId]);
 
   async function handleInvite(e) {
     e.preventDefault();
@@ -333,6 +344,23 @@ export default function Team() {
             Invite New Member
           </button>
         </div>
+
+        {/* SSO Status Banner */}
+        {ssoStatus?.enabled && (
+          <div style={{
+            background: 'rgba(200,162,88,0.08)', border: '1px solid rgba(200,162,88,0.2)',
+            borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
+            display: 'flex', alignItems: 'center', gap: '10px', fontSize: '13px',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <span style={{ color: '#C8A258', fontWeight: 600 }}>SSO Enabled</span>
+            <span style={{ color: 'var(--text-secondary)' }}>
+              — Team members sign in via your company identity provider ({ssoStatus.provider}). New SSO users are provisioned automatically.
+            </span>
+          </div>
+        )}
 
         {/* Sub-tabs */}
         <div className="sub-tabs">
