@@ -1212,6 +1212,94 @@ export default function LandingPage({ showLogin = false }) {
         </div>
       </section>
 
+      {/* ── SECURITY & PRIVACY ─────────────────────────────────────────────── */}
+      <section id="security" style={{
+        background: 'linear-gradient(160deg, #0A1929 0%, #0F2137 60%, #162B44 100%)',
+        padding: '100px 24px',
+      }}>
+        <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
+            <SectionLabel>Security & Privacy</SectionLabel>
+            <h2 style={{
+              fontFamily: "'Sora', sans-serif",
+              fontSize: 'clamp(28px, 4vw, 42px)',
+              fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px',
+            }}>
+              Your data stays yours
+            </h2>
+            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
+              Enterprise-grade security and privacy controls, designed for regulated financial institutions.
+            </p>
+          </AnimatedSection>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '48px' }}>
+            {[
+              {
+                icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
+                title: 'Transcript Privacy',
+                desc: 'Transcripts are processed in real time and never stored. Only the structured output (client, bond, price, status) is saved to your organisation\u2019s database. Raw text is discarded after analysis.',
+              },
+              {
+                icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>,
+                title: 'Organisation Isolation',
+                desc: 'Every organisation\u2019s data is logically isolated in Firestore with security rules that enforce strict tenant boundaries. No cross-org data access is possible.',
+              },
+              {
+                icon: <><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></>,
+                title: 'No Axle Staff Access',
+                desc: 'Axle employees cannot view your activities, transcripts, or client data. There is no admin backdoor. Platform administration is limited to account provisioning and billing.',
+              },
+              {
+                icon: <><polyline points="16 18 22 12 16 6" /><polyline points="8 6 2 12 8 18" /></>,
+                title: 'API-Only AI Processing',
+                desc: 'Transcript analysis uses OpenAI\u2019s API (not ChatGPT). API inputs are not used for model training and are deleted after 30 days per OpenAI\u2019s data policy.',
+              },
+              {
+                icon: <><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4" /></>,
+                title: 'SSO / SAML (Professional)',
+                desc: 'Professional tier supports single sign-on via your company\u2019s identity provider (Okta, Azure AD, Google Workspace). No separate passwords to manage.',
+              },
+              {
+                icon: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
+                title: 'Dedicated Support SLA',
+                desc: 'Professional tier includes a named Customer Success Manager with a 4-hour response SLA during business hours for any platform issues.',
+              },
+            ].map((item, i) => (
+              <AnimatedSection key={item.title} delay={i * 80} style={{
+                background: 'rgba(255,255,255,0.04)',
+                border: '1px solid rgba(200,162,88,0.12)',
+                borderRadius: '14px',
+                padding: '28px 24px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '14px' }}>
+                  <div style={{
+                    width: '38px', height: '38px', borderRadius: '10px',
+                    background: 'rgba(200,162,88,0.1)', border: '1px solid rgba(200,162,88,0.2)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                  }}>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {item.icon}
+                    </svg>
+                  </div>
+                  <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: 0 }}>
+                    {item.title}
+                  </h3>
+                </div>
+                <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', lineHeight: '1.7', margin: 0 }}>
+                  {item.desc}
+                </p>
+              </AnimatedSection>
+            ))}
+          </div>
+
+          <AnimatedSection delay={500} style={{ textAlign: 'center' }}>
+            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.4)', lineHeight: '1.7', maxWidth: '600px', margin: '0 auto' }}>
+              Need a Data Processing Agreement or have specific compliance requirements? <a href="mailto:info@axle-finance.com?subject=Security%20%26%20Compliance%20Enquiry" style={{ color: '#C8A258', textDecoration: 'none', borderBottom: '1px solid rgba(200,162,88,0.3)' }}>Contact our team</a> — we work with regulated institutions across Asia-Pacific.
+            </p>
+          </AnimatedSection>
+        </div>
+      </section>
+
       {/* ── 7. TESTIMONIALS (hidden until later) ─────────────────────────────── */}
       {false && (<section id="about" style={{
         background: 'linear-gradient(160deg, #0A1929 0%, #0F2137 60%, #162B44 100%)',
