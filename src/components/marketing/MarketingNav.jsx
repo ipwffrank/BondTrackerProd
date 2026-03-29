@@ -4,8 +4,9 @@ import AxleLogo from './AxleLogo';
 
 const NAV_LINKS = [
   { label: 'Product', id: 'product' },
+  { label: 'Pricing', id: 'pricing' },
   { label: 'Compare', id: 'compare' },
-  { label: 'About',   id: 'about'   },
+  { label: 'Security', id: 'security' },
   { label: 'Contact', id: 'contact' },
 ];
 
