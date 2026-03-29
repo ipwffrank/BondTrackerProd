@@ -47,6 +47,7 @@ DIRECTION RULES (from dealer's perspective — this is critical):
 1. Client asks "Your bid?" or "bid for X?" → direction = BUY (the dealer is buying from the client)
 2. Client asks "Offer X" or "Yours?" or wants to buy → direction = SELL (the dealer is selling to the client)
 3. If client asks for both bid and offer → direction = TWO-WAY
+4. IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side (e.g. "done at 100.12, we buy 10mm"), the final direction should reflect the executed side (BUY in this case), NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
 
 OTHER RULES:
 3. Extract the CLIENT company from "(From Company)" or context. The dealer's own firm is NOT the client.

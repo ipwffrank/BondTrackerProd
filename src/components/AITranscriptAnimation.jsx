@@ -18,11 +18,11 @@ const TRANSCRIPT_LINES = [
   { time: '09:32', sender: 'Fidelity', msg: 'we can sell 15mm at 100.125' },
   { time: '09:33', sender: 'You', msg: "let me check with desk" },
   { time: '09:45', sender: 'You', msg: 'sorry best bid 100/' },
-  { time: '09:46', sender: 'GIC Singapore', msg: 'pass please' },
+  { time: '09:46', sender: 'Fidelity', msg: 'pass please' },
 ];
 
 const EXTRACTED_ROWS = [
-  { client: 'GIC Singapore', bond: 'HSBC 5.25 2028', dir: 'TWO-WAY', dirColor: '#a78bfa', bid: '100.12', offer: '100.22', status: 'EXECUTED', statusColor: '#22c55e' },
+  { client: 'GIC Singapore', bond: 'HSBC 5.25 2028', dir: 'BUY', dirColor: '#22c55e', price: '100.12', status: 'EXECUTED', statusColor: '#22c55e' },
   { client: 'Fidelity', bond: 'STANLN 6.17 2027', dir: 'SELL', dirColor: '#ef4444', price: '100.125', status: 'PASSED', statusColor: '#f97316' },
 ];
 
