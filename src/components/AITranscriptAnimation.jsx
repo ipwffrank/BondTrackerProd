@@ -564,7 +564,7 @@ export default function AITranscriptAnimation() {
           color: 'rgba(240,237,232,0.35)',
           letterSpacing: '0.02em',
         }}>
-          Supports Bloomberg IB · Symphony · WeChat · Email · Call notes
+          Supports Bloomberg IB · Symphony · Email · Call notes
         </p>
       </div>
 
