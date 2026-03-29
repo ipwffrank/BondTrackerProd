@@ -137,8 +137,8 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/activities/{activityId} {
-      // Only org members can read activities (strict tenant isolation)
-      allow read: if isSameOrg(orgId);
+      // Org members or host admins can read (host admin for aggregate monitoring only)
+      allow read: if isSameOrg(orgId) || isHostAdmin();
 
       // Org members can create activities
       allow create: if isSameOrg(orgId);
@@ -155,8 +155,8 @@ service cloud.firestore {
     // ============================================
     
     match /organizations/{orgId}/clients/{clientId} {
-      // Only org members can read clients (strict tenant isolation)
-      allow read: if isSameOrg(orgId);
+      // Org members or host admins can read (host admin for aggregate monitoring only)
+      allow read: if isSameOrg(orgId) || isHostAdmin();
 
       // Org members can create clients
       allow create: if isSameOrg(orgId);
@@ -166,7 +166,7 @@ service cloud.firestore {
 
       // Contacts sub-collection (people within a client institution)
       match /contacts/{contactId} {
-        allow read: if isSameOrg(orgId);
+        allow read: if isSameOrg(orgId) || isHostAdmin();
         allow create: if isSameOrg(orgId);
         allow update, delete: if isAdminInOrg(orgId);
       }
@@ -177,7 +177,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/newIssues/{issueId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow update: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
@@ -188,7 +188,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/orderBooks/{orderId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow update: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
@@ -199,8 +199,8 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/pipeline/{issueId} {
-      // Only org members can read pipeline issues (strict tenant isolation)
-      allow read: if isSameOrg(orgId);
+      // Org members or host admins can read (host admin for aggregate monitoring only)
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       
       // Org members can create pipeline issues
       allow create: if isSameOrg(orgId);
@@ -236,7 +236,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/transcriptUploads/{uploadId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
     }
@@ -246,7 +246,7 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/aiCorrections/{correctionId} {
-      allow read: if isSameOrg(orgId);
+      allow read: if isSameOrg(orgId) || isHostAdmin();
       allow create: if isSameOrg(orgId);
       allow delete: if isAdminInOrg(orgId);
     }
