@@ -33,6 +33,14 @@ const EMPTY_NEW_ISSUE_FORM = {
 };
 const EMPTY_ORDER_FORM = { issueId: '', trancheId: '', clientName: '', orderSize: '', orderLimit: '', notes: '' };
 const EMPTY_CLIENT_FORM = { name: '', type: 'FUND', region: 'APAC', salesCoverage: '' };
+const FEEDBACK_SENTIMENTS = ['INTERESTED', 'MONITORING', 'PASS', 'UNDECIDED'];
+const FEEDBACK_SENTIMENT_COLORS = {
+  INTERESTED: { color: '#22c55e', bg: 'rgba(34,197,94,0.12)' },
+  MONITORING: { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  PASS:       { color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+  UNDECIDED:  { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
+};
+const EMPTY_FEEDBACK_FORM = { clientName: '', sentiment: 'INTERESTED', comment: '', trancheId: '' };
 
 export default function Pipeline() {
   const { userData, currentUser, isAdmin } = useAuth();
@@ -74,6 +82,14 @@ export default function Pipeline() {
   const [showClientDedupModal, setShowClientDedupModal] = useState(false);
   const [pendingClientData, setPendingClientData] = useState(null);
 
+  // Client Feedback state
+  const [clientFeedback, setClientFeedback] = useState([]);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackTarget, setFeedbackTarget] = useState(null); // { issueId, issueName, trancheId?, trancheTenor?, trancheCurrency? }
+  const [feedbackForm, setFeedbackForm] = useState({ ...EMPTY_FEEDBACK_FORM });
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+
   // Delete confirm + notification toast
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, type, label }
   const [notification, setNotification] = useState(null);
@@ -109,6 +125,14 @@ export default function Pipeline() {
         setClients(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
       }, (error) => { console.error('Error loading clients:', error); });
       unsubscribes.push(clientsUnsub);
+
+      // Client Feedback
+      const feedbackRef = collection(db, `organizations/${userData.organizationId}/clientFeedback`);
+      const feedbackQuery = query(feedbackRef, orderBy('createdAt', 'desc'));
+      const feedbackUnsub = onSnapshot(feedbackQuery, (snapshot) => {
+        setClientFeedback(snapshot.docs.map(d => ({ id: d.id, ...d.data(), createdAt: d.data().createdAt?.toDate() })));
+      }, (error) => { console.error('Error loading client feedback:', error); });
+      unsubscribes.push(feedbackUnsub);
     } catch (error) { console.error('Setup error:', error); setLoading(false); }
     return () => unsubscribes.forEach(unsub => unsub());
   }, [userData?.organizationId]);
@@ -433,6 +457,89 @@ export default function Pipeline() {
     setShowClientDedupModal(false);
     setPendingClientData(null);
     setClientDedupMatches([]);
+  }
+
+  // ============ CLIENT FEEDBACK ============
+  function openFeedbackModal(issue, tranche) {
+    setFeedbackTarget({
+      issueId: issue.id,
+      issueName: issue.issuerName,
+      trancheId: tranche ? tranche.id : null,
+      trancheTenor: tranche?.tenor || null,
+      trancheCurrency: tranche?.currency || null,
+    });
+    setFeedbackForm({ ...EMPTY_FEEDBACK_FORM, trancheId: tranche ? tranche.id : '' });
+    setFeedbackError('');
+    setShowFeedbackModal(true);
+  }
+
+  function closeFeedbackModal() {
+    setShowFeedbackModal(false);
+    setFeedbackTarget(null);
+    setFeedbackForm({ ...EMPTY_FEEDBACK_FORM });
+    setFeedbackError('');
+  }
+
+  function getFeedbackForIssue(issueId) {
+    return clientFeedback.filter(f => f.issueId === issueId && !f.trancheId);
+  }
+
+  function getFeedbackForTranche(issueId, trancheId) {
+    return clientFeedback.filter(f => f.issueId === issueId && f.trancheId === trancheId);
+  }
+
+  function getFeedbackCountForIssue(issueId) {
+    return clientFeedback.filter(f => f.issueId === issueId).length;
+  }
+
+  function getModalFeedbackEntries() {
+    if (!feedbackTarget) return [];
+    if (feedbackTarget.trancheId) {
+      return getFeedbackForTranche(feedbackTarget.issueId, feedbackTarget.trancheId);
+    }
+    return getFeedbackForIssue(feedbackTarget.issueId);
+  }
+
+  async function handleFeedbackSubmit(e) {
+    e.preventDefault();
+    setFeedbackError('');
+    if (!feedbackTarget || !userData?.organizationId) return;
+    if (!feedbackForm.clientName) { setFeedbackError('Please select a client.'); return; }
+    if (!feedbackForm.comment.trim()) { setFeedbackError('Please enter feedback.'); return; }
+
+    setFeedbackLoading(true);
+    try {
+      const feedbackRef = collection(db, `organizations/${userData.organizationId}/clientFeedback`);
+      await addDoc(feedbackRef, {
+        issueId: feedbackTarget.issueId,
+        issueName: feedbackTarget.issueName,
+        trancheId: feedbackTarget.trancheId || null,
+        trancheTenor: feedbackTarget.trancheTenor || null,
+        trancheCurrency: feedbackTarget.trancheCurrency || null,
+        clientName: feedbackForm.clientName,
+        sentiment: feedbackForm.sentiment,
+        comment: feedbackForm.comment.trim(),
+        createdAt: serverTimestamp(),
+        createdBy: userData.name || userData.email,
+      });
+      setFeedbackForm({ ...EMPTY_FEEDBACK_FORM, trancheId: feedbackTarget.trancheId || '' });
+      setNotification('Feedback added successfully.');
+    } catch (error) {
+      console.error('Error saving feedback:', error);
+      setFeedbackError('Failed to save feedback.');
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }
+
+  async function handleDeleteFeedback(feedbackId) {
+    if (!userData?.organizationId) return;
+    try {
+      await deleteDoc(doc(db, `organizations/${userData.organizationId}/clientFeedback`, feedbackId));
+    } catch (error) {
+      console.error('Error deleting feedback:', error);
+      setNotification('Failed to delete feedback.');
+    }
   }
 
   // ============ SELECT / EXPAND / FILTER ============
@@ -771,6 +878,7 @@ export default function Pipeline() {
                       <th>Issuer</th>
                       <th>Tranches</th>
                       <th>Bookrunners</th>
+                      <th>Feedback</th>
                       <th>Created By</th>
                       {isAdmin && <th>Actions</th>}
                     </tr>
@@ -778,7 +886,7 @@ export default function Pipeline() {
                   <tbody>
                     {filteredNewIssues.length === 0 ? (
                       <tr>
-                        <td colSpan={isAdmin ? 8 : 6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                        <td colSpan={isAdmin ? 9 : 7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                           {newIssues.length === 0 ? 'No new issues yet.' : 'No issues match your filters.'}
                         </td>
                       </tr>
@@ -806,6 +914,14 @@ export default function Pipeline() {
                                 ))}
                               </td>
                               <td>{issue.bookrunners?.join(', ') || '-'}</td>
+                              <td>
+                                <button className="feedback-btn" onClick={() => openFeedbackModal(issue, null)} title="View/Add Deal Feedback">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                  {getFeedbackCountForIssue(issue.id) > 0 && (
+                                    <span className="feedback-count">{getFeedbackCountForIssue(issue.id)}</span>
+                                  )}
+                                </button>
+                              </td>
                               <td>{issue.createdBy}</td>
                               {isAdmin && (
                                 <td>
@@ -830,7 +946,7 @@ export default function Pipeline() {
                                     <span style={{ marginLeft: '8px', fontSize: '13px' }}>Issue: {t.targetSize}MM</span>
                                     {t.internalTargetSize > 0 && <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>Internal target: {t.internalTargetSize}MM</span>}
                                   </td>
-                                  <td colSpan={isAdmin ? 3 : 2}>
+                                  <td>
                                     {t.internalTargetSize > 0 ? (
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         <div style={{ flex: 1, background: 'var(--border)', borderRadius: '4px', height: '8px', maxWidth: '150px' }}>
@@ -844,6 +960,15 @@ export default function Pipeline() {
                                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No internal target set</span>
                                     )}
                                   </td>
+                                  <td>
+                                    <button className="feedback-btn" onClick={() => openFeedbackModal(issue, t)} title={`Feedback for ${t.tenor} ${t.currency}`}>
+                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                      {getFeedbackForTranche(issue.id, t.id).length > 0 && (
+                                        <span className="feedback-count">{getFeedbackForTranche(issue.id, t.id).length}</span>
+                                      )}
+                                    </button>
+                                  </td>
+                                  <td colSpan={isAdmin ? 2 : 1}></td>
                                 </tr>
                               );
                             })}
@@ -1276,6 +1401,101 @@ export default function Pipeline() {
         </div>
       )}
 
+      {/* ======================== CLIENT FEEDBACK MODAL ======================== */}
+      {showFeedbackModal && feedbackTarget && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', maxWidth: '640px', width: '95%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Client Feedback</h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                  {feedbackTarget.issueName}
+                  {feedbackTarget.trancheId && <span> — {feedbackTarget.trancheTenor} {feedbackTarget.trancheCurrency}</span>}
+                </p>
+              </div>
+              <button className="btn-icon" onClick={closeFeedbackModal} style={{ fontSize: '18px', color: 'var(--text-muted)' }}>&#x2715;</button>
+            </div>
+
+            {/* Existing feedback entries */}
+            {(() => {
+              const entries = getModalFeedbackEntries();
+              if (entries.length === 0) return (
+                <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', background: 'var(--table-odd)', borderRadius: '8px', marginBottom: '16px' }}>
+                  No feedback yet for this {feedbackTarget.trancheId ? 'tranche' : 'deal'}.
+                </div>
+              );
+              return (
+                <div style={{ marginBottom: '16px', maxHeight: '300px', overflowY: 'auto' }}>
+                  {entries.map(entry => {
+                    const sc = FEEDBACK_SENTIMENT_COLORS[entry.sentiment] || FEEDBACK_SENTIMENT_COLORS.UNDECIDED;
+                    return (
+                      <div key={entry.id} className="feedback-entry">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontWeight: 600, fontSize: '13px', color: 'var(--text-primary)' }}>{entry.clientName}</span>
+                            <span style={{ fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '10px', background: sc.bg, color: sc.color, letterSpacing: '0.04em' }}>
+                              {entry.sentiment}
+                            </span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                              {entry.createdBy} {entry.createdAt ? `· ${new Date(entry.createdAt).toLocaleDateString()}` : ''}
+                            </span>
+                            {(isAdmin || entry.createdBy === (userData.name || userData.email)) && (
+                              <button className="btn-icon" onClick={() => handleDeleteFeedback(entry.id)} title="Delete" style={{ fontSize: '13px', color: 'var(--text-muted)' }}>&#x2715;</button>
+                            )}
+                          </div>
+                        </div>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0, lineHeight: '1.5' }}>{entry.comment}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+
+            {/* Add feedback form */}
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Add Feedback</h4>
+              <form onSubmit={handleFeedbackSubmit}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div className="field-group">
+                    <label className="form-label">Client *</label>
+                    <select className="form-select" value={feedbackForm.clientName} onChange={e => setFeedbackForm({ ...feedbackForm, clientName: e.target.value })}>
+                      <option value="">Select Client</option>
+                      {clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                        <option key={c.id} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="field-group">
+                    <label className="form-label">Sentiment *</label>
+                    <select className="form-select" value={feedbackForm.sentiment} onChange={e => setFeedbackForm({ ...feedbackForm, sentiment: e.target.value })}>
+                      {FEEDBACK_SENTIMENTS.map(s => (
+                        <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="field-group" style={{ marginBottom: '12px' }}>
+                  <label className="form-label">Feedback *</label>
+                  <textarea className="form-textarea" rows="3" placeholder="e.g., Client likes the credit but wants tighter pricing..." value={feedbackForm.comment}
+                    onChange={e => setFeedbackForm({ ...feedbackForm, comment: e.target.value })}
+                    style={{ resize: 'vertical', minHeight: '60px' }} />
+                </div>
+                {feedbackError && <div className="form-error-banner" style={{ marginBottom: '12px' }}>{feedbackError}</div>}
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                  <button type="button" className="btn btn-muted" onClick={closeFeedbackModal}>Close</button>
+                  <button type="submit" className="btn btn-primary" disabled={feedbackLoading}>
+                    {feedbackLoading ? 'Saving...' : 'Add Feedback'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ======================== NOTIFICATION TOAST ======================== */}
       {notification && (
         <div style={{ position: 'fixed', bottom: '24px', right: '24px', background: 'var(--card-bg)', border: '1px solid rgba(200,162,88,0.4)', borderRadius: '8px', padding: '12px 20px', color: 'var(--text-primary)', fontSize: '14px', zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.3)', maxWidth: '320px' }}>
@@ -1649,6 +1869,52 @@ export default function Pipeline() {
         .form-error-banner{background:#fee2e2;border:1px solid #ef4444;color:#dc2626;padding:10px 14px;border-radius:8px;font-size:13px;font-weight:600;margin-bottom:12px;}
 
         .btn-danger{background:#dc2626;color:#fff;padding:8px 14px;font-size:13px;}.btn-danger:hover{background:#b91c1c;}
+
+        .feedback-btn {
+          background: none;
+          border: 1px solid var(--border);
+          border-radius: 6px;
+          cursor: pointer;
+          padding: 5px 10px;
+          color: var(--text-secondary);
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          font-size: 12px;
+          transition: all 0.2s;
+        }
+
+        .feedback-btn:hover {
+          border-color: var(--accent);
+          color: var(--accent);
+          background: var(--accent-glow);
+        }
+
+        .feedback-count {
+          background: var(--accent);
+          color: #fff;
+          font-size: 10px;
+          font-weight: 700;
+          min-width: 18px;
+          height: 18px;
+          border-radius: 9px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0 4px;
+        }
+
+        .feedback-entry {
+          padding: 12px;
+          background: var(--table-odd);
+          border-radius: 8px;
+          border: 1px solid var(--border);
+          margin-bottom: 8px;
+        }
+
+        .feedback-entry:last-child {
+          margin-bottom: 0;
+        }
 
         @media (max-width: 768px) {
           .field-row {
