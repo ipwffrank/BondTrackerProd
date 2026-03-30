@@ -54,28 +54,44 @@ exports.handler = async (event) => {
     const prompt = `Analyze bond trading chat from the DEALER's perspective (the person quoting prices).
 
 DIRECTION RULES (from dealer's perspective — this is critical):
-1. Client asks "Your bid?" or "bid for X?" → direction = BUY (the dealer is buying from the client)
-2. Client asks "Offer X" or "Yours?" or wants to buy → direction = SELL (the dealer is selling to the client)
+1. Client wants to SELL a bond (e.g., "has X to sell", "looking for a bid", "wants a bid on X") → direction = BUY (the dealer is buying from the client)
+2. Client wants to BUY a bond (e.g., "wants to buy", "looking for an offer", "yours?") → direction = SELL (the dealer is selling to the client)
 3. If client asks for both bid and offer → direction = TWO-WAY
-4. IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side (e.g. "done at 100.12, we buy 10mm"), the final direction should reflect the executed side (BUY in this case), NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
+4. IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side (e.g. "done at 100.12, we buy 10mm"), the final direction should reflect the executed side, NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
+5. "Looking for runs" or "asking for a run" means the client wants to see a price — determine direction from context (are they a buyer or seller?). If they later say "has X to sell", direction = BUY.
 
-OTHER RULES:
-3. Extract the CLIENT company from "(From Company)" or context. The dealer's own firm is NOT the client.
-4. Determine status from the final outcome of the conversation:
-   - "done", "yours", "mine", "executed", "filled", "traded", "confirmed" → EXECUTED
-   - "traded away", "done away", "lost to", "competitor got it" → TRADED AWAY
-   - "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
-   - Price was quoted but no final outcome mentioned → QUOTED
-   - Enquiry only, no price given → ENQUIRY
-5. PRICE: The dealer's response with a number IS the price, even if it looks like shorthand. Bond trading price notation examples:
-   - "100/" means the dealer's bid price is 100 (trailing slash = bid side)
-   - "@ 101" means the dealer's offer price is 101
-   - "/99" means the dealer's offer price is 99 (leading slash = offer side)
-   - "99/101" means bid 99 / offer 101
-   - Any number the dealer says in reply to a price request IS the price.
-   For BUY or SELL direction: return "price" as a plain number (e.g. 100, 101, 99.5). Never return null if the dealer quoted a number.
-   For TWO-WAY direction: return "bidPrice" and "offerPrice" as separate numbers. If both are quoted (e.g. "99/101"), set bidPrice=99, offerPrice=101. If only one side is quoted, set the other to null.
-6. SIZE must always be in millions (MM). Examples: "15MM" → 15, "2mm" → 2, "$50 million" → 50, "500k" → 0.5, "1bn" → 1000. If no size is mentioned in the conversation, return null (not 0).
+STATUS RULES — read the FULL conversation for each bond carefully:
+1. "done", "yours", "mine", "executed", "filled", "traded", "confirmed", "coed" → EXECUTED
+2. "traded away", "done away", "lost to", "competitor got it" → TRADED AWAY
+3. "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
+4. "holding", "they're waiting", "might switch", "no response", client defers or does not confirm → QUOTED (NOT executed)
+5. Enquiry only, no price given → ENQUIRY
+CRITICAL: Do NOT mark as EXECUTED unless there is explicit confirmation that a trade was done (e.g., "Done", "Coed", "Confirmed"). If the client says they are "waiting", "holding", or does not respond with confirmation, the status is QUOTED even if a price was offered.
+
+MULTIPLE INTERACTIONS WITH SAME BOND:
+- If the same client comes back for the same bond at a different time or price, treat each interaction as a SEPARATE activity record.
+- Example: Client buys 500k at 101.45 (EXECUTED), then comes back for another 1m but decides to wait → TWO separate records: one EXECUTED at 101.45 for 0.5MM, one QUOTED at 101.60 for 1MM.
+
+SWITCH TRADES:
+- A "switch" means the client sells one bond and buys another simultaneously.
+- Create TWO separate activity records for each switch:
+  - Leg 1: the bond being SOLD by the client (direction = BUY from dealer perspective) with status EXECUTED and the agreed price
+  - Leg 2: the bond being BOUGHT by the client (direction = SELL from dealer perspective) with status EXECUTED and the agreed price
+- Add "Switch trade" in the notes for both legs.
+
+CONSOLIDATION RULES:
+- If a client inquires about a bond and later executes on the same bond in the same conversation, produce ONE record with the final executed status and price. Do NOT create separate inquiry + execution records for the same bond from the same client.
+- Only create multiple records for the same bond if there are genuinely separate interactions at different times/prices.
+
+PRICE RULES:
+- The dealer's response with a number IS the price, even if it looks like shorthand.
+- "100/" means bid price 100, "@ 101" means offer price 101, "/99" means offer price 99, "99/101" means bid 99 / offer 101.
+- For BUY or SELL direction: return "price" as a plain number. Never return null if the dealer quoted a number.
+- For TWO-WAY direction: return "bidPrice" and "offerPrice" as separate numbers.
+
+SIZE: Always in millions (MM). "15MM" → 15, "500k" → 0.5, "1bn" → 1000. If no size mentioned, return null.
+
+CLIENT: Extract the CLIENT company from "(From Company)" or context. The dealer's own firm is NOT the client.
 
 Return JSON array only (no markdown):
 [{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"bidPrice":null,"offerPrice":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
