@@ -53,12 +53,47 @@ exports.handler = async (event) => {
 
     const prompt = `Analyze bond trading chat from the DEALER's perspective (the person quoting prices).
 
-DIRECTION RULES (from dealer's perspective — this is critical):
-1. Client wants to SELL a bond (e.g., "has X to sell", "looking for a bid", "wants a bid on X") → direction = BUY (the dealer is buying from the client)
-2. Client wants to BUY a bond (e.g., "wants to buy", "looking for an offer", "yours?") → direction = SELL (the dealer is selling to the client)
-3. If client asks for both bid and offer → direction = TWO-WAY
-4. IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side (e.g. "done at 100.12, we buy 10mm"), the final direction should reflect the executed side, NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
-5. "Looking for runs" or "asking for a run" means the client wants to see a price — determine direction from context (are they a buyer or seller?). If they later say "has X to sell", direction = BUY.
+DIRECTION RULES (from dealer's perspective — this is THE most critical part):
+
+Step 1: Determine what the CLIENT wants to do (buy or sell).
+Step 2: The dealer direction is the OPPOSITE of the client's intent.
+
+CLIENT INTENT SIGNALS — read these carefully:
+• Client wants to SELL their bond:
+  - "looking for a bid", "wants a bid on X", "has X to sell", "looking to sell", "looking for runs" (on bonds they hold), "offering X"
+  - When sales says a client "is looking for runs on [bond]" and client later says "has X to sell" → client is a SELLER
+  → Dealer direction = BUY (dealer is buying FROM the client)
+
+• Client wants to BUY a bond:
+  - "asking for [bond]", "wants [size] of [bond]", "wants to buy", "looking for an offer", "looking for paper", "interested in buying", "wants another [size]"
+  - When sales says client "is asking for 500k of LLOYDS 29s" → client wants to BUY those bonds
+  - "asking for" a bond ALWAYS means the client wants to BUY it
+  → Dealer direction = SELL (dealer is selling TO the client)
+
+• If client asks for both bid and offer → direction = TWO-WAY
+• IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side, the final direction should reflect the executed side, NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
+
+WORKED EXAMPLES for direction:
+  - "Nordic Life is looking for runs on HSBC 32s" + later "they'll do 25m at 102.10" (client selling to dealer) → direction = BUY, price = 102.10
+  - "Apex Wealth is asking for 500k of LLOYDS 29s" (client wants to buy) → direction = SELL
+  - "Global Alpha wants a bid on STANLN 6.5 27" (client wants to sell) → direction = BUY
+  - "Apex Wealth wants another 1m LLOYDS" (same bond as before, client wants to buy more) → direction = SELL
+
+SWITCH TRADES — pay close attention to which bond is sold and which is bought:
+- A "switch" means the client sells one bond and buys another simultaneously.
+- Read carefully: "they want to sell 20m BARUK 28s and buy the STANLN 29s" means:
+  - Client is SELLING BARUK 28s → dealer direction = BUY for BARUK 28s
+  - Client is BUYING STANLN 29s → dealer direction = SELL for STANLN 29s
+- Create TWO separate activity records:
+  - Leg 1: the bond the client is SELLING → direction = BUY (dealer buys from client), with the BID price (the price the dealer bid for it)
+  - Leg 2: the bond the client is BUYING → direction = SELL (dealer sells to client), with the OFFER price (the price the dealer offered it at)
+- Match each bond to the correct price: if dealer says "bid BARUKs at 98.20 and offer STANLNs at 100.45", then BARUK price=98.20 (BUY leg) and STANLN price=100.45 (SELL leg).
+- Add "Switch trade" in the notes for both legs.
+
+TICKER CONTINUITY — follow the full conversation:
+- When a client refers back to a bond discussed earlier without the full ticker, resolve it from context.
+- Example: If client bought "LLOYDS 29s" earlier and later "wants another 1m LLOYDS", the ticker is "LLOYDS 29s" (not just "LLOYDS").
+- Always use the most specific ticker available from the conversation (include maturity/coupon if mentioned).
 
 STATUS RULES — read the FULL conversation for each bond carefully:
 1. "done", "yours", "mine", "executed", "filled", "traded", "confirmed", "coed" → EXECUTED
@@ -71,13 +106,7 @@ CRITICAL: Do NOT mark as EXECUTED unless there is explicit confirmation that a t
 MULTIPLE INTERACTIONS WITH SAME BOND:
 - If the same client comes back for the same bond at a different time or price, treat each interaction as a SEPARATE activity record.
 - Example: Client buys 500k at 101.45 (EXECUTED), then comes back for another 1m but decides to wait → TWO separate records: one EXECUTED at 101.45 for 0.5MM, one QUOTED at 101.60 for 1MM.
-
-SWITCH TRADES:
-- A "switch" means the client sells one bond and buys another simultaneously.
-- Create TWO separate activity records for each switch:
-  - Leg 1: the bond being SOLD by the client (direction = BUY from dealer perspective) with status EXECUTED and the agreed price
-  - Leg 2: the bond being BOUGHT by the client (direction = SELL from dealer perspective) with status EXECUTED and the agreed price
-- Add "Switch trade" in the notes for both legs.
+- IMPORTANT: When a client revisits a bond, use the full ticker from the earlier mention (see TICKER CONTINUITY above).
 
 CONSOLIDATION RULES:
 - If a client inquires about a bond and later executes on the same bond in the same conversation, produce ONE record with the final executed status and price. Do NOT create separate inquiry + execution records for the same bond from the same client.
@@ -135,8 +164,8 @@ ${prompt}`;
         }
       ];
     } else {
-      // Text path: use GPT-3.5-turbo (unchanged)
-      model = 'gpt-3.5-turbo';
+      // Text path: use GPT-4o-mini for better direction/context reasoning
+      model = 'gpt-4o-mini';
       messages = [
         { role: 'system', content: 'You are a bond trading analyst. Return only valid JSON.' },
         { role: 'user', content: `${prompt}${correctionSection}\n\nTranscript: ${transcript}` }
