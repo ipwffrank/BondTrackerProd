@@ -83,7 +83,9 @@ export default function AIAssistant() {
     setNewClientForms(prev => {
       const next = {};
       trulyNew.filter(name => !clientMappings[name]).forEach(name => {
-        next[name] = prev[name] || { type: '', region: '', salesCoverage: '' };
+        // Pre-fill clientType from AI extraction if available
+        const aiClientType = aiResults.find(r => r.clientName === name)?.clientType || '';
+        next[name] = prev[name] || { type: aiClientType || '', region: '', salesCoverage: '' };
       });
       return next;
     });

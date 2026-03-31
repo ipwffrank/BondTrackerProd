@@ -51,43 +51,40 @@ exports.handler = async (event) => {
 
     const https = require('https');
 
-    const prompt = `Analyze bond trading chat from the DEALER's perspective (the person quoting prices).
+    const prompt = `Analyze bond trading chat and extract the CLIENT's trading activity.
 
-DIRECTION RULES (from dealer's perspective — this is THE most critical part):
+DIRECTION RULES (from the CLIENT's perspective — this is THE most critical part):
 
-Step 1: Determine what the CLIENT wants to do (buy or sell).
-Step 2: The dealer direction is the OPPOSITE of the client's intent.
+The "direction" field represents what the CLIENT is doing: BUY means the client is buying, SELL means the client is selling.
 
 CLIENT INTENT SIGNALS — read these carefully:
-• Client wants to SELL their bond:
-  - "looking for a bid", "wants a bid on X", "has X to sell", "looking to sell", "looking for runs" (on bonds they hold), "offering X"
-  - When sales says a client "is looking for runs on [bond]" and client later says "has X to sell" → client is a SELLER
-  → Dealer direction = BUY (dealer is buying FROM the client)
-
-• Client wants to BUY a bond:
+• Client wants to BUY a bond → direction = BUY
   - "asking for [bond]", "wants [size] of [bond]", "wants to buy", "looking for an offer", "looking for paper", "interested in buying", "wants another [size]"
-  - When sales says client "is asking for 500k of LLOYDS 29s" → client wants to BUY those bonds
   - "asking for" a bond ALWAYS means the client wants to BUY it
-  → Dealer direction = SELL (dealer is selling TO the client)
+  - The dealer responds with an OFFER price (the price the client pays to buy)
+
+• Client wants to SELL a bond → direction = SELL
+  - "looking for a bid", "wants a bid on X", "has X to sell", "looking to sell", "looking for runs" (on bonds they hold), "offering X"
+  - The dealer responds with a BID price (the price the client receives when selling)
 
 • If client asks for both bid and offer → direction = TWO-WAY
 • IMPORTANT: If the inquiry starts as TWO-WAY but the client executes on ONE side, the final direction should reflect the executed side, NOT TWO-WAY. Only keep TWO-WAY if both sides remain open or the status is ENQUIRY/QUOTED.
 
 WORKED EXAMPLES for direction:
-  - "Nordic Life is looking for runs on HSBC 32s" + later "they'll do 25m at 102.10" (client selling to dealer) → direction = BUY, price = 102.10
-  - "Apex Wealth is asking for 500k of LLOYDS 29s" (client wants to buy) → direction = SELL
-  - "Global Alpha wants a bid on STANLN 6.5 27" (client wants to sell) → direction = BUY
-  - "Apex Wealth wants another 1m LLOYDS" (same bond as before, client wants to buy more) → direction = SELL
+  - "Nordic Life is looking for runs on HSBC 32s" + later "they'll do 25m at 102.10" (client selling) → direction = SELL, price = 102.10
+  - "Apex Wealth is asking for 500k of LLOYDS 29s" (client wants to buy) → direction = BUY
+  - "Global Alpha wants a bid on STANLN 6.5 27" (client wants to sell) → direction = SELL
+  - "Apex Wealth wants another 1m LLOYDS" (same bond as before, client wants to buy more) → direction = BUY
 
 SWITCH TRADES — pay close attention to which bond is sold and which is bought:
 - A "switch" means the client sells one bond and buys another simultaneously.
 - Read carefully: "they want to sell 20m BARUK 28s and buy the STANLN 29s" means:
-  - Client is SELLING BARUK 28s → dealer direction = BUY for BARUK 28s
-  - Client is BUYING STANLN 29s → dealer direction = SELL for STANLN 29s
+  - Client is SELLING BARUK 28s → direction = SELL for BARUK 28s
+  - Client is BUYING STANLN 29s → direction = BUY for STANLN 29s
 - Create TWO separate activity records:
-  - Leg 1: the bond the client is SELLING → direction = BUY (dealer buys from client), with the BID price (the price the dealer bid for it)
-  - Leg 2: the bond the client is BUYING → direction = SELL (dealer sells to client), with the OFFER price (the price the dealer offered it at)
-- Match each bond to the correct price: if dealer says "bid BARUKs at 98.20 and offer STANLNs at 100.45", then BARUK price=98.20 (BUY leg) and STANLN price=100.45 (SELL leg).
+  - Leg 1: the bond the client is SELLING → direction = SELL, with the price the dealer bid for it
+  - Leg 2: the bond the client is BUYING → direction = BUY, with the price the dealer offered it at
+- Match each bond to the correct price: if dealer says "bid BARUKs at 98.20 and offer STANLNs at 100.45", then BARUK price=98.20 (SELL) and STANLN price=100.45 (BUY).
 - Add "Switch trade" in the notes for both legs.
 
 TICKER CONTINUITY — follow the full conversation:
@@ -121,9 +118,22 @@ PRICE RULES:
 SIZE: Always in millions (MM). "15MM" → 15, "500k" → 0.5, "1bn" → 1000. If no size mentioned, return null.
 
 CLIENT: Extract the CLIENT company from "(From Company)" or context. The dealer's own firm is NOT the client.
+- If the transcript contains client type hints, extract them into "clientType":
+  - "(HF)" or "Hedge Fund" → "Hedge Fund"
+  - "(Pension)" or "Pension Fund" → "Pension Fund"
+  - "(Private Bank)" → "Private Bank"
+  - "(AM)" or "Asset Manager" → "Asset Manager"
+  - "(Insurance)" → "Insurance"
+  - "(Sovereign)" or "Sovereign Wealth" → "Sovereign"
+  - If no hint, return "" for clientType.
+
+NOTES: Write a brief outcome summary from the CLIENT's perspective. Examples:
+- "Client bought 500k at 101.45" (not "Sold 500k")
+- "Client sold 20m at 98.20 as part of switch"
+- "Offered at 99.88, client holding"
 
 Return JSON array only (no markdown):
-[{"clientName":"Company","contactPerson":"Name","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"bidPrice":null,"offerPrice":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
+[{"clientName":"Company","contactPerson":"Name","clientType":"","ticker":"Bond","isin":"","size":null,"direction":"BUY/SELL/TWO-WAY","price":null,"bidPrice":null,"offerPrice":null,"currency":"USD","status":"ENQUIRY/QUOTED/EXECUTED/PASSED/TRADED AWAY","notes":"brief outcome summary"}]`;
 
     // Build few-shot correction examples from user feedback
     let correctionSection = '';
@@ -224,6 +234,7 @@ ${prompt}`;
       return {
         clientName: a.clientName,
         contactPerson: a.contactPerson || '',
+        clientType: a.clientType || '',
         activityType: isImage ? 'Chat Screenshot' : 'Bloomberg Chat',
         isin: a.isin || '',
         ticker: a.ticker || '',
