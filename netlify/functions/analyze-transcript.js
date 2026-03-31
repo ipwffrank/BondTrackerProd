@@ -73,7 +73,7 @@ CLIENT INTENT SIGNALS — read these carefully:
 WORKED EXAMPLES for direction:
   - "Nordic Life is looking for runs on HSBC 32s" + later "they'll do 25m at 102.10" (client selling) → direction = SELL, price = 102.10
   - "Apex Wealth is asking for 500k of LLOYDS 29s" (client wants to buy) → direction = BUY
-  - "Global Alpha wants a bid on STANLN 6.5 27" (client wants to sell) → direction = SELL
+  - "Global Alpha wants a bid on STANLN 6.5 27" → client wants to sell → direction = SELL. Dealer quotes 99.88, client says "holding" → status = QUOTED (not EXECUTED), price = 99.88
   - "Apex Wealth wants another 1m LLOYDS" (same bond as before, client wants to buy more) → direction = BUY
 
 SWITCH TRADES — pay close attention to which bond is sold and which is bought:
@@ -96,9 +96,11 @@ STATUS RULES — read the FULL conversation for each bond carefully:
 1. "done", "yours", "mine", "executed", "filled", "traded", "confirmed", "coed" → EXECUTED
 2. "traded away", "done away", "lost to", "competitor got it" → TRADED AWAY
 3. "pass", "passed", "no thanks", "not interested", "too tight", "too wide", "not for us" → PASSED
-4. "holding", "they're waiting", "might switch", "no response", client defers or does not confirm → QUOTED (NOT executed)
+4. "holding", "they're holding", "they're waiting", "might switch", "no response", client defers or does not confirm → QUOTED (NOT executed)
+   - "They're holding. Might switch into the 29s instead." = client received a quote but did NOT execute → status = QUOTED
+   - Even if the dealer improved the price (e.g., from 99.85 to 99.88), if the client's final response is "holding" the status is QUOTED.
 5. Enquiry only, no price given → ENQUIRY
-CRITICAL: Do NOT mark as EXECUTED unless there is explicit confirmation that a trade was done (e.g., "Done", "Coed", "Confirmed"). If the client says they are "waiting", "holding", or does not respond with confirmation, the status is QUOTED even if a price was offered.
+CRITICAL: Do NOT mark as EXECUTED unless there is explicit confirmation that a trade was done (e.g., "Done", "Coed", "Confirmed"). "Holding", "waiting", "might switch" are the OPPOSITE of confirmation — they mean the client declined to execute. Always check the client's LAST response for each bond to determine status.
 
 MULTIPLE INTERACTIONS WITH SAME BOND:
 - If the same client comes back for the same bond at a different time or price, treat each interaction as a SEPARATE activity record.
