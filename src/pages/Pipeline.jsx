@@ -24,10 +24,11 @@ const DEAL_STATUS_COLORS = {
 };
 
 const EMPTY_TRANCHE = { tenor: '', currency: 'USD', targetSize: '', internalTargetSize: '', ipt: '', guidance: '', finalSpread: '', pricingDate: '' };
+const BOOKRUNNER_OPTIONS = ['ANZ', 'Bank of China', 'BNP', 'DBS', 'Deutsche Bank', 'HSBC', 'ICBC', 'J.P. Morgan', 'Morgan Stanley', 'Standard Chartered'];
 const EMPTY_NEW_ISSUE_FORM = {
   issuerName: '',
   dealStatus: 'MANDATE',
-  bookrunners: { JPM: false, GS: false, MS: false, HSBC: false, SCB: false, BOCHK: false, other: false },
+  bookrunners: Object.fromEntries([...BOOKRUNNER_OPTIONS, 'other'].map(k => [k, false])),
   otherBookrunner: '',
   tranches: [{ ...EMPTY_TRANCHE }]
 };
@@ -90,6 +91,10 @@ export default function Pipeline() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackError, setFeedbackError] = useState('');
 
+  // Bookrunner dedup state
+  const [bookrunnerDedupData, setBookrunnerDedupData] = useState(null); // { entries: [{ input, editedName, matches }], formData }
+  const [showBookrunnerDedupModal, setShowBookrunnerDedupModal] = useState(false);
+
   // Delete confirm + notification toast
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, type, label }
   const [notification, setNotification] = useState(null);
@@ -144,6 +149,46 @@ export default function Pipeline() {
     return findSimilarClients(name, issuersAsClients);
   }
 
+  // ============ BOOKRUNNER DEDUP ============
+  function getAllPreviousOtherBookrunners() {
+    const presetSet = new Set(BOOKRUNNER_OPTIONS);
+    const used = new Set();
+    for (const issue of newIssues) {
+      for (const br of (issue.bookrunners || [])) {
+        if (!presetSet.has(br) && br !== 'other') used.add(br);
+      }
+    }
+    return [...used];
+  }
+
+  function checkBookrunnerDedup(otherNames) {
+    const previousOthers = getAllPreviousOtherBookrunners();
+    if (!previousOthers.length) return [];
+    const asClients = previousOthers.map((name, i) => ({ id: String(i), name }));
+    const results = [];
+    for (const name of otherNames) {
+      const similar = findSimilarClients(name, asClients);
+      if (similar.length > 0) {
+        results.push({ input: name, editedName: name, matches: similar });
+      }
+    }
+    return results;
+  }
+
+  function confirmBookrunnerDedup() {
+    if (!bookrunnerDedupData) return;
+    const formData = { ...bookrunnerDedupData.formData };
+    // Replace original other names with edited names
+    const editedNames = bookrunnerDedupData.entries.map(e => e.editedName.trim()).filter(Boolean);
+    const originalOthers = formData.otherBookrunner.split(',').map(s => s.trim()).filter(Boolean);
+    const dedupInputs = new Set(bookrunnerDedupData.entries.map(e => e.input));
+    const unchanged = originalOthers.filter(n => !dedupInputs.has(n));
+    formData.otherBookrunner = [...unchanged, ...editedNames].join(', ');
+    setShowBookrunnerDedupModal(false);
+    setBookrunnerDedupData(null);
+    saveIssue(formData);
+  }
+
   // ============ TRANCHES FORM HELPERS ============
   function addTranche() {
     setNewIssueForm(prev => ({ ...prev, tranches: [...prev.tranches, { ...EMPTY_TRANCHE }] }));
@@ -189,6 +234,17 @@ export default function Pipeline() {
       }
     }
 
+    // Bookrunner dedup check for "other" names
+    if (newIssueForm.bookrunners.other && newIssueForm.otherBookrunner) {
+      const otherNames = newIssueForm.otherBookrunner.split(',').map(s => s.trim()).filter(Boolean);
+      const brDedupResults = checkBookrunnerDedup(otherNames);
+      if (brDedupResults.length > 0) {
+        setBookrunnerDedupData({ entries: brDedupResults, formData: newIssueForm });
+        setShowBookrunnerDedupModal(true);
+        return;
+      }
+    }
+
     await saveIssue(newIssueForm);
   }
 
@@ -197,8 +253,12 @@ export default function Pipeline() {
     try {
       const selectedBookrunners = Object.entries(formData.bookrunners)
         .filter(([, value]) => value)
-        .map(([key]) => key === 'other' ? formData.otherBookrunner : key)
-        .filter(Boolean);
+        .filter(([key]) => key !== 'other')
+        .map(([key]) => key);
+      if (formData.bookrunners.other && formData.otherBookrunner) {
+        const others = formData.otherBookrunner.split(',').map(s => s.trim()).filter(Boolean);
+        selectedBookrunners.push(...others);
+      }
 
       const tranchesData = formData.tranches.map(t => ({
         tenor: t.tenor,
@@ -488,10 +548,6 @@ export default function Pipeline() {
     return clientFeedback.filter(f => f.issueId === issueId && f.trancheId === trancheId);
   }
 
-  function getFeedbackCountForIssue(issueId) {
-    return clientFeedback.filter(f => f.issueId === issueId).length;
-  }
-
   function getModalFeedbackEntries() {
     if (!feedbackTarget) return [];
     if (feedbackTarget.trancheId) {
@@ -746,18 +802,18 @@ export default function Pipeline() {
                     <div className="field-row">
                       <div className="field-group" style={{ gridColumn: '1 / -1' }}>
                         <label className="form-label">Bookrunners</label>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginTop: '8px' }}>
                           {Object.keys(newIssueForm.bookrunners).map(key => (
                             <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
                               <input type="checkbox" checked={newIssueForm.bookrunners[key]}
                                 onChange={(e) => setNewIssueForm({ ...newIssueForm, bookrunners: { ...newIssueForm.bookrunners, [key]: e.target.checked } })}
                                 style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
-                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{key.toUpperCase()}</span>
+                              <span style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{key === 'other' ? 'Other' : key}</span>
                             </label>
                           ))}
                         </div>
                         {newIssueForm.bookrunners.other && (
-                          <input type="text" className="form-input" placeholder="Specify other bookrunner" value={newIssueForm.otherBookrunner}
+                          <input type="text" className="form-input" placeholder="Enter bank names separated by commas, e.g. Citi, Barclays" value={newIssueForm.otherBookrunner}
                             onChange={(e) => setNewIssueForm({ ...newIssueForm, otherBookrunner: e.target.value })} style={{ marginTop: '8px' }} />
                         )}
                       </div>
@@ -878,7 +934,6 @@ export default function Pipeline() {
                       <th>Issuer</th>
                       <th>Tranches</th>
                       <th>Bookrunners</th>
-                      <th>Feedback</th>
                       <th>Created By</th>
                       {isAdmin && <th>Actions</th>}
                     </tr>
@@ -886,7 +941,7 @@ export default function Pipeline() {
                   <tbody>
                     {filteredNewIssues.length === 0 ? (
                       <tr>
-                        <td colSpan={isAdmin ? 9 : 7} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                        <td colSpan={isAdmin ? 8 : 6} style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                           {newIssues.length === 0 ? 'No new issues yet.' : 'No issues match your filters.'}
                         </td>
                       </tr>
@@ -914,14 +969,6 @@ export default function Pipeline() {
                                 ))}
                               </td>
                               <td>{issue.bookrunners?.join(', ') || '-'}</td>
-                              <td>
-                                <button className="feedback-btn" onClick={() => openFeedbackModal(issue, null)} title="View/Add Deal Feedback">
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                  {getFeedbackCountForIssue(issue.id) > 0 && (
-                                    <span className="feedback-count">{getFeedbackCountForIssue(issue.id)}</span>
-                                  )}
-                                </button>
-                              </td>
                               <td>{issue.createdBy}</td>
                               {isAdmin && (
                                 <td>
@@ -959,14 +1006,6 @@ export default function Pipeline() {
                                     ) : (
                                       <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>No internal target set</span>
                                     )}
-                                  </td>
-                                  <td>
-                                    <button className="feedback-btn" onClick={() => openFeedbackModal(issue, t)} title={`Feedback for ${t.tenor} ${t.currency}`}>
-                                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                                      {getFeedbackForTranche(issue.id, t.id).length > 0 && (
-                                        <span className="feedback-count">{getFeedbackForTranche(issue.id, t.id).length}</span>
-                                      )}
-                                    </button>
                                   </td>
                                   <td colSpan={isAdmin ? 2 : 1}></td>
                                 </tr>
@@ -1129,6 +1168,7 @@ export default function Pipeline() {
                       <th>Order Size</th>
                       <th>Order Limit</th>
                       <th>Notes</th>
+                      <th>Feedback</th>
                       <th>Created By</th>
                       <th>Actions</th>
                     </tr>
@@ -1136,7 +1176,7 @@ export default function Pipeline() {
                   <tbody>
                     {orderBooks.length === 0 ? (
                       <tr>
-                        <td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                        <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                           No orders yet. Add your first order above!
                         </td>
                       </tr>
@@ -1173,6 +1213,7 @@ export default function Pipeline() {
                               onChange={(e) => setEditOrderForm({ ...editOrderForm, orderLimit: e.target.value })} /></td>
                             <td><input type="text" className="form-input" style={{ fontSize: '12px', padding: '4px 8px', width: '100px' }} value={editOrderForm.notes}
                               onChange={(e) => setEditOrderForm({ ...editOrderForm, notes: e.target.value })} /></td>
+                            <td></td>
                             <td>{order.createdBy}</td>
                             <td>
                               <div style={{ display: 'flex', gap: '6px' }}>
@@ -1191,6 +1232,21 @@ export default function Pipeline() {
                             <td>{order.orderSize}MM</td>
                             <td>{order.orderLimit || '-'}</td>
                             <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>{order.notes || '-'}</td>
+                            <td>
+                              {(() => {
+                                const issue = newIssues.find(i => i.id === order.issueId);
+                                const tranche = issue?.tranches?.find(t => t.id === order.trancheId);
+                                if (!issue) return '-';
+                                return (
+                                  <button className="feedback-btn" onClick={() => openFeedbackModal(issue, tranche || null)} title={`Feedback for ${order.clientName}`}>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    {getFeedbackForTranche(order.issueId, order.trancheId).length > 0 && (
+                                      <span className="feedback-count">{getFeedbackForTranche(order.issueId, order.trancheId).length}</span>
+                                    )}
+                                  </button>
+                                );
+                              })()}
+                            </td>
                             <td>{order.createdBy}</td>
                             <td>
                               <div style={{ display: 'flex', gap: '8px' }}>
@@ -1225,18 +1281,18 @@ export default function Pipeline() {
                   </div>
                   <div className="field-group">
                     <label className="form-label">Bookrunners</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginTop: '4px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px', marginTop: '4px' }}>
                       {Object.keys(editIssueForm.bookrunners).map(key => (
                         <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                           <input type="checkbox" checked={editIssueForm.bookrunners[key]}
                             onChange={(e) => setEditIssueForm({ ...editIssueForm, bookrunners: { ...editIssueForm.bookrunners, [key]: e.target.checked } })}
                             style={{ width: '14px', height: '14px', cursor: 'pointer' }} />
-                          <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{key.toUpperCase()}</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-primary)' }}>{key === 'other' ? 'Other' : key}</span>
                         </label>
                       ))}
                     </div>
                     {editIssueForm.bookrunners.other && (
-                      <input type="text" className="form-input" placeholder="Specify other bookrunner" value={editIssueForm.otherBookrunner}
+                      <input type="text" className="form-input" placeholder="Enter bank names separated by commas, e.g. Citi, Barclays" value={editIssueForm.otherBookrunner}
                         onChange={(e) => setEditIssueForm({ ...editIssueForm, otherBookrunner: e.target.value })} style={{ marginTop: '6px', fontSize: '13px' }} />
                     )}
                   </div>
@@ -1379,6 +1435,58 @@ export default function Pipeline() {
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
               <button className="btn btn-muted" onClick={cancelClientDedupAdd}>Cancel</button>
               <button className="btn btn-primary" onClick={confirmAddClientDespiteDupes}>Add Anyway</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ======================== BOOKRUNNER DEDUP MODAL ======================== */}
+      {showBookrunnerDedupModal && bookrunnerDedupData && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', maxWidth: '560px', width: '95%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <h3 style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Similar Bank Names Found</h3>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '16px' }}>
+              Some bank names you entered look similar to previously used names. Please clarify or edit:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+              {bookrunnerDedupData.entries.map((entry, idx) => (
+                <div key={idx} style={{ padding: '12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>You entered:</span>
+                    <span style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '13px' }}>"{entry.input}"</span>
+                  </div>
+                  <div style={{ marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Similar to:</span>
+                    {entry.matches.map((m, mi) => (
+                      <div key={mi} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 10px', background: 'var(--card-bg)', borderRadius: '6px', marginTop: '4px', border: '1px solid var(--border)' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-primary)', cursor: 'pointer' }}
+                          onClick={() => {
+                            const updated = { ...bookrunnerDedupData };
+                            updated.entries = [...updated.entries];
+                            updated.entries[idx] = { ...updated.entries[idx], editedName: m.client.name };
+                            setBookrunnerDedupData(updated);
+                          }}
+                          title="Click to use this name">{m.client.name}</span>
+                        <span className="badge badge-warning" style={{ fontSize: '10px' }}>{Math.round(m.score * 100)}% match</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="field-group">
+                    <label className="form-label" style={{ fontSize: '11px' }}>Use this name:</label>
+                    <input type="text" className="form-input" style={{ fontSize: '13px' }} value={entry.editedName}
+                      onChange={(e) => {
+                        const updated = { ...bookrunnerDedupData };
+                        updated.entries = [...updated.entries];
+                        updated.entries[idx] = { ...updated.entries[idx], editedName: e.target.value };
+                        setBookrunnerDedupData(updated);
+                      }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button className="btn btn-muted" onClick={() => { setShowBookrunnerDedupModal(false); setBookrunnerDedupData(null); }}>Cancel</button>
+              <button className="btn btn-primary" onClick={confirmBookrunnerDedup}>Confirm & Save</button>
             </div>
           </div>
         </div>

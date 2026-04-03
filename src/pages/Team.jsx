@@ -430,33 +430,34 @@ export default function Team() {
                   </button>
                 </div>
               ) : (
-                <div style={{display: 'grid', gap: '12px'}}>
+                <div style={{display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px'}}>
                   {members.map((member) => (
                     <div
                       key={member.id}
                       className="member-card"
+                      style={{flexDirection: 'column', alignItems: 'center', textAlign: 'center', padding: '20px 16px'}}
                     >
-                      <div style={{display: 'flex', alignItems: 'center', gap: '16px'}}>
-                        <div 
+                      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', marginBottom: '12px'}}>
+                        <div
                           className={getAvatarColor(member.name)}
                           style={{
-                            width: '48px',
-                            height: '48px',
+                            width: '52px',
+                            height: '52px',
                             borderRadius: '50%',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             color: 'white',
                             fontWeight: 'bold',
-                            fontSize: '16px',
+                            fontSize: '17px',
                             background: '#C8A258'
                           }}
                         >
                           {getInitials(member.name)}
                         </div>
-                        <div style={{flex: 1}}>
-                          <div style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px'}}>
-                            <span style={{fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)'}}>
+                        <div>
+                          <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap'}}>
+                            <span style={{fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)'}}>
                               {getDisplayName(member) || member.email}
                             </span>
                             {getRoleBadge(member.isAdmin)}
@@ -465,7 +466,7 @@ export default function Team() {
                             )}
                           </div>
                           {getDisplayName(member) && (
-                          <p style={{fontSize: '13px', color: 'var(--text-muted)', marginBottom: '2px'}}>
+                          <p style={{fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px', wordBreak: 'break-all'}}>
                             {member.email}
                           </p>
                           )}
@@ -478,23 +479,20 @@ export default function Team() {
                       </div>
 
                       {member.id !== currentUser?.uid && (
-                        <div style={{display: 'flex', gap: '12px', alignItems: 'center'}}>
-                          <div style={{display: 'flex', flexDirection: 'column', gap: '4px'}}>
-                            <label style={{fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600}}>Change Role:</label>
-                            <select
-                              value={member.isAdmin ? 'admin' : 'user'}
-                              onChange={(e) => handleRoleChange(member.id, e.target.value)}
-                              className="form-select"
-                              style={{padding: '8px 12px', fontSize: '13px', width: '130px'}}
-                            >
-                              <option value="user">User</option>
-                              <option value="admin">Admin</option>
-                            </select>
-                          </div>
+                        <div style={{display: 'flex', gap: '8px', alignItems: 'center', justifyContent: 'center', marginTop: 'auto'}}>
+                          <select
+                            value={member.isAdmin ? 'admin' : 'user'}
+                            onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                            className="form-select"
+                            style={{padding: '6px 10px', fontSize: '12px', width: '100px'}}
+                          >
+                            <option value="user">User</option>
+                            <option value="admin">Admin</option>
+                          </select>
                           <button
                             onClick={() => handleRemoveMember(member)}
                             className="btn btn-danger"
-                            style={{padding: '8px 16px', fontSize: '13px'}}
+                            style={{padding: '6px 12px', fontSize: '12px'}}
                             title="Remove member"
                           >
                             Remove
