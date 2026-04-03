@@ -63,9 +63,8 @@ export default function Pipeline() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState({ ...EMPTY_ORDER_FORM });
 
-  // Order book sorting
-  const [orderSortField, setOrderSortField] = useState('createdAt');
-  const [orderSortDir, setOrderSortDir] = useState('desc');
+  // Order book filters
+  const [orderFilters, setOrderFilters] = useState({ issuerName: '', clientName: '', trancheTenor: '', trancheCurrency: '' });
 
   // Edit issue modal
   const [showEditIssueModal, setShowEditIssueModal] = useState(false);
@@ -617,35 +616,19 @@ export default function Pipeline() {
     setExpandedIssueIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
 
-  // ============ ORDER BOOK SORTING ============
-  function toggleOrderSort(field) {
-    if (orderSortField === field) {
-      setOrderSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
-    } else {
-      setOrderSortField(field);
-      setOrderSortDir('asc');
-    }
-  }
+  // ============ ORDER BOOK FILTERING ============
+  const hasOrderFilters = Object.values(orderFilters).some(v => v.trim());
 
-  const sortedOrderBooks = React.useMemo(() => {
-    const sorted = [...orderBooks];
-    sorted.sort((a, b) => {
-      let aVal, bVal;
-      switch (orderSortField) {
-        case 'createdAt': aVal = a.createdAt || new Date(0); bVal = b.createdAt || new Date(0); break;
-        case 'issuerName': aVal = (a.issuerName || '').toLowerCase(); bVal = (b.issuerName || '').toLowerCase(); break;
-        case 'trancheTenor': aVal = a.trancheTenor || ''; bVal = b.trancheTenor || ''; break;
-        case 'trancheCurrency': aVal = a.trancheCurrency || ''; bVal = b.trancheCurrency || ''; break;
-        case 'clientName': aVal = (a.clientName || '').toLowerCase(); bVal = (b.clientName || '').toLowerCase(); break;
-        case 'orderSize': aVal = parseFloat(a.orderSize) || 0; bVal = parseFloat(b.orderSize) || 0; break;
-        default: aVal = a.createdAt || new Date(0); bVal = b.createdAt || new Date(0);
-      }
-      if (aVal < bVal) return orderSortDir === 'asc' ? -1 : 1;
-      if (aVal > bVal) return orderSortDir === 'asc' ? 1 : -1;
-      return 0;
+  const filteredOrderBooks = React.useMemo(() => {
+    if (!hasOrderFilters) return orderBooks;
+    return orderBooks.filter(order => {
+      if (orderFilters.issuerName && !(order.issuerName || '').toLowerCase().includes(orderFilters.issuerName.toLowerCase())) return false;
+      if (orderFilters.clientName && !(order.clientName || '').toLowerCase().includes(orderFilters.clientName.toLowerCase())) return false;
+      if (orderFilters.trancheTenor && !(order.trancheTenor || '').toLowerCase().includes(orderFilters.trancheTenor.toLowerCase())) return false;
+      if (orderFilters.trancheCurrency && !(order.trancheCurrency || '').toLowerCase().includes(orderFilters.trancheCurrency.toLowerCase())) return false;
+      return true;
     });
-    return sorted;
-  }, [orderBooks, orderSortField, orderSortDir]);
+  }, [orderBooks, orderFilters, hasOrderFilters]);
 
   async function handleBulkDeleteIssues() {
     if (selectedIssueIds.size === 0) return;
@@ -1185,7 +1168,7 @@ export default function Pipeline() {
             {/* Order Book List */}
             <div className="card" style={{ marginTop: '24px' }}>
               <div className="card-header">
-                <span>Order Book ({orderBooks.length})</span>
+                <span>Order Book ({hasOrderFilters ? `${filteredOrderBooks.length} of ${orderBooks.length}` : orderBooks.length})</span>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={handleExportOrderBookExcel} className="btn btn-secondary">Export Excel</button>
                   <button onClick={handleExportOrderBookPDF} className="btn btn-secondary">Export PDF</button>
@@ -1196,35 +1179,49 @@ export default function Pipeline() {
                 <table className="table">
                   <thead>
                     <tr>
-                      {[
-                        { label: 'Date', field: 'createdAt' },
-                        { label: 'Issuer', field: 'issuerName' },
-                        { label: 'Tenor', field: 'trancheTenor' },
-                        { label: 'Currency', field: 'trancheCurrency' },
-                        { label: 'Client', field: 'clientName' },
-                        { label: 'Order Size', field: 'orderSize' },
-                      ].map(col => (
-                        <th key={col.field} onClick={() => toggleOrderSort(col.field)}
-                          style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
-                          {col.label} {orderSortField === col.field ? (orderSortDir === 'asc' ? '\u25B2' : '\u25BC') : <span style={{ opacity: 0.3 }}>{'\u25B2'}</span>}
-                        </th>
-                      ))}
+                      <th>Date</th>
+                      <th>Issuer</th>
+                      <th>Tenor</th>
+                      <th>Currency</th>
+                      <th>Client</th>
+                      <th>Order Size</th>
                       <th>Order Limit</th>
                       <th>Notes</th>
                       <th>Feedback</th>
                       <th>Created By</th>
                       <th>Actions</th>
                     </tr>
+                    <tr style={{ background: 'var(--table-header-bg)' }}>
+                      <th></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.issuerName}
+                        onChange={e => setOrderFilters({ ...orderFilters, issuerName: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.trancheTenor}
+                        onChange={e => setOrderFilters({ ...orderFilters, trancheTenor: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.trancheCurrency}
+                        onChange={e => setOrderFilters({ ...orderFilters, trancheCurrency: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.clientName}
+                        onChange={e => setOrderFilters({ ...orderFilters, clientName: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th colSpan="6">
+                        {hasOrderFilters && (
+                          <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}
+                            onClick={() => setOrderFilters({ issuerName: '', clientName: '', trancheTenor: '', trancheCurrency: '' })}>Clear Filters</button>
+                        )}
+                      </th>
+                    </tr>
                   </thead>
                   <tbody>
-                    {sortedOrderBooks.length === 0 ? (
+                    {filteredOrderBooks.length === 0 ? (
                       <tr>
                         <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                          No orders yet. Add your first order above!
+                          {orderBooks.length === 0 ? 'No orders yet. Add your first order above!' : 'No orders match your filters.'}
                         </td>
                       </tr>
                     ) : (
-                      sortedOrderBooks.map((order) => (
+                      filteredOrderBooks.map((order) => (
                         editingOrder === order.id ? (
                           <tr key={order.id} style={{ background: 'var(--accent-glow)' }}>
                             <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
