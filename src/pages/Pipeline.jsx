@@ -63,6 +63,10 @@ export default function Pipeline() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState({ ...EMPTY_ORDER_FORM });
 
+  // Order book sorting
+  const [orderSortField, setOrderSortField] = useState('createdAt');
+  const [orderSortDir, setOrderSortDir] = useState('desc');
+
   // Edit issue modal
   const [showEditIssueModal, setShowEditIssueModal] = useState(false);
   const [editIssueForm, setEditIssueForm] = useState({ ...EMPTY_NEW_ISSUE_FORM, tranches: [{ ...EMPTY_TRANCHE }] });
@@ -520,15 +524,16 @@ export default function Pipeline() {
   }
 
   // ============ CLIENT FEEDBACK ============
-  function openFeedbackModal(issue, tranche) {
+  function openFeedbackModal(issue, tranche, clientName) {
     setFeedbackTarget({
       issueId: issue.id,
       issueName: issue.issuerName,
       trancheId: tranche ? tranche.id : null,
       trancheTenor: tranche?.tenor || null,
       trancheCurrency: tranche?.currency || null,
+      lockedClientName: clientName || null,
     });
-    setFeedbackForm({ ...EMPTY_FEEDBACK_FORM, trancheId: tranche ? tranche.id : '' });
+    setFeedbackForm({ ...EMPTY_FEEDBACK_FORM, trancheId: tranche ? tranche.id : '', clientName: clientName || '' });
     setFeedbackError('');
     setShowFeedbackModal(true);
   }
@@ -560,7 +565,8 @@ export default function Pipeline() {
     e.preventDefault();
     setFeedbackError('');
     if (!feedbackTarget || !userData?.organizationId) return;
-    if (!feedbackForm.clientName) { setFeedbackError('Please select a client.'); return; }
+    const resolvedClientName = feedbackTarget.lockedClientName || feedbackForm.clientName;
+    if (!resolvedClientName) { setFeedbackError('Please select a client.'); return; }
     if (!feedbackForm.comment.trim()) { setFeedbackError('Please enter feedback.'); return; }
 
     setFeedbackLoading(true);
@@ -572,7 +578,7 @@ export default function Pipeline() {
         trancheId: feedbackTarget.trancheId || null,
         trancheTenor: feedbackTarget.trancheTenor || null,
         trancheCurrency: feedbackTarget.trancheCurrency || null,
-        clientName: feedbackForm.clientName,
+        clientName: resolvedClientName,
         sentiment: feedbackForm.sentiment,
         comment: feedbackForm.comment.trim(),
         createdAt: serverTimestamp(),
@@ -610,6 +616,36 @@ export default function Pipeline() {
   function toggleExpandIssue(id) {
     setExpandedIssueIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
   }
+
+  // ============ ORDER BOOK SORTING ============
+  function toggleOrderSort(field) {
+    if (orderSortField === field) {
+      setOrderSortDir(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setOrderSortField(field);
+      setOrderSortDir('asc');
+    }
+  }
+
+  const sortedOrderBooks = React.useMemo(() => {
+    const sorted = [...orderBooks];
+    sorted.sort((a, b) => {
+      let aVal, bVal;
+      switch (orderSortField) {
+        case 'createdAt': aVal = a.createdAt || new Date(0); bVal = b.createdAt || new Date(0); break;
+        case 'issuerName': aVal = (a.issuerName || '').toLowerCase(); bVal = (b.issuerName || '').toLowerCase(); break;
+        case 'trancheTenor': aVal = a.trancheTenor || ''; bVal = b.trancheTenor || ''; break;
+        case 'trancheCurrency': aVal = a.trancheCurrency || ''; bVal = b.trancheCurrency || ''; break;
+        case 'clientName': aVal = (a.clientName || '').toLowerCase(); bVal = (b.clientName || '').toLowerCase(); break;
+        case 'orderSize': aVal = parseFloat(a.orderSize) || 0; bVal = parseFloat(b.orderSize) || 0; break;
+        default: aVal = a.createdAt || new Date(0); bVal = b.createdAt || new Date(0);
+      }
+      if (aVal < bVal) return orderSortDir === 'asc' ? -1 : 1;
+      if (aVal > bVal) return orderSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [orderBooks, orderSortField, orderSortDir]);
 
   async function handleBulkDeleteIssues() {
     if (selectedIssueIds.size === 0) return;
@@ -1160,12 +1196,19 @@ export default function Pipeline() {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>Date</th>
-                      <th>Issuer</th>
-                      <th>Tenor</th>
-                      <th>Currency</th>
-                      <th>Client</th>
-                      <th>Order Size</th>
+                      {[
+                        { label: 'Date', field: 'createdAt' },
+                        { label: 'Issuer', field: 'issuerName' },
+                        { label: 'Tenor', field: 'trancheTenor' },
+                        { label: 'Currency', field: 'trancheCurrency' },
+                        { label: 'Client', field: 'clientName' },
+                        { label: 'Order Size', field: 'orderSize' },
+                      ].map(col => (
+                        <th key={col.field} onClick={() => toggleOrderSort(col.field)}
+                          style={{ cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                          {col.label} {orderSortField === col.field ? (orderSortDir === 'asc' ? '\u25B2' : '\u25BC') : <span style={{ opacity: 0.3 }}>{'\u25B2'}</span>}
+                        </th>
+                      ))}
                       <th>Order Limit</th>
                       <th>Notes</th>
                       <th>Feedback</th>
@@ -1174,14 +1217,14 @@ export default function Pipeline() {
                     </tr>
                   </thead>
                   <tbody>
-                    {orderBooks.length === 0 ? (
+                    {sortedOrderBooks.length === 0 ? (
                       <tr>
                         <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                           No orders yet. Add your first order above!
                         </td>
                       </tr>
                     ) : (
-                      orderBooks.map((order) => (
+                      sortedOrderBooks.map((order) => (
                         editingOrder === order.id ? (
                           <tr key={order.id} style={{ background: 'var(--accent-glow)' }}>
                             <td>{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '-'}</td>
@@ -1238,7 +1281,7 @@ export default function Pipeline() {
                                 const tranche = issue?.tranches?.find(t => t.id === order.trancheId);
                                 if (!issue) return '-';
                                 return (
-                                  <button className="feedback-btn" onClick={() => openFeedbackModal(issue, tranche || null)} title={`Feedback for ${order.clientName}`}>
+                                  <button className="feedback-btn" onClick={() => openFeedbackModal(issue, tranche || null, order.clientName)} title={`Feedback for ${order.clientName}`}>
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                                     {getFeedbackForTranche(order.issueId, order.trancheId).length > 0 && (
                                       <span className="feedback-count">{getFeedbackForTranche(order.issueId, order.trancheId).length}</span>
@@ -1566,25 +1609,44 @@ export default function Pipeline() {
             <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
               <h4 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '12px' }}>Add Feedback</h4>
               <form onSubmit={handleFeedbackSubmit}>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                  <div className="field-group">
-                    <label className="form-label">Client *</label>
-                    <select className="form-select" value={feedbackForm.clientName} onChange={e => setFeedbackForm({ ...feedbackForm, clientName: e.target.value })}>
-                      <option value="">Select Client</option>
-                      {clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
-                        <option key={c.id} value={c.name}>{c.name}</option>
-                      ))}
-                    </select>
+                {feedbackTarget.lockedClientName ? (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div className="field-group">
+                      <label className="form-label">Client</label>
+                      <div style={{ padding: '10px 12px', background: 'var(--table-odd)', borderRadius: '8px', border: '1px solid var(--border)', fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>
+                        {feedbackTarget.lockedClientName}
+                      </div>
+                    </div>
+                    <div className="field-group">
+                      <label className="form-label">Sentiment *</label>
+                      <select className="form-select" value={feedbackForm.sentiment} onChange={e => setFeedbackForm({ ...feedbackForm, sentiment: e.target.value })}>
+                        {FEEDBACK_SENTIMENTS.map(s => (
+                          <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                  <div className="field-group">
-                    <label className="form-label">Sentiment *</label>
-                    <select className="form-select" value={feedbackForm.sentiment} onChange={e => setFeedbackForm({ ...feedbackForm, sentiment: e.target.value })}>
-                      {FEEDBACK_SENTIMENTS.map(s => (
-                        <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
-                      ))}
-                    </select>
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div className="field-group">
+                      <label className="form-label">Client *</label>
+                      <select className="form-select" value={feedbackForm.clientName} onChange={e => setFeedbackForm({ ...feedbackForm, clientName: e.target.value })}>
+                        <option value="">Select Client</option>
+                        {clients.sort((a, b) => (a.name || '').localeCompare(b.name || '')).map(c => (
+                          <option key={c.id} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="field-group">
+                      <label className="form-label">Sentiment *</label>
+                      <select className="form-select" value={feedbackForm.sentiment} onChange={e => setFeedbackForm({ ...feedbackForm, sentiment: e.target.value })}>
+                        {FEEDBACK_SENTIMENTS.map(s => (
+                          <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div className="field-group" style={{ marginBottom: '12px' }}>
                   <label className="form-label">Feedback *</label>
                   <textarea className="form-textarea" rows="3" placeholder="e.g., Client likes the credit but wants tighter pricing..." value={feedbackForm.comment}
