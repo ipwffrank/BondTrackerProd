@@ -115,6 +115,8 @@ export default function Team() {
   const [toast, setToast] = useState(null);
   const [confirmModal, setConfirmModal] = useState(null);
   const [ssoStatus, setSsoStatus] = useState(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [seatLimitInfo, setSeatLimitInfo] = useState(null); // { maxUsers, currentCount }
 
   const [inviteForm, setInviteForm] = useState({
     email: '',
@@ -260,6 +262,22 @@ export default function Team() {
     }
   }
 
+  async function openInviteModal() {
+    try {
+      const result = await teamService.checkSeatLimit(userData.organizationId);
+      if (!result.allowed) {
+        setSeatLimitInfo({ maxUsers: result.maxUsers, currentCount: result.currentCount });
+        setShowLimitModal(true);
+        return;
+      }
+      setShowInviteModal(true);
+    } catch (error) {
+      console.error('Error checking seat limit:', error);
+      // On error, allow the invite attempt — createInvitation will handle failures
+      setShowInviteModal(true);
+    }
+  }
+
   const getRoleBadge = (isAdminUser) => {
     return isAdminUser ? (
       <span className="badge badge-primary">Admin</span>
@@ -334,8 +352,8 @@ export default function Team() {
             <p className="page-description">Invite members, assign roles, and manage your team</p>
           </div>
           {/* PROMINENT INVITE BUTTON IN HEADER */}
-          <button 
-            onClick={() => setShowInviteModal(true)} 
+          <button
+            onClick={openInviteModal}
             className="btn-invite-hero"
           >
             <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{marginRight: '8px'}}>
@@ -395,7 +413,7 @@ export default function Team() {
           <div className="card">
             <div className="card-header">
               <span>Team Members ({members.length})</span>
-              <button onClick={() => setShowInviteModal(true)} className="btn btn-primary">
+              <button onClick={openInviteModal} className="btn btn-primary">
                 + Invite Member
               </button>
             </div>
@@ -419,7 +437,7 @@ export default function Team() {
                   <p style={{fontSize: '18px', marginBottom: '16px', fontWeight: 600}}>No team members yet</p>
                   <p style={{fontSize: '14px', marginBottom: '24px'}}>Start by inviting your first team member!</p>
                   <button
-                    onClick={() => setShowInviteModal(true)}
+                    onClick={openInviteModal}
                     className="btn btn-primary"
                     style={{fontSize: '16px', padding: '12px 24px'}}
                   >
@@ -512,7 +530,7 @@ export default function Team() {
           <div className="card">
             <div className="card-header">
               <span>Pending Invitations ({invitations.length})</span>
-              <button onClick={() => setShowInviteModal(true)} className="btn btn-primary">
+              <button onClick={openInviteModal} className="btn btn-primary">
                 + Send New Invitation
               </button>
             </div>
@@ -524,7 +542,7 @@ export default function Team() {
                   <p style={{fontSize: '18px', marginBottom: '8px', fontWeight: 600}}>No pending invitations</p>
                   <p style={{fontSize: '14px', marginBottom: '24px'}}>Invite team members to join your organization</p>
                   <button
-                    onClick={() => setShowInviteModal(true)}
+                    onClick={openInviteModal}
                     className="btn btn-primary"
                     style={{fontSize: '16px', padding: '12px 24px'}}
                   >
@@ -803,6 +821,30 @@ export default function Team() {
               <button onClick={() => setConfirmModal(null)} style={{ padding: '8px 20px', borderRadius: '6px', border: '1px solid var(--border)', background: 'transparent', color: 'var(--text-secondary)', cursor: 'pointer' }}>Cancel</button>
               <button onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }} style={{ padding: '8px 20px', borderRadius: '6px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontWeight: 600 }}>Confirm</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLimitModal && seatLimitInfo && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, backdropFilter: 'blur(4px)' }}>
+          <div style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '16px', padding: '32px', maxWidth: '460px', width: '90%', textAlign: 'center' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>&#128274;</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
+              User Limit Reached
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
+              Your organization has reached the maximum of <strong style={{ color: 'var(--accent)' }}>{seatLimitInfo.maxUsers}</strong> users allowed under your plan.
+              <br /><br />
+              To add more users, please contact Axle at{' '}
+              <a href="mailto:info@axle-finance.com" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>info@axle-finance.com</a>.
+            </p>
+            <button
+              onClick={() => { setShowLimitModal(false); setSeatLimitInfo(null); }}
+              className="btn btn-primary"
+              style={{ padding: '12px 40px', fontSize: '15px' }}
+            >
+              OK
+            </button>
           </div>
         </div>
       )}
