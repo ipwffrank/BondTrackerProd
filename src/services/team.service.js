@@ -1,6 +1,13 @@
 import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 
+const TIER_DEFAULTS = {
+  essential: 5,
+  essentials: 5, // legacy spelling in some org docs
+  growth: 8,
+  professional: 15,
+};
+
 export const teamService = {
   // Subscribe to team members in real-time
   subscribe(organizationId, callback) {
@@ -81,6 +88,39 @@ export const teamService = {
       console.error('Error removing user:', error);
       throw error;
     }
+  },
+
+  // Check if org has reached its seat limit
+  async checkSeatLimit(organizationId) {
+    // Get org doc to read maxUsers and plan
+    const orgSnap = await getDoc(doc(db, `organizations/${organizationId}`));
+    if (!orgSnap.exists()) {
+      return { allowed: true, maxUsers: 999, currentCount: 0 };
+    }
+    const orgData = orgSnap.data();
+    const maxUsers = orgData.maxUsers || TIER_DEFAULTS[orgData.plan] || TIER_DEFAULTS.essential;
+
+    // Count active users
+    const usersRef = collection(db, 'users');
+    const usersQuery = query(usersRef, where('organizationId', '==', organizationId));
+    const usersSnap = await getDocs(usersQuery);
+    const activeUserCount = usersSnap.size;
+
+    // Count pending invitations
+    const invitationsRef = collection(db, `organizations/${organizationId}/invitations`);
+    const pendingQuery = query(invitationsRef, where('status', '==', 'pending'));
+    const pendingSnap = await getDocs(pendingQuery);
+    const pendingCount = pendingSnap.size;
+
+    const currentCount = activeUserCount + pendingCount;
+
+    return {
+      allowed: currentCount < maxUsers,
+      maxUsers,
+      currentCount,
+      activeUserCount,
+      pendingCount,
+    };
   },
 
   // Create invitation AND send email
