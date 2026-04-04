@@ -25,6 +25,7 @@ export default function Activities() {
   const [actSearch, setActSearch] = useState('');
   const [actFilterDir, setActFilterDir] = useState('');
   const [actFilterStatus, setActFilterStatus] = useState('');
+  const [actColFilters, setActColFilters] = useState({ date:'', client:'', clientType:'', activityType:'', isin:'', size:'', currency:'', direction:'', price:'', status:'', notes:'', followUp:'', createdBy:'' });
   const [selectedIds, setSelectedIds] = useState(new Set());
   // Toast and confirm modal state
   const [toastMsg, setToastMsg] = useState('');
@@ -256,19 +257,35 @@ export default function Activities() {
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_activities_csv',details:`Exported ${activities.length} activities to CSV`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
   }
 
+  const hasActColFilters = Object.values(actColFilters).some(v => v.trim());
   const filteredActivities = activities.filter(a => {
     if (actFilterDir && a.direction !== actFilterDir) return false;
     if (actFilterStatus && a.status !== actFilterStatus) return false;
     if (actSearch) {
       const q = actSearch.toLowerCase();
-      return (
+      if (!(
         a.clientName?.toLowerCase().includes(q) ||
         a.isin?.toLowerCase().includes(q) ||
         a.ticker?.toLowerCase().includes(q) ||
         a.notes?.toLowerCase().includes(q) ||
         a.createdBy?.toLowerCase().includes(q) ||
         a.activityType?.toLowerCase().includes(q)
-      );
+      )) return false;
+    }
+    if (hasActColFilters) {
+      const f = actColFilters;
+      if (f.date && !(a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '').toLowerCase().includes(f.date.toLowerCase())) return false;
+      if (f.client && !(a.clientName || '').toLowerCase().includes(f.client.toLowerCase())) return false;
+      if (f.clientType && !(a.clientType || '').toLowerCase().includes(f.clientType.toLowerCase())) return false;
+      if (f.activityType && !(a.activityType || '').toLowerCase().includes(f.activityType.toLowerCase())) return false;
+      if (f.isin && !((a.isin || '') + ' ' + (a.ticker || '')).toLowerCase().includes(f.isin.toLowerCase())) return false;
+      if (f.size && !(String(a.size || '')).toLowerCase().includes(f.size.toLowerCase())) return false;
+      if (f.currency && !(a.currency || '').toLowerCase().includes(f.currency.toLowerCase())) return false;
+      if (f.direction && !(a.direction || '').toLowerCase().includes(f.direction.toLowerCase())) return false;
+      if (f.price && !(String(a.price || '') + ' ' + String(a.bidPrice || '') + ' ' + String(a.offerPrice || '')).toLowerCase().includes(f.price.toLowerCase())) return false;
+      if (f.status && !(a.status || '').toLowerCase().includes(f.status.toLowerCase())) return false;
+      if (f.notes && !(a.notes || '').toLowerCase().includes(f.notes.toLowerCase())) return false;
+      if (f.followUp && !(a.followUpDate || '').toLowerCase().includes(f.followUp.toLowerCase())) return false;
     }
     return true;
   });
@@ -515,6 +532,13 @@ export default function Activities() {
             <table className="table">
               <thead>
                 <tr><th style={{width:'40px'}}><input type="checkbox" checked={filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).length > 0 && filteredActivities.slice((currentPage-1)*ITEMS_PER_PAGE, currentPage*ITEMS_PER_PAGE).every(a => selectedIds.has(a.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th><th>Date</th><th>Client</th><th>Client Type</th><th>Activity Type</th><th>ISIN/Ticker</th><th>Size</th><th>Currency</th><th>Direction</th><th>Price</th><th>Status</th><th>Notes</th><th>Follow-Up</th><th>Actions</th></tr>
+                <tr style={{background:'var(--table-header-bg)'}}>
+                  <th></th>
+                  {['date','client','clientType','activityType','isin','size','currency','direction','price','status','notes','followUp'].map(k=>(
+                    <th key={k}><input type="text" className="form-input" placeholder="Filter..." value={actColFilters[k]} onChange={e=>setActColFilters({...actColFilters,[k]:e.target.value})} style={{fontSize:'11px',padding:'4px 8px',width:'100%'}}/></th>
+                  ))}
+                  <th>{hasActColFilters&&<button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setActColFilters({date:'',client:'',clientType:'',activityType:'',isin:'',size:'',currency:'',direction:'',price:'',status:'',notes:'',followUp:'',createdBy:''})}>Clear</button>}</th>
+                </tr>
               </thead>
               <tbody>
                 {filteredActivities.length===0?(<tr><td colSpan="14" style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{activities.length===0?'No activities yet. Add your first activity above!':'No activities match your filters.'}</td></tr>):(

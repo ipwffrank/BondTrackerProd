@@ -22,6 +22,7 @@ export default function Clients() {
   const [clientSearch, setClientSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
+  const [clientColFilters, setClientColFilters] = useState({ name:'', type:'', region:'', salesCoverage:'', createdBy:'' });
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [dedupMatches, setDedupMatches] = useState([]);
   const [showDedupModal, setShowDedupModal] = useState(false);
@@ -242,12 +243,21 @@ export default function Clients() {
     }
   }
 
+  const hasClientColFilters = Object.values(clientColFilters).some(v => v.trim());
   const filteredClients = clients.filter(c => {
     if (filterType && c.type !== filterType) return false;
     if (filterRegion && c.region !== filterRegion) return false;
     if (clientSearch) {
       const q = clientSearch.toLowerCase();
-      return c.name?.toLowerCase().includes(q) || c.salesCoverage?.toLowerCase().includes(q) || c.createdBy?.toLowerCase().includes(q);
+      if (!(c.name?.toLowerCase().includes(q) || c.salesCoverage?.toLowerCase().includes(q) || c.createdBy?.toLowerCase().includes(q))) return false;
+    }
+    if (hasClientColFilters) {
+      const f = clientColFilters;
+      if (f.name && !(c.name || '').toLowerCase().includes(f.name.toLowerCase())) return false;
+      if (f.type && !(c.type || '').toLowerCase().includes(f.type.toLowerCase())) return false;
+      if (f.region && !(c.region || '').toLowerCase().includes(f.region.toLowerCase())) return false;
+      if (f.salesCoverage && !(c.salesCoverage || '').toLowerCase().includes(f.salesCoverage.toLowerCase())) return false;
+      if (f.createdBy && !(c.createdBy || '').toLowerCase().includes(f.createdBy.toLowerCase())) return false;
     }
     return true;
   });
@@ -430,6 +440,13 @@ export default function Clients() {
             <table className="table">
               <thead>
                 <tr>{isAdmin && <th style={{width:'40px'}}><input type="checkbox" checked={filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>}<th>Name</th><th>Type</th><th>Region</th><th>Sales Coverage</th><th>Created By</th><th>Actions</th></tr>
+                <tr style={{background:'var(--table-header-bg)'}}>
+                  {isAdmin && <th></th>}
+                  {['name','type','region','salesCoverage','createdBy'].map(k=>(
+                    <th key={k}><input type="text" className="form-input" placeholder="Filter..." value={clientColFilters[k]} onChange={e=>setClientColFilters({...clientColFilters,[k]:e.target.value})} style={{fontSize:'11px',padding:'4px 8px',width:'100%'}}/></th>
+                  ))}
+                  <th>{hasClientColFilters&&<button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setClientColFilters({name:'',type:'',region:'',salesCoverage:'',createdBy:''})}>Clear</button>}</th>
+                </tr>
               </thead>
               <tbody>
                 {filteredClients.length===0?(<tr><td colSpan={isAdmin ? 7 : 6} style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(

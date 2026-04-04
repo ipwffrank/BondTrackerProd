@@ -63,8 +63,11 @@ export default function Pipeline() {
   const [editingOrder, setEditingOrder] = useState(null);
   const [editOrderForm, setEditOrderForm] = useState({ ...EMPTY_ORDER_FORM });
 
+  // New Issues column filters
+  const [issueColFilters, setIssueColFilters] = useState({ date:'', issuer:'', tranches:'', bookrunners:'', createdBy:'' });
+
   // Order book filters
-  const [orderFilters, setOrderFilters] = useState({ issuerName: '', clientName: '', trancheTenor: '', trancheCurrency: '' });
+  const [orderFilters, setOrderFilters] = useState({ date: '', issuerName: '', trancheTenor: '', trancheCurrency: '', clientName: '', orderSize: '', orderLimit: '', notes: '', feedback: '', createdBy: '' });
 
   // Edit issue modal
   const [showEditIssueModal, setShowEditIssueModal] = useState(false);
@@ -622,10 +625,16 @@ export default function Pipeline() {
   const filteredOrderBooks = React.useMemo(() => {
     if (!hasOrderFilters) return orderBooks;
     return orderBooks.filter(order => {
+      if (orderFilters.date && !(order.createdAt ? new Date(order.createdAt).toLocaleDateString() : '').toLowerCase().includes(orderFilters.date.toLowerCase())) return false;
       if (orderFilters.issuerName && !(order.issuerName || '').toLowerCase().includes(orderFilters.issuerName.toLowerCase())) return false;
-      if (orderFilters.clientName && !(order.clientName || '').toLowerCase().includes(orderFilters.clientName.toLowerCase())) return false;
       if (orderFilters.trancheTenor && !(order.trancheTenor || '').toLowerCase().includes(orderFilters.trancheTenor.toLowerCase())) return false;
       if (orderFilters.trancheCurrency && !(order.trancheCurrency || '').toLowerCase().includes(orderFilters.trancheCurrency.toLowerCase())) return false;
+      if (orderFilters.clientName && !(order.clientName || '').toLowerCase().includes(orderFilters.clientName.toLowerCase())) return false;
+      if (orderFilters.orderSize && !(String(order.orderSize || '')).toLowerCase().includes(orderFilters.orderSize.toLowerCase())) return false;
+      if (orderFilters.orderLimit && !(String(order.orderLimit || '')).toLowerCase().includes(orderFilters.orderLimit.toLowerCase())) return false;
+      if (orderFilters.notes && !(order.notes || '').toLowerCase().includes(orderFilters.notes.toLowerCase())) return false;
+      if (orderFilters.feedback && !(order.clientFeedback?.sentiment || '').toLowerCase().includes(orderFilters.feedback.toLowerCase())) return false;
+      if (orderFilters.createdBy && !(order.createdBy || '').toLowerCase().includes(orderFilters.createdBy.toLowerCase())) return false;
       return true;
     });
   }, [orderBooks, orderFilters, hasOrderFilters]);
@@ -642,6 +651,7 @@ export default function Pipeline() {
     } catch (e) { console.error(e); alert('Failed to delete some issues'); }
   }
 
+  const hasIssueColFilters = Object.values(issueColFilters).some(v => v.trim());
   const filteredNewIssues = newIssues.filter(i => {
     if (filterIssueCurrency) {
       const hasCurrency = i.tranches?.some(t => t.currency === filterIssueCurrency);
@@ -649,7 +659,15 @@ export default function Pipeline() {
     }
     if (issueSearch) {
       const q = issueSearch.toLowerCase();
-      return i.issuerName?.toLowerCase().includes(q) || i.bookrunners?.join(' ').toLowerCase().includes(q) || i.createdBy?.toLowerCase().includes(q);
+      if (!(i.issuerName?.toLowerCase().includes(q) || i.bookrunners?.join(' ').toLowerCase().includes(q) || i.createdBy?.toLowerCase().includes(q))) return false;
+    }
+    if (hasIssueColFilters) {
+      const f = issueColFilters;
+      if (f.date && !(i.createdAt ? new Date(i.createdAt).toLocaleDateString() : '').toLowerCase().includes(f.date.toLowerCase())) return false;
+      if (f.issuer && !(i.issuerName || '').toLowerCase().includes(f.issuer.toLowerCase())) return false;
+      if (f.tranches && !(i.tranches || []).some(t => ((t.tenor || '') + ' ' + (t.currency || '')).toLowerCase().includes(f.tranches.toLowerCase()))) return false;
+      if (f.bookrunners && !(i.bookrunners?.join(', ') || '').toLowerCase().includes(f.bookrunners.toLowerCase())) return false;
+      if (f.createdBy && !(i.createdBy || '').toLowerCase().includes(f.createdBy.toLowerCase())) return false;
     }
     return true;
   });
@@ -956,6 +974,15 @@ export default function Pipeline() {
                       <th>Created By</th>
                       {isAdmin && <th>Actions</th>}
                     </tr>
+                    <tr style={{ background: 'var(--table-header-bg)' }}>
+                      {isAdmin && <th></th>}
+                      <th></th>
+                      {['date','issuer','tranches','bookrunners','createdBy'].map(k=>(
+                        <th key={k}><input type="text" className="form-input" placeholder="Filter..." value={issueColFilters[k]} onChange={e=>setIssueColFilters({...issueColFilters,[k]:e.target.value})} style={{fontSize:'11px',padding:'4px 8px',width:'100%'}}/></th>
+                      ))}
+                      {isAdmin && <th>{hasIssueColFilters&&<button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setIssueColFilters({date:'',issuer:'',tranches:'',bookrunners:'',createdBy:''})}>Clear</button>}</th>}
+                      {!isAdmin && hasIssueColFilters && <th><button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setIssueColFilters({date:'',issuer:'',tranches:'',bookrunners:'',createdBy:''})}>Clear</button></th>}
+                    </tr>
                   </thead>
                   <tbody>
                     {filteredNewIssues.length === 0 ? (
@@ -1192,7 +1219,9 @@ export default function Pipeline() {
                       <th>Actions</th>
                     </tr>
                     <tr style={{ background: 'var(--table-header-bg)' }}>
-                      <th></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.date}
+                        onChange={e => setOrderFilters({ ...orderFilters, date: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
                       <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.issuerName}
                         onChange={e => setOrderFilters({ ...orderFilters, issuerName: e.target.value })}
                         style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
@@ -1205,10 +1234,25 @@ export default function Pipeline() {
                       <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.clientName}
                         onChange={e => setOrderFilters({ ...orderFilters, clientName: e.target.value })}
                         style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
-                      <th colSpan="6">
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.orderSize}
+                        onChange={e => setOrderFilters({ ...orderFilters, orderSize: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.orderLimit}
+                        onChange={e => setOrderFilters({ ...orderFilters, orderLimit: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.notes}
+                        onChange={e => setOrderFilters({ ...orderFilters, notes: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.feedback}
+                        onChange={e => setOrderFilters({ ...orderFilters, feedback: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th><input type="text" className="form-input" placeholder="Filter..." value={orderFilters.createdBy}
+                        onChange={e => setOrderFilters({ ...orderFilters, createdBy: e.target.value })}
+                        style={{ fontSize: '11px', padding: '4px 8px', width: '100%' }} /></th>
+                      <th>
                         {hasOrderFilters && (
                           <button className="btn btn-secondary" style={{ padding: '4px 10px', fontSize: '11px' }}
-                            onClick={() => setOrderFilters({ issuerName: '', clientName: '', trancheTenor: '', trancheCurrency: '' })}>Clear Filters</button>
+                            onClick={() => setOrderFilters({ date: '', issuerName: '', trancheTenor: '', trancheCurrency: '', clientName: '', orderSize: '', orderLimit: '', notes: '', feedback: '', createdBy: '' })}>Clear</button>
                         )}
                       </th>
                     </tr>

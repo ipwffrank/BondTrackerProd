@@ -649,9 +649,20 @@ function LoginModal() {
   );
 }
 
+const PREVIEW_TABS = ['crm', 'pipeline', 'analytics', 'ai'];
+
 export default function LandingPage({ showLogin = false }) {
   const [activePreview, setActivePreview] = useState('crm');
+  const previewTimerRef = useRef(null);
   const location = useLocation();
+
+  // Auto-rotate preview tabs every 5s, reset on manual click
+  useEffect(() => {
+    previewTimerRef.current = setInterval(() => {
+      setActivePreview(prev => PREVIEW_TABS[(PREVIEW_TABS.indexOf(prev) + 1) % PREVIEW_TABS.length]);
+    }, 5000);
+    return () => clearInterval(previewTimerRef.current);
+  }, []);
 
   useEffect(() => {
     if (location.state?.scrollTo) {
@@ -706,23 +717,21 @@ export default function LandingPage({ showLogin = false }) {
               fontSize: '12px', fontWeight: '600', color: '#C8A258',
               letterSpacing: '0.07em', textTransform: 'uppercase',
             }}>
-              Built for bond sales desks
+              Sales Desk Intelligence
             </span>
           </div>
 
           <h1 className="lp2-hero-h1" style={{
             fontFamily: "'Sora', sans-serif",
-            fontSize: 'clamp(36px, 6vw, 68px)',
+            fontSize: 'clamp(32px, 5vw, 56px)',
             fontWeight: 600,
             color: '#F0EDE8',
             lineHeight: '1.15',
             margin: '0 0 24px',
             letterSpacing: '-0.01em',
           }}>
-            Every enquiry.<br />
-            Every quote.<br />
-            Every execution.<br />
-            <span style={{ color: '#C8A258' }}>One platform.</span>
+            Every chat holds deal data.<br />
+            <span style={{ color: '#C8A258' }}>Axle extracts it.</span>
           </h1>
 
           <p className="lp2-hero-sub" style={{
@@ -734,7 +743,7 @@ export default function LandingPage({ showLogin = false }) {
             maxWidth: '560px',
             lineHeight: '1.7',
           }}>
-            Axle turns Bloomberg and Symphony chats into structured deal intelligence — powered by AI. Activity tracking, client CRM, pipeline, and real-time analytics in one platform.
+            AI-powered Bloomberg chat analytics for fixed income sales teams. Log activity, manage your bond deal pipeline, and track desk performance — from one platform built for how you already work.
           </p>
 
           <div className="lp2-hero-cta" style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -832,12 +841,12 @@ export default function LandingPage({ showLogin = false }) {
             <h2 style={{
               fontFamily: "'Sora', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
-              fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '600px',
+              fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '700px',
             }}>
-              Everything your desk needs, in one place
+              A bond sales CRM that works<br />the way your desk does
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
-              Designed for how bond sales actually works — fast, relationship-driven, and data-rich.
+              Designed for how fixed income sales actually works — fast, relationship-driven, and data-rich.
             </p>
           </AnimatedSection>
 
@@ -845,23 +854,23 @@ export default function LandingPage({ showLogin = false }) {
             {[
               {
                 icon: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
-                title: 'Activity CRM',
-                desc: 'Log every enquiry, quote, and execution in seconds. Full audit trail, inline status updates, and client history at your fingertips.',
+                title: 'Bond Sales Activity Tracker',
+                desc: 'Log every enquiry, quote, and execution in seconds. Full audit trail with inline status updates, price edits, and searchable client history.',
               },
               {
                 icon: <><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></>,
-                title: 'AI Transcript Analysis',
-                desc: 'Paste a Bloomberg IB, Symphony, or email transcript — Axle\'s AI extracts every client, bond, size, direction, and price into structured activities. What used to take hours now takes seconds.',
+                title: 'AI Chat Transcript Analysis',
+                desc: 'Paste any Bloomberg IB, Symphony, or email transcript. Axle\'s AI extracts every client, bond, size, direction, and price into structured activities — what used to take hours now takes seconds.',
               },
               {
                 icon: <><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></>,
-                title: 'Analytics Dashboard',
-                desc: 'Hit rates, volume by client, direction split, and conversion trends — updated in real time, exportable to PDF and Excel.',
+                title: 'Fixed Income Desk Analytics',
+                desc: 'Hit rates, volume by client, direction split, and conversion trends — updated in real time, exportable to PDF and Excel. No more end-of-week manual tallies.',
               },
               {
                 icon: <><rect x="3" y="3" width="18" height="18" rx="2" ry="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="9" y1="21" x2="9" y2="9" /></>,
-                title: 'Deal Pipeline',
-                desc: "New issues and order books tracked in a structured pipeline. Know what's live, what's upcoming, and where to focus your next call.",
+                title: 'Bond Deal Pipeline',
+                desc: "Track new issues, order books, and client interest in a structured pipeline. Know what's live, what's upcoming, and where to focus your next call — with built-in client feedback tracking.",
               },
             ].map((feat, i) => (
               <AnimatedSection key={feat.title} delay={i * 80} className="lp2-feat-card">
@@ -897,7 +906,7 @@ export default function LandingPage({ showLogin = false }) {
               ].map(tab => (
                 <button
                   key={tab.id}
-                  onClick={() => setActivePreview(tab.id)}
+                  onClick={() => { setActivePreview(tab.id); clearInterval(previewTimerRef.current); previewTimerRef.current = setInterval(() => { setActivePreview(prev => PREVIEW_TABS[(PREVIEW_TABS.indexOf(prev) + 1) % PREVIEW_TABS.length]); }, 5000); }}
                   style={{
                     padding: '8px 20px', borderRadius: '100px', cursor: 'pointer',
                     border: activePreview === tab.id ? '1px solid #C8A258' : '1px solid #E4E0DA',
@@ -948,7 +957,7 @@ export default function LandingPage({ showLogin = false }) {
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px', lineHeight: '1.2',
             }}>
-              From chat transcript to deal intelligence<br />
+              From Bloomberg and Symphony chats to structured deal data<br />
               <span style={{ color: '#C8A258' }}>in seconds.</span>
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
@@ -961,7 +970,7 @@ export default function LandingPage({ showLogin = false }) {
             <div className="lp2-ai-steps" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '48px' }}>
               {[
                 { num: '01', title: 'Upload transcript', desc: 'Paste or upload any Bloomberg IB, Symphony, email, or call note transcript.' },
-                { num: '02', title: 'AI extracts trades', desc: 'GPT identifies clients, ISINs, tickers, sizes, directions, prices, and deal status automatically.' },
+                { num: '02', title: 'AI extracts trades', desc: 'AI identifies clients, ISINs, tickers, sizes, directions, prices, and deal status automatically.' },
                 { num: '03', title: 'Import with one click', desc: 'Review extracted activities, register new clients, and import everything to your activity log instantly.' },
               ].map((step, i) => (
                 <div key={step.num} style={{ textAlign: 'center' }}>
@@ -989,21 +998,6 @@ export default function LandingPage({ showLogin = false }) {
             <AITranscriptAnimation />
           </AnimatedSection>
 
-          {/* Stats row */}
-          <AnimatedSection delay={300}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '48px', marginTop: '48px', flexWrap: 'wrap' }}>
-              {[
-                { value: '~2 hrs', label: 'saved per desk per day' },
-                { value: '< 10s', label: 'per transcript analysis' },
-                { value: '1-click', label: 'import to activity log' },
-              ].map(s => (
-                <div key={s.label} style={{ textAlign: 'center' }}>
-                  <div style={{ fontFamily: "'Sora', sans-serif", fontSize: '32px', fontWeight: 700, color: '#C8A258' }}>{s.value}</div>
-                  <div style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 300, color: 'rgba(240,237,232,0.5)', marginTop: '4px' }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </AnimatedSection>
         </div>
       </section>
 
@@ -1066,10 +1060,10 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Pricing</SectionLabel>
             <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#F0EDE8', margin: '0 auto 16px', lineHeight: '1.2' }}>
-              Simple, transparent pricing.
+              Transparent pricing for fixed income desks.
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
-              Enterprise pricing built for institutional fixed income desks.
+              No hidden fees. Start with a 30-day paid pilot.
             </p>
           </AnimatedSection>
 
@@ -1225,10 +1219,10 @@ export default function LandingPage({ showLogin = false }) {
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px',
             }}>
-              Your data stays yours
+              Enterprise-grade security for regulated financial institutions.
             </h2>
             <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
-              Enterprise-grade security and privacy controls, designed for regulated financial institutions.
+              Your data stays yours. Every layer designed for compliance.
             </p>
           </AnimatedSection>
 
@@ -1237,7 +1231,7 @@ export default function LandingPage({ showLogin = false }) {
               {
                 icon: <><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></>,
                 title: 'Transcript Privacy',
-                desc: 'Transcripts are processed in real time and only the structured output (client, bond, price, status) is saved to your organisation\u2019s database. Raw transcript text is never stored. All data is encrypted in transit (TLS 1.2+) and at rest (AES-256).',
+                desc: 'Transcripts are processed in real time and only the structured output (client, bond, price, status) is saved to your organisation\u2019s database. Raw transcript text is never stored.',
               },
               {
                 icon: <><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></>,
