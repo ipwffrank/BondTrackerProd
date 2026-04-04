@@ -833,10 +833,8 @@ export default function Team() {
               User Limit Reached
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6, marginBottom: '24px' }}>
-              Your organization has reached the maximum of <strong style={{ color: 'var(--accent)' }}>{seatLimitInfo.maxUsers}</strong> users allowed under your plan.
-              <br /><br />
-              To add more users, please contact Axle at{' '}
-              <a href="mailto:info@axle-finance.com" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>info@axle-finance.com</a>.
+              Maximum of <strong style={{ color: 'var(--accent)' }}>{seatLimitInfo.maxUsers}</strong> users reached.<br />
+              Contact <a href="mailto:info@axle-finance.com" style={{ color: 'var(--accent)', textDecoration: 'underline' }}>info@axle-finance.com</a> to add more.
             </p>
             <button
               onClick={() => { setShowLimitModal(false); setSeatLimitInfo(null); }}
