@@ -60,7 +60,8 @@ export function AuthProvider({ children }) {
           plan: 'essentials',
           createdAt: serverTimestamp(),
           userCount: 1,
-          adminCount: 1
+          adminCount: 1,
+          maxUsers: TIER_DEFAULTS.essential,
         });
       }
 
