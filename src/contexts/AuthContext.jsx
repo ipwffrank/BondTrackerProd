@@ -11,6 +11,13 @@ import {
 import { doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
+const TIER_DEFAULTS = {
+  essential: 5,
+  essentials: 5,
+  growth: 8,
+  professional: 15,
+};
+
 const AuthContext = createContext({});
 
 export function useAuth() {
@@ -21,6 +28,7 @@ export function AuthProvider({ children }) {
   const [currentUser, setCurrentUser] = useState(null);
   const [userData, setUserData] = useState(null);
   const [orgPlan, setOrgPlan] = useState('essential'); // subscription tier
+  const [orgMaxUsers, setOrgMaxUsers] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Signup function
@@ -54,6 +62,16 @@ export function AuthProvider({ children }) {
           userCount: 1,
           adminCount: 1
         });
+      }
+
+      // Check seat limit for existing orgs (first user of a new org is always allowed)
+      if (!isFirstUser) {
+        const hasCapacity = await checkOrgSeatLimit(orgId);
+        if (!hasCapacity) {
+          // Delete the Firebase auth user we just created since they can't join
+          await user.delete();
+          throw new Error('This organization has reached its maximum number of users. Please contact your organization admin.');
+        }
       }
 
       // Create user document
@@ -183,6 +201,23 @@ export function AuthProvider({ children }) {
     return sendPasswordResetEmail(auth, email);
   }
 
+  async function checkOrgSeatLimit(orgId) {
+    const orgSnap = await getDoc(doc(db, `organizations/${orgId}`));
+    if (!orgSnap.exists()) return true; // new org, allow
+    const orgData = orgSnap.data();
+    const maxUsers = orgData.maxUsers || TIER_DEFAULTS[orgData.plan] || TIER_DEFAULTS.essential;
+
+    const usersRef = collection(db, 'users');
+    const usersQuery = query(usersRef, where('organizationId', '==', orgId));
+    const usersSnap = await getDocs(usersQuery);
+
+    const invitationsRef = collection(db, `organizations/${orgId}/invitations`);
+    const pendingQuery = query(invitationsRef, where('status', '==', 'pending'));
+    const pendingSnap = await getDocs(pendingQuery);
+
+    return (usersSnap.size + pendingSnap.size) < maxUsers;
+  }
+
   // Look up SSO provider for an email domain by querying organizations with ssoEnabled
   async function getSsoProviderForEmail(email) {
     const domain = email.split('@')[1];
@@ -222,6 +257,14 @@ export function AuthProvider({ children }) {
     const userMappingSnap = await getDoc(userMappingRef);
 
     if (!userMappingSnap.exists()) {
+      // Check seat limit before JIT provisioning
+      const hasCapacity = await checkOrgSeatLimit(ssoInfo.orgId);
+      if (!hasCapacity) {
+        // Sign out the SSO user since they can't be provisioned
+        await signOut(auth);
+        throw new Error('This organization has reached its maximum number of users. Please contact your organization admin or email info@axle-finance.com to enable more users.');
+      }
+
       const displayName = user.displayName || email.split('@')[0];
       const userDocData = {
         email: user.email || email,
@@ -305,7 +348,9 @@ export function AuthProvider({ children }) {
           const orgDocRef = doc(db, `organizations/${orgId}`);
           orgDocUnsubscribe = onSnapshot(orgDocRef, (orgSnap) => {
             if (orgSnap.exists()) {
-              setOrgPlan(orgSnap.data().plan || 'essential');
+              const data = orgSnap.data();
+              setOrgPlan(data.plan || 'essential');
+              setOrgMaxUsers(data.maxUsers || TIER_DEFAULTS[data.plan] || TIER_DEFAULTS.essential);
             }
           }, (err) => console.warn('Org doc listener error:', err));
 
@@ -457,6 +502,7 @@ export function AuthProvider({ children }) {
     userData,
     isAdmin: userData?.isAdmin || false,
     orgPlan,
+    orgMaxUsers,
     signup,
     signupWithInvitation,
     login,
