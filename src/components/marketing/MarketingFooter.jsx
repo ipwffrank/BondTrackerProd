@@ -49,8 +49,8 @@ export default function MarketingFooter() {
     <>
       <style>{STYLES}</style>
       <footer style={{
-        background: '#0A1929',
-        borderTop: '1px solid rgba(200,162,88,0.1)',
+        background: '#050C16',
+        borderTop: '1px solid rgba(200,162,88,0.08)',
         padding: '64px 40px 32px',
       }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>

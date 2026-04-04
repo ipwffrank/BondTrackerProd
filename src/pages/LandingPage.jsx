@@ -18,6 +18,14 @@ const STYLES = `
   .lp2 *, .lp2 *::before, .lp2 *::after { box-sizing: border-box; }
   .lp2 a { color: inherit; }
   .lp2 button { font-family: inherit; }
+  .lp2 ::selection { background: #C8A258; color: #070E1A; }
+
+  /* Grain overlay */
+  .lp2::after {
+    content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.02;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat; background-size: 180px;
+  }
 
   .lp2-hero-h1 { animation: lp-fadeUp 0.7s ease 0.1s both; }
   .lp2-hero-sub { animation: lp-fadeUp 0.7s ease 0.25s both; }
@@ -28,17 +36,17 @@ const STYLES = `
     background: #C8A258; color: #0F2137; border: none; cursor: pointer;
     font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 15px;
     padding: 13px 28px; border-radius: 6px; text-decoration: none;
-    display: inline-block; transition: background 0.2s, transform 0.15s;
+    display: inline-block; transition: background 0.25s, transform 0.2s, box-shadow 0.3s;
     letter-spacing: 0.01em;
   }
-  .lp2-btn-gold:hover { background: #D4B06A; transform: translateY(-1px); }
+  .lp2-btn-gold:hover { background: #D4B06A; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(200,162,88,0.25); }
 
   /* Ghost / outline button */
   .lp2-btn-ghost {
     background: transparent; color: rgba(240,237,232,0.8); border: 1px solid rgba(240,237,232,0.2);
     cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 15px;
     padding: 13px 28px; border-radius: 6px; text-decoration: none;
-    display: inline-block; transition: border-color 0.2s, color 0.2s, background 0.2s;
+    display: inline-block; transition: border-color 0.25s, color 0.25s, background 0.25s;
   }
   .lp2-btn-ghost:hover { border-color: rgba(200,162,88,0.4); color: #C8A258; background: rgba(200,162,88,0.06); }
 
@@ -49,7 +57,20 @@ const STYLES = `
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     transition: transform 0.25s, box-shadow 0.25s;
   }
-  .lp2-feat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(0,0,0,0.08); }
+  .lp2-feat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.08); }
+
+  /* Pricing card hover */
+  .lp2-price-card {
+    transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  }
+  .lp2-price-card:hover { border-color: rgba(200,162,88,0.2); box-shadow: 0 8px 40px rgba(0,0,0,0.15); transform: translateY(-2px); }
+  .lp2-price-card.featured:hover { border-color: rgba(200,162,88,0.7); box-shadow: 0 12px 48px rgba(200,162,88,0.12); transform: translateY(-2px); }
+
+  /* Security card hover */
+  .lp2-sec-card {
+    transition: border-color 0.3s, transform 0.3s;
+  }
+  .lp2-sec-card:hover { border-color: rgba(200,162,88,0.25); transform: translateY(-2px); }
 
   /* Grids */
   .lp2-feat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
@@ -705,6 +726,14 @@ export default function LandingPage({ showLogin = false }) {
           background: 'radial-gradient(circle, rgba(200,162,88,0.08) 0%, transparent 70%)',
           pointerEvents: 'none',
         }} />
+        {/* Grid lines */}
+        <div style={{
+          position: 'absolute', inset: 0, opacity: 0.03, pointerEvents: 'none',
+          backgroundImage: 'linear-gradient(rgba(200,162,88,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(200,162,88,0.3) 1px, transparent 1px)',
+          backgroundSize: '80px 80px',
+          maskImage: 'radial-gradient(ellipse 55% 50% at 50% 50%, black, transparent)',
+          WebkitMaskImage: 'radial-gradient(ellipse 55% 50% at 50% 50%, black, transparent)',
+        }} />
 
         <div style={{ maxWidth: '800px', position: 'relative', zIndex: 1 }}>
           <div style={{ marginBottom: '24px' }} className="lp2-hero-h1">
@@ -1070,7 +1099,7 @@ export default function LandingPage({ showLogin = false }) {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'start' }}>
             {/* Essential */}
             <AnimatedSection delay={0}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
                   <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Essential</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -1093,7 +1122,7 @@ export default function LandingPage({ showLogin = false }) {
 
             {/* Growth — highlighted */}
             <AnimatedSection delay={100}>
-              <div style={{ background: 'rgba(200,162,88,0.07)', border: '2px solid rgba(200,162,88,0.5)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
+              <div className="lp2-price-card featured" style={{ background: 'rgba(200,162,88,0.07)', border: '2px solid rgba(200,162,88,0.5)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#C8A258', color: '#0F2137', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Most Popular</div>
                 <div>
                   <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
@@ -1117,7 +1146,7 @@ export default function LandingPage({ showLogin = false }) {
 
             {/* Professional */}
             <AnimatedSection delay={200}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
                   <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Professional</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
@@ -1259,7 +1288,7 @@ export default function LandingPage({ showLogin = false }) {
                 desc: 'Professional tier includes a named Customer Success Manager with a 4-hour response SLA during business hours for any platform issues.',
               },
             ].map((item, i) => (
-              <AnimatedSection key={item.title} delay={i * 80} style={{
+              <AnimatedSection key={item.title} delay={i * 80} className="lp2-sec-card" style={{
                 background: 'rgba(255,255,255,0.04)',
                 border: '1px solid rgba(200,162,88,0.12)',
                 borderRadius: '14px',

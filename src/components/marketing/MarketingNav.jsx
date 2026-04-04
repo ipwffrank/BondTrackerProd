@@ -20,10 +20,22 @@ const STYLES = `
     border: none;
     cursor: pointer;
     padding: 6px 2px;
-    transition: color 0.2s;
+    transition: color 0.25s;
     letter-spacing: 0.01em;
+    position: relative;
+  }
+  .mkt-nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: #C8A258;
+    transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   }
   .mkt-nav-link:hover { color: #FFFFFF; }
+  .mkt-nav-link:hover::after { width: 100%; }
 
   .mkt-btn-demo {
     background: #C8A258;
@@ -37,10 +49,10 @@ const STYLES = `
     border-radius: 6px;
     text-decoration: none;
     display: inline-block;
-    transition: background 0.2s, transform 0.15s;
+    transition: background 0.25s, transform 0.2s, box-shadow 0.3s;
     letter-spacing: 0.01em;
   }
-  .mkt-btn-demo:hover { background: #D4B06A; transform: translateY(-1px); }
+  .mkt-btn-demo:hover { background: #D4B06A; transform: translateY(-1px); box-shadow: 0 8px 32px rgba(200,162,88,0.25); }
 
   .mkt-btn-login {
     color: rgba(255,255,255,0.65);
@@ -147,11 +159,11 @@ export default function MarketingNav() {
           position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
           height: '64px', padding: '0 40px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: scrolled ? 'rgba(15,33,55,0.97)' : 'transparent',
-          backdropFilter: scrolled ? 'blur(16px)' : 'none',
+          background: scrolled ? 'rgba(7,14,26,0.92)' : 'transparent',
+          backdropFilter: scrolled ? 'blur(24px) saturate(1.4)' : 'none',
           borderBottom: scrolled ? '1px solid rgba(200,162,88,0.12)' : 'none',
           boxShadow: scrolled ? '0 2px 24px rgba(0,0,0,0.15)' : 'none',
-          transition: 'background 0.3s, box-shadow 0.3s, border-color 0.3s',
+          transition: 'background 0.4s, box-shadow 0.4s, border-color 0.4s, backdrop-filter 0.4s',
         }}
       >
         {/* Logo — scroll to top */}
