@@ -23,7 +23,7 @@ function ReConsentModal({ onAccept }) {
           Our Privacy Policy has been updated. Please review the changes and confirm your continued consent to use Axle.
         </p>
         <p style={{ margin: '0 0 24px' }}>
-          <Link to="/legal" target="_blank" style={{ color: '#C8A258', fontSize: '14px', textDecoration: 'underline' }}>
+          <Link to="/legal/privacy" target="_blank" style={{ color: '#C8A258', fontSize: '14px', textDecoration: 'underline' }}>
             View Privacy Policy
           </Link>
         </p>
