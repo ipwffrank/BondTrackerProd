@@ -1,5 +1,5 @@
 import { collection, doc, getDocs, getDoc, updateDoc, deleteDoc, query, where, addDoc, onSnapshot, orderBy } from 'firebase/firestore';
-import { db } from './firebase';
+import { db, auth } from './firebase';
 
 const TIER_DEFAULTS = {
   essential: 5,
@@ -79,13 +79,32 @@ export const teamService = {
     }
   },
 
-  // Remove user from organization
-  async removeUser(userId) {
+  // Remove user from organization — cascading deletion via server-side function
+  async removeUser(userId, organizationId) {
     try {
+      // If organizationId is provided, use the server-side cascade delete
+      if (organizationId) {
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+        const response = await fetch('/.netlify/functions/delete-user-data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
+          },
+          body: JSON.stringify({ userId, organizationId }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to delete user data');
+        }
+        return result;
+      }
+
+      // Fallback: just delete the root user doc (legacy behavior)
       const userRef = doc(db, 'users', userId);
       await deleteDoc(userRef);
     } catch (error) {
-      console.error('Error removing user:', error);
       throw error;
     }
   },
@@ -154,10 +173,12 @@ export const teamService = {
         const baseUrl = 'https://axle-finance.com';
         const signupUrl = `${baseUrl}/accept-invite?token=${invitation.id}&org=${organizationId}`;
 
+        const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
         const response = await fetch('/.netlify/functions/send-invite', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${idToken}`,
           },
           body: JSON.stringify({
             email: email.toLowerCase(),
@@ -167,11 +188,10 @@ export const teamService = {
             signupUrl
           })
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
-          console.error('Failed to send email:', result);
           // Update invitation to mark email as not sent
           await updateDoc(doc(db, `organizations/${organizationId}/invitations/${invitation.id}`), {
             emailSent: false,
@@ -300,10 +320,12 @@ export const teamService = {
           const baseUrl = 'https://axle-finance.com';
           const signupUrl = `${baseUrl}/accept-invite?token=${invitationId}&org=${organizationId}`;
 
+          const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
           const response = await fetch('/.netlify/functions/send-invite', {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/json'
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${idToken}`,
             },
             body: JSON.stringify({
               email: invitationData.email,
@@ -313,10 +335,6 @@ export const teamService = {
               signupUrl
             })
           });
-          
-          if (!response.ok) {
-            console.error('Failed to resend email');
-          }
         } catch (emailError) {
           console.error('Error resending email:', emailError);
         }

@@ -1,15 +1,12 @@
 const { Resend } = require('resend');
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+  const origin = event.headers?.origin || '';
+  const headers = getCorsHeaders(origin);
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  const preflight = handlePreflight(event, headers);
+  if (preflight) return preflight;
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
@@ -151,8 +148,6 @@ exports.handler = async (event) => {
         </html>
       `,
     });
-
-    console.log('Password change notification sent to:', email);
 
     return {
       statusCode: 200,

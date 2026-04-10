@@ -8,7 +8,7 @@ import {
   SAMLAuthProvider,
   signInWithPopup,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs, clearIndexedDbPersistence } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 
 const TIER_DEFAULTS = {
@@ -17,6 +17,9 @@ const TIER_DEFAULTS = {
   growth: 8,
   professional: 15,
 };
+
+// Current privacy policy version — bump when policy is updated
+export const PRIVACY_POLICY_VERSION = '2026-03-16';
 
 const AuthContext = createContext({});
 
@@ -30,6 +33,7 @@ export function AuthProvider({ children }) {
   const [orgPlan, setOrgPlan] = useState('essential'); // subscription tier
   const [orgMaxUsers, setOrgMaxUsers] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [needsReConsent, setNeedsReConsent] = useState(false);
 
   // Signup function
   async function signup(email, password, name) {
@@ -86,6 +90,9 @@ export function AuthProvider({ children }) {
         organizationName: domain,
         isAdmin: isFirstUser,
         role: isFirstUser ? 'admin' : 'user',
+        consentGiven: true,
+        consentTimestamp: serverTimestamp(),
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp()
       });
@@ -98,10 +105,11 @@ export function AuthProvider({ children }) {
         name: name,
         isAdmin: isFirstUser,
         role: isFirstUser ? 'admin' : 'user',
+        consentGiven: true,
+        consentTimestamp: serverTimestamp(),
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
         createdAt: serverTimestamp()
       });
-
-      console.log('✅ User created successfully. Admin status:', isFirstUser);
 
       return userCredential;
     } catch (error) {
@@ -133,6 +141,9 @@ export function AuthProvider({ children }) {
         organizationName: organizationName,
         isAdmin: isAdmin,
         role: role || 'user',
+        consentGiven: true,
+        consentTimestamp: serverTimestamp(),
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
         invitedUser: true
@@ -146,10 +157,11 @@ export function AuthProvider({ children }) {
         name: name,
         isAdmin: isAdmin,
         role: role || 'user',
+        consentGiven: true,
+        consentTimestamp: serverTimestamp(),
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
         createdAt: serverTimestamp()
       });
-
-      console.log('✅ Invited user created successfully. Admin status:', isAdmin);
 
       return userCredential;
     } catch (error) {
@@ -305,10 +317,43 @@ export function AuthProvider({ children }) {
       await signOut(auth);
       setUserData(null);
       setCurrentUser(null);
-      console.log('✅ Logout successful');
+
+      // Clear Firestore IndexedDB cache to remove cached data from the browser
+      try {
+        await clearIndexedDbPersistence(db);
+      } catch (cacheErr) {
+        // clearIndexedDbPersistence may fail if there are active listeners;
+        // this is expected and non-fatal — the cache will be cleared on next init.
+      }
     } catch (error) {
-      console.error('❌ Logout error:', error);
       throw error;
+    }
+  }
+
+  // Accept re-consent when privacy policy has been updated
+  async function acceptReConsent() {
+    if (!currentUser?.uid) return;
+    try {
+      const userRef = doc(db, `users/${currentUser.uid}`);
+      await setDoc(userRef, {
+        consentGiven: true,
+        consentTimestamp: serverTimestamp(),
+        consentPolicyVersion: PRIVACY_POLICY_VERSION,
+      }, { merge: true });
+
+      // Also update org user doc if we have the org ID
+      if (userData?.organizationId) {
+        const orgUserRef = doc(db, `organizations/${userData.organizationId}/users/${currentUser.uid}`);
+        await setDoc(orgUserRef, {
+          consentGiven: true,
+          consentTimestamp: serverTimestamp(),
+          consentPolicyVersion: PRIVACY_POLICY_VERSION,
+        }, { merge: true });
+      }
+
+      setNeedsReConsent(false);
+    } catch (err) {
+      // Non-fatal
     }
   }
 
@@ -408,9 +453,17 @@ export function AuthProvider({ children }) {
               });
 
               setUserData(completeUserData);
+
+              // Check if user's consent policy version is outdated
+              const userPolicyVersion = data.consentPolicyVersion || null;
+              if (!userPolicyVersion || userPolicyVersion !== PRIVACY_POLICY_VERSION) {
+                setNeedsReConsent(true);
+              } else {
+                setNeedsReConsent(false);
+              }
+
               setLoading(false);
             } else {
-              console.warn('⚠️ User document not found in snapshot, trying getDoc fallback...');
               try {
                 const freshSnap = await getDoc(userDocRef);
                 if (freshSnap.exists()) {
@@ -504,6 +557,7 @@ export function AuthProvider({ children }) {
     isAdmin: userData?.isAdmin || false,
     orgPlan,
     orgMaxUsers,
+    needsReConsent,
     signup,
     signupWithInvitation,
     login,
@@ -511,6 +565,7 @@ export function AuthProvider({ children }) {
     getSsoProviderForEmail,
     logout,
     sendPasswordReset,
+    acceptReConsent,
     loading
   };
 

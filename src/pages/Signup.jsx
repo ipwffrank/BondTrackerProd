@@ -8,6 +8,7 @@ export default function Signup() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [organizationName, setOrganizationName] = useState('');
+  const [consentGiven, setConsentGiven] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
@@ -19,6 +20,11 @@ export default function Signup() {
     
     if (!firstName.trim() || !surname.trim()) {
       setError('Please enter both your first name and surname.');
+      return;
+    }
+
+    if (!consentGiven) {
+      setError('You must agree to the Privacy Policy to create an account.');
       return;
     }
 
@@ -113,9 +119,26 @@ export default function Signup() {
             />
           </div>
 
+          <div className="flex items-start gap-2">
+            <input
+              type="checkbox"
+              id="consent"
+              checked={consentGiven}
+              onChange={(e) => setConsentGiven(e.target.checked)}
+              className="mt-1"
+            />
+            <label htmlFor="consent" className="text-sm text-gray-600">
+              I agree to the{' '}
+              <Link to="/legal" target="_blank" className="text-blue-600 hover:underline">
+                Privacy Policy
+              </Link>{' '}
+              and consent to the collection and use of my personal data as described therein.
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || !consentGiven}
             className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md disabled:opacity-50"
           >
             {loading ? 'Creating account...' : 'Create Account'}

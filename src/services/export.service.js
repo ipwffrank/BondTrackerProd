@@ -1,10 +1,23 @@
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { logAudit } from './audit.service';
 
 export const exportService = {
+  // Internal helper to log export audit events (non-blocking)
+  _logExport(orgId, { action, format, recordCount, userId, userName, userEmail }) {
+    if (!orgId) return;
+    logAudit(orgId, {
+      action,
+      details: `Exported ${recordCount} records in ${format} format`,
+      userId: userId || '',
+      userName: userName || '',
+      userEmail: userEmail || '',
+    }).catch(() => {});
+  },
+
   // Export Activities to Excel
-  exportActivitiesToExcel(activities, organizationName) {
+  exportActivitiesToExcel(activities, organizationName, auditContext) {
     try {
       const data = activities.map(a => ({
         'Date': a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '',
@@ -38,14 +51,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Activities_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_activities_excel', format: 'Excel',
+          recordCount: activities.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('Excel export error:', error);
       alert('Failed to export Excel file: ' + error.message);
     }
   },
 
   // Export Activities to PDF
-  exportActivitiesToPDF(activities, organizationName) {
+  exportActivitiesToPDF(activities, organizationName, auditContext) {
     try {
       const doc = new jsPDF('landscape');
       
@@ -87,14 +106,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Activities_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_activities_pdf', format: 'PDF',
+          recordCount: activities.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('PDF export error:', error);
       alert('Failed to export PDF file: ' + error.message);
     }
   },
 
   // Export Clients to Excel
-  exportClientsToExcel(clients, organizationName) {
+  exportClientsToExcel(clients, organizationName, auditContext) {
     try {
       const data = clients.map(c => ({
         'Client Name': c.name || '',
@@ -126,14 +151,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Clients_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_clients_excel', format: 'Excel',
+          recordCount: clients.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('Excel export error:', error);
       alert('Failed to export Excel file: ' + error.message);
     }
   },
 
   // Export Clients to PDF
-  exportClientsToPDF(clients, organizationName) {
+  exportClientsToPDF(clients, organizationName, auditContext) {
     try {
       const doc = new jsPDF('landscape');
       
@@ -172,14 +203,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Clients_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_clients_pdf', format: 'PDF',
+          recordCount: clients.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('PDF export error:', error);
       alert('Failed to export PDF file: ' + error.message);
     }
   },
 
   // Export Analytics to PDF
-  exportAnalyticsToPDF(analytics, organizationName, dateRange) {
+  exportAnalyticsToPDF(analytics, organizationName, dateRange, auditContext) {
     try {
       const doc = new jsPDF();
       
@@ -243,14 +280,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_analytics_pdf', format: 'PDF',
+          recordCount: analytics.totalActivities || 0, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('PDF export error:', error);
       alert('Failed to export PDF file: ' + error.message);
     }
   },
 
   // Export Analytics Summary to Excel
-  exportAnalyticsToExcel(analytics, organizationName, dateRange) {
+  exportAnalyticsToExcel(analytics, organizationName, dateRange, auditContext) {
     try {
       const workbook = XLSX.utils.book_new();
       
@@ -297,14 +340,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Analytics_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_analytics_excel', format: 'Excel',
+          recordCount: analytics.totalActivities || 0, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('Excel export error:', error);
       alert('Failed to export Excel file: ' + error.message);
     }
   },
 
   // Export Pipeline to Excel
-  exportPipelineToExcel(issues, organizationName) {
+  exportPipelineToExcel(issues, organizationName, auditContext) {
     try {
       const data = issues.map(issue => ({
         'Issuer': issue.issuer || '',
@@ -342,14 +391,20 @@ export const exportService = {
 
       const filename = `${organizationName}_Pipeline_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(workbook, filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_pipeline_issues_excel', format: 'Excel',
+          recordCount: issues.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('Excel export error:', error);
       alert('Failed to export Excel file: ' + error.message);
     }
   },
 
   // Export Pipeline to PDF
-  exportPipelineToPDF(issues, organizationName) {
+  exportPipelineToPDF(issues, organizationName, auditContext) {
     try {
       const doc = new jsPDF('landscape');
       
@@ -390,8 +445,14 @@ export const exportService = {
 
       const filename = `${organizationName}_Pipeline_${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(filename);
+
+      if (auditContext?.orgId) {
+        this._logExport(auditContext.orgId, {
+          action: 'export_pipeline_issues_pdf', format: 'PDF',
+          recordCount: issues.length, ...auditContext,
+        });
+      }
     } catch (error) {
-      console.error('PDF export error:', error);
       alert('Failed to export PDF file: ' + error.message);
     }
   }

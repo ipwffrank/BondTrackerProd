@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Navigation from '../components/Navigation';
 import { teamService } from '../services/team.service';
 import { getAuditLogs } from '../services/audit.service';
+import { dataAccessService } from '../services/data-access.service';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 
@@ -97,6 +98,57 @@ function AuditTrailTab({ orgId }) {
               </div>
             )}
           </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MyDataTab({ userData, currentUser }) {
+  const [exporting, setExporting] = useState(false);
+  const [exported, setExported] = useState(false);
+
+  async function handleExport() {
+    if (!currentUser?.uid || !userData?.organizationId) return;
+    setExporting(true);
+    try {
+      const data = await dataAccessService.exportUserData(
+        currentUser.uid,
+        userData.organizationId,
+        userData
+      );
+      dataAccessService.downloadAsJson(data, userData.name);
+      setExported(true);
+    } catch (err) {
+      alert('Failed to export data: ' + err.message);
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <div className="card-header">
+        <span>My Data</span>
+      </div>
+      <div style={{ padding: '24px' }}>
+        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '20px' }}>
+          Download all of your personal data stored in Axle, including your profile, activities you created, audit logs, transcript uploads, AI corrections, and consent records. The data will be exported as a structured JSON file.
+        </p>
+
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="btn btn-primary"
+          style={{ padding: '10px 24px', fontSize: '14px' }}
+        >
+          {exporting ? 'Preparing download...' : exported ? 'Download Again' : 'Download My Data'}
+        </button>
+
+        {exported && (
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px' }}>
+            Your data export has been downloaded. This action has been logged in the audit trail.
+          </p>
         )}
       </div>
     </div>
@@ -221,12 +273,11 @@ export default function Team() {
     }
 
     setConfirmModal({
-      message: `Are you sure you want to remove ${member.name} from the organization?`,
+      message: `Are you sure you want to remove ${member.name} from the organization? This will permanently delete all of their data, including activities and transcripts they uploaded.`,
       onConfirm: async () => {
         try {
-          await teamService.removeUser(member.id);
+          await teamService.removeUser(member.id, userData?.organizationId);
         } catch (error) {
-          console.error('Error removing member:', error);
           setToast('Failed to remove member');
         }
       }
@@ -405,6 +456,12 @@ export default function Team() {
             onClick={() => setActiveSubTab('audit')}
           >
             📋 Audit Trail
+          </button>
+          <button
+            className={`sub-tab ${activeSubTab === 'mydata' ? 'active' : ''}`}
+            onClick={() => setActiveSubTab('mydata')}
+          >
+            📥 My Data
           </button>
         </div>
 
@@ -696,6 +753,10 @@ export default function Team() {
 
         {activeSubTab === 'audit' && (
           <AuditTrailTab orgId={userData?.organizationId} />
+        )}
+
+        {activeSubTab === 'mydata' && (
+          <MyDataTab userData={userData} currentUser={currentUser} />
         )}
       </main>
 

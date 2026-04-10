@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import { AxleLogo } from '@bridgelogic/ui';
 
 const ACTION_LABELS = {
@@ -79,8 +82,10 @@ const STYLES = `
 `;
 
 export default function HostAdmin() {
-  const [hostKey, setHostKey] = useState('');
+  const { currentUser } = useAuth();
   const [authenticated, setAuthenticated] = useState(false);
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authError, setAuthError] = useState('');
   const [activeTab, setActiveTab] = useState('reset');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -100,10 +105,38 @@ export default function HostAdmin() {
   const [ssoLookupLoading, setSsoLookupLoading] = useState(false);
   const [ssoCurrentConfig, setSsoCurrentConfig] = useState(null);
 
-  const handleAuth = (e) => {
-    e.preventDefault();
-    if (hostKey.trim()) setAuthenticated(true);
-  };
+  // Helper to get Authorization headers for host admin requests
+  async function getAuthHeaders() {
+    if (!currentUser) throw new Error('Not authenticated');
+    const idToken = await currentUser.getIdToken();
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
+    };
+  }
+
+  // Verify current user is a host admin on mount
+  useEffect(() => {
+    async function checkHostAdmin() {
+      if (!currentUser) {
+        setAuthError('Please sign in to access host admin tools.');
+        setAuthChecking(false);
+        return;
+      }
+      try {
+        const hostAdminDoc = await getDoc(doc(db, 'hostAdmins', currentUser.uid));
+        if (hostAdminDoc.exists()) {
+          setAuthenticated(true);
+        } else {
+          setAuthError('Your account does not have host admin access.');
+        }
+      } catch (err) {
+        setAuthError('Failed to verify host admin status.');
+      }
+      setAuthChecking(false);
+    }
+    checkHostAdmin();
+  }, [currentUser]);
 
   const handleReset = async (e) => {
     e.preventDefault();
@@ -111,10 +144,11 @@ export default function HostAdmin() {
     setLoading(true);
     setMessage(null);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/.netlify/functions/host-reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), hostKey: hostKey.trim() }),
+        headers: authHeaders,
+        body: JSON.stringify({ email: email.trim() }),
       });
       let data;
       try { data = await res.json(); } catch { data = { error: `HTTP ${res.status}: ${res.statusText}` }; }
@@ -132,17 +166,18 @@ export default function HostAdmin() {
     if (auditLoaded) return;
     setAuditLoading(true);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/.netlify/functions/fetch-audit-logs', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostKey: hostKey.trim(), limit: 200 }),
+        headers: authHeaders,
+        body: JSON.stringify({ limit: 200 }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to load');
       setAuditLogs(data.logs || []);
       setAuditLoaded(true);
     } catch (err) {
-      console.error('Failed to load audit logs:', err);
+      // non-blocking — keep UI functional
     } finally {
       setAuditLoading(false);
     }
@@ -164,10 +199,11 @@ export default function HostAdmin() {
     setSsoLookupLoading(true);
     setSsoMessage(null);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/.netlify/functions/host-sso-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostKey: hostKey.trim(), action: 'get', orgId: ssoOrgId.trim() }),
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'get', orgId: ssoOrgId.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
@@ -195,11 +231,11 @@ export default function HostAdmin() {
     setSsoMessage(null);
     try {
       const domains = ssoDomains.split(',').map(d => d.trim()).filter(Boolean);
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/.netlify/functions/host-sso-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify({
-          hostKey: hostKey.trim(),
           action: 'set',
           orgId: ssoOrgId.trim(),
           samlProviderId: ssoProviderId.trim(),
@@ -222,10 +258,11 @@ export default function HostAdmin() {
     setSsoSaving(true);
     setSsoMessage(null);
     try {
+      const authHeaders = await getAuthHeaders();
       const res = await fetch('/.netlify/functions/host-sso-config', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostKey: hostKey.trim(), action: 'disable', orgId: ssoOrgId.trim() }),
+        headers: authHeaders,
+        body: JSON.stringify({ action: 'disable', orgId: ssoOrgId.trim() }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed');
@@ -244,21 +281,21 @@ export default function HostAdmin() {
     <>
       <style>{STYLES}</style>
       <div className="ha-root" style={{ alignItems: authenticated ? 'flex-start' : 'center', paddingTop: authenticated ? '60px' : '24px' }}>
-        {!authenticated ? (
+        {authChecking ? (
+          <div className="ha-card" style={{ textAlign: 'center' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
+              <AxleLogo size="md" variant="dark" />
+            </div>
+            <p style={{ color: '#64748b', fontSize: '14px' }}>Verifying access...</p>
+          </div>
+        ) : !authenticated ? (
           <div className="ha-card">
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
               <AxleLogo size="md" variant="dark" />
             </div>
             <h1 className="ha-title">Host Admin</h1>
-            <p className="ha-subtitle">Authenticate to continue</p>
-            <form onSubmit={handleAuth}>
-              <label className="ha-label">Admin Key</label>
-              <input
-                type="password" value={hostKey} onChange={e => setHostKey(e.target.value)}
-                className="ha-input" placeholder="Enter host admin key" autoFocus
-              />
-              <button type="submit" className="ha-btn">Authenticate</button>
-            </form>
+            <p className="ha-subtitle">Access restricted</p>
+            <div className="ha-msg ha-msg-error">{authError || 'Access denied.'}</div>
           </div>
         ) : (
           <div className={activeTab === 'audit' ? 'ha-card-wide' : 'ha-card'}>

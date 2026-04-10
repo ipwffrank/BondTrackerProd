@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc, doc, getDocs } from 'firebase/firestore';
+import { collection, query, addDoc, onSnapshot, serverTimestamp, orderBy, limit, deleteDoc, doc, getDocs, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { findSimilarClients } from '../utils/clientDedup';
 
@@ -22,6 +22,10 @@ export default function AIAssistant() {
   const [analysisFileName, setAnalysisFileName] = useState('');
   const [tokensUsed, setTokensUsed] = useState(null);
   const [aiCorrections, setAiCorrections] = useState([]); // past corrections for few-shot learning
+
+  // AI transcript consent
+  const [aiConsentStatus, setAiConsentStatus] = useState(null); // null = loading, true/false
+  const [showAiConsentPrompt, setShowAiConsentPrompt] = useState(false);
 
   // Clients list (for new client detection)
   const [clients, setClients] = useState([]);
@@ -59,6 +63,54 @@ export default function AIAssistant() {
 
     return () => unsubscribes.forEach(u => u());
   }, [userData?.organizationId]);
+
+  // Check AI transcript consent status on mount
+  useEffect(() => {
+    async function checkAiConsent() {
+      if (!currentUser?.uid) return;
+      try {
+        const userDocRef = doc(db, 'users', currentUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists() && userDocSnap.data().aiTranscriptConsent === true) {
+          setAiConsentStatus(true);
+        } else {
+          setAiConsentStatus(false);
+        }
+      } catch {
+        setAiConsentStatus(false);
+      }
+    }
+    checkAiConsent();
+  }, [currentUser?.uid]);
+
+  async function grantAiConsent() {
+    if (!currentUser?.uid) return;
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userDocRef, {
+        aiTranscriptConsent: true,
+        aiTranscriptConsentTimestamp: serverTimestamp(),
+      }, { merge: true });
+      setAiConsentStatus(true);
+      setShowAiConsentPrompt(false);
+    } catch (err) {
+      setAiError('Failed to save AI consent: ' + err.message);
+    }
+  }
+
+  async function withdrawAiConsent() {
+    if (!currentUser?.uid) return;
+    try {
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userDocRef, {
+        aiTranscriptConsent: false,
+        aiTranscriptConsentWithdrawnAt: serverTimestamp(),
+      }, { merge: true });
+      setAiConsentStatus(false);
+    } catch (err) {
+      setAiError('Failed to update AI consent: ' + err.message);
+    }
+  }
 
   // Detect new clients whenever aiResults or clients change (with fuzzy matching)
   useEffect(() => {
@@ -122,6 +174,13 @@ export default function AIAssistant() {
 
   async function handleAiAnalysis() {
     if (!aiFile) return;
+
+    // Check AI consent before first use
+    if (!aiConsentStatus) {
+      setShowAiConsentPrompt(true);
+      return;
+    }
+
     setAiAnalyzing(true);
     setAiError('');
     setAiResults([]);
@@ -328,6 +387,56 @@ export default function AIAssistant() {
           <h1 className="page-title"> AI Assistant</h1>
           <p className="page-description">Analyze chat transcripts and automatically extract trading activities</p>
         </div>
+
+        {/* AI Consent Prompt */}
+        {showAiConsentPrompt && (
+          <div className="card" style={{ marginBottom: '16px', border: '1px solid rgba(200,162,88,0.3)' }}>
+            <div style={{ padding: '24px' }}>
+              <h3 style={{ margin: '0 0 8px', fontSize: '15px', fontWeight: 600, color: 'var(--text-primary)' }}>AI Transcript Analysis Consent</h3>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: '0 0 16px' }}>
+                This feature sends your uploaded transcript data to OpenAI for analysis. The data is processed to extract trading activities and is not stored by OpenAI beyond the API request. By consenting, you agree to this data processing. You may withdraw consent at any time, which will disable the AI analysis feature for your account.
+              </p>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button onClick={grantAiConsent} style={{
+                  padding: '8px 20px', borderRadius: '8px', border: 'none',
+                  background: '#C8A258', color: '#0F2137', fontSize: '13px',
+                  fontWeight: 600, cursor: 'pointer'
+                }}>I Consent</button>
+                <button onClick={() => setShowAiConsentPrompt(false)} style={{
+                  padding: '8px 20px', borderRadius: '8px', border: '1px solid var(--border)',
+                  background: 'transparent', color: 'var(--text-secondary)', fontSize: '13px',
+                  cursor: 'pointer'
+                }}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* AI Consent withdrawal option */}
+        {aiConsentStatus === true && (
+          <div style={{ marginBottom: '8px', textAlign: 'right' }}>
+            <button onClick={withdrawAiConsent} style={{
+              background: 'none', border: 'none', fontSize: '11px',
+              color: 'var(--text-secondary)', cursor: 'pointer', textDecoration: 'underline',
+              opacity: 0.7
+            }}>Withdraw AI analysis consent</button>
+          </div>
+        )}
+
+        {aiConsentStatus === false && !showAiConsentPrompt && (
+          <div className="card" style={{ marginBottom: '16px' }}>
+            <div style={{ padding: '20px', textAlign: 'center' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 12px' }}>
+                AI transcript analysis requires consent to send data to OpenAI.
+              </p>
+              <button onClick={() => setShowAiConsentPrompt(true)} style={{
+                padding: '8px 20px', borderRadius: '8px', border: 'none',
+                background: '#C8A258', color: '#0F2137', fontSize: '13px',
+                fontWeight: 600, cursor: 'pointer'
+              }}>Enable AI Analysis</button>
+            </div>
+          </div>
+        )}
 
         <div className="card">
           <div className="card-header">

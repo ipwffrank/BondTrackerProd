@@ -465,6 +465,7 @@ function ContactSection() {
     firstName: '', lastName: '', jobTitle: '', email: '',
     company: '', employees: '', countryCode: '+65', phone: '',
   });
+  const [picsConsent, setPicsConsent] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -490,6 +491,7 @@ function ContactSection() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const errs = validate();
+    if (!picsConsent) errs.consent = 'Consent is required';
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSubmitting(true);
     try {
@@ -511,6 +513,8 @@ function ContactSection() {
         company: form.company, employees: form.employees,
         phone: form.countryCode + (form.phone ? ' ' + form.phone : ''),
         status: 'NEW', notes: '',
+        picsConsentGiven: true,
+        picsConsentTimestamp: serverTimestamp(),
         submittedAt: serverTimestamp(),
       });
     } catch { /* non-blocking */ }
@@ -618,14 +622,25 @@ function ContactSection() {
         {errors.phone && <span style={{ fontSize: '12px', color: '#B54A4A', marginTop: '4px', display: 'block' }}>{errors.phone}</span>}
       </div>
 
-      <button type="submit" disabled={submitting} className="lp2-btn-gold"
-        style={{ width: '100%', padding: '14px', fontSize: '15px', marginTop: '8px', opacity: submitting ? 0.7 : 1 }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '12px' }}>
+        <input
+          type="checkbox"
+          id="pics-consent"
+          checked={picsConsent}
+          onChange={(e) => { setPicsConsent(e.target.checked); if (errors.consent) setErrors(p => ({ ...p, consent: '' })); }}
+          style={{ marginTop: '3px', accentColor: '#C8A258' }}
+        />
+        <label htmlFor="pics-consent" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: '#C0BDB8', lineHeight: 1.5 }}>
+          I voluntarily provide my personal data for the purpose of receiving a product demo and related communications from Axle. My data may be shared with our team for follow-up. I understand I may request access to or correction of my data at any time by contacting{' '}
+          <a href="mailto:info@axle-finance.com" style={{ color: '#C8A258', textDecoration: 'none' }}>info@axle-finance.com</a>.
+        </label>
+      </div>
+      {errors.consent && <span style={{ fontSize: '12px', color: '#B54A4A', marginTop: '4px', display: 'block' }}>{errors.consent}</span>}
+
+      <button type="submit" disabled={submitting || !picsConsent} className="lp2-btn-gold"
+        style={{ width: '100%', padding: '14px', fontSize: '15px', marginTop: '12px', opacity: (submitting || !picsConsent) ? 0.7 : 1 }}>
         {submitting ? 'Submitting...' : 'Request Demo'}
       </button>
-
-      <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: '#C0BDB8', textAlign: 'center', marginTop: '14px', marginBottom: 0 }}>
-        By submitting, you agree to be contacted by our team via email or phone.
-      </p>
     </form>
   );
 }

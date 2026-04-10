@@ -243,6 +243,22 @@ service cloud.firestore {
     }
     
     // ============================================
+    // AUDIT LOGS SUB-COLLECTION
+    // ============================================
+
+    match /organizations/{orgId}/auditLogs/{logId} {
+      // Only org admins and host admins can read audit logs
+      allow read: if isAdminInOrg(orgId) || isHostAdmin();
+
+      // Org members can create audit log entries
+      allow create: if isSameOrg(orgId);
+
+      // Audit logs are immutable — no updates or deletes allowed
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ============================================
     // TRANSCRIPT UPLOADS SUB-COLLECTION
     // ============================================
 

@@ -154,6 +154,7 @@ export default function AcceptInvite() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [consentGiven, setConsentGiven] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [invitationLoading, setInvitationLoading] = useState(true);
@@ -241,6 +242,10 @@ export default function AcceptInvite() {
 
     if (!firstName.trim() || !surname.trim()) {
       return setError('Please enter both your first name and surname');
+    }
+
+    if (!consentGiven) {
+      return setError('You must agree to the Privacy Policy to create an account');
     }
 
     if (password !== confirmPassword) {
@@ -418,7 +423,24 @@ export default function AcceptInvite() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="invite-btn" style={{ marginTop: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '16px' }}>
+              <input
+                type="checkbox"
+                id="consent"
+                checked={consentGiven}
+                onChange={(e) => setConsentGiven(e.target.checked)}
+                style={{ marginTop: '3px', accentColor: '#C8A258' }}
+              />
+              <label htmlFor="consent" style={{ fontSize: '12px', color: '#94a3b8', lineHeight: 1.5 }}>
+                I agree to the{' '}
+                <Link to="/legal" target="_blank" style={{ color: '#C8A258', textDecoration: 'none' }}>
+                  Privacy Policy
+                </Link>{' '}
+                and consent to the collection and use of my personal data as described therein.
+              </label>
+            </div>
+
+            <button type="submit" disabled={loading || !consentGiven} className="invite-btn" style={{ marginTop: '4px' }}>
               {loading ? 'Creating account...' : 'Accept Invitation & Create Account'}
             </button>
           </form>

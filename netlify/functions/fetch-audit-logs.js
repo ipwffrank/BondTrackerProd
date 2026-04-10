@@ -1,34 +1,34 @@
 const admin = require('firebase-admin');
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { verifyHostAdmin, initFirebaseAdmin } = require('./utils/auth');
 
 // Initialize Firebase Admin (lazy singleton)
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+initFirebaseAdmin();
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  };
+  const origin = event.headers?.origin || '';
+  const headers = getCorsHeaders(origin);
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  const preflight = handlePreflight(event, headers);
+  if (preflight) return preflight;
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // Verify caller is an authenticated host admin
   try {
-    const { hostKey, limit: pageLimit } = JSON.parse(event.body);
+    await verifyHostAdmin(event);
+  } catch (authErr) {
+    return {
+      statusCode: authErr.statusCode || 401,
+      headers,
+      body: JSON.stringify({ error: authErr.message }),
+    };
+  }
 
-    if (!process.env.HOST_ADMIN_KEY || hostKey !== process.env.HOST_ADMIN_KEY) {
-      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Unauthorized' }) };
-    }
+  try {
+    const { limit: pageLimit } = JSON.parse(event.body);
 
     const db = admin.firestore();
     const maxLogs = Math.min(pageLimit || 200, 500);

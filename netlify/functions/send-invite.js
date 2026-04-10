@@ -1,23 +1,31 @@
 const { Resend } = require('resend');
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { verifyIdToken } = require('./utils/auth');
 
 exports.handler = async (event) => {
-  // CORS headers
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+  const origin = event.headers?.origin || '';
+  const headers = getCorsHeaders(origin);
 
   // Handle preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  const preflight = handlePreflight(event, headers);
+  if (preflight) return preflight;
 
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Method not allowed' })
+    };
+  }
+
+  // Verify Firebase ID token — only authenticated users can send invites
+  try {
+    await verifyIdToken(event);
+  } catch (authErr) {
+    return {
+      statusCode: authErr.statusCode || 401,
+      headers,
+      body: JSON.stringify({ error: authErr.message })
     };
   }
 
@@ -92,8 +100,6 @@ exports.handler = async (event) => {
         </html>
       `
     });
-
-    console.log('Email sent successfully:', data);
 
     return {
       statusCode: 200,

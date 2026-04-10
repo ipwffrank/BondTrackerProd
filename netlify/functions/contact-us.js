@@ -1,19 +1,21 @@
 const { Resend } = require('resend');
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { enforceRateLimit } = require('./utils/rate-limit');
 
 exports.handler = async (event) => {
-  const headers = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS'
-  };
+  const origin = event.headers?.origin || '';
+  const headers = getCorsHeaders(origin);
 
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers, body: '' };
-  }
+  const preflight = handlePreflight(event, headers);
+  if (preflight) return preflight;
 
   if (event.httpMethod !== 'POST') {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
+
+  // Rate limit: 5 requests per minute per IP
+  const rateLimited = enforceRateLimit(event, headers, { windowMs: 60000, maxRequests: 5 });
+  if (rateLimited) return rateLimited;
 
   try {
     const { firstName, lastName, email, phone, message } = JSON.parse(event.body);
@@ -69,8 +71,6 @@ exports.handler = async (event) => {
         </html>
       `
     });
-
-    console.log('Contact form email sent:', data);
 
     return {
       statusCode: 200,

@@ -699,6 +699,7 @@ function ContactView({ onBack }) {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', countryCode: '+65', phone: '', message: '',
   });
+  const [picsConsent, setPicsConsent] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -709,6 +710,10 @@ function ContactView({ onBack }) {
     e.preventDefault();
     if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.message.trim()) {
       setError('Please fill in all required fields.');
+      return;
+    }
+    if (!picsConsent) {
+      setError('Please consent to our data collection notice.');
       return;
     }
     setSubmitting(true);
@@ -823,7 +828,20 @@ function ContactView({ onBack }) {
           </div>
         </div>
 
-        <button type="submit" disabled={submitting} className="login-btn" style={{ marginTop: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginTop: '8px', marginBottom: '12px' }}>
+          <input
+            type="checkbox"
+            id="contact-pics-consent"
+            checked={picsConsent}
+            onChange={(e) => setPicsConsent(e.target.checked)}
+            style={{ marginTop: '3px', accentColor: '#C8A258' }}
+          />
+          <label htmlFor="contact-pics-consent" style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.5 }}>
+            I voluntarily provide my personal data for the purpose of receiving a response to my enquiry. My data may be shared with our team for follow-up. I may request access to or correction of my data by contacting info@axle-finance.com.
+          </label>
+        </div>
+
+        <button type="submit" disabled={submitting || !picsConsent} className="login-btn" style={{ marginTop: '4px' }}>
           {submitting ? 'Sending...' : 'Send Message'}
         </button>
       </form>
