@@ -272,10 +272,10 @@ function DarkBadge({ text, color, bg }) {
 // ─── Product preview sub-components ──────────────────────────────────────────────
 function ActivityCRMPreview() {
   const rows = [
-    { date:'03 Mar', client:'Temasek Holdings', type:'Phone Call', isin:'US4592001014', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'98.75' },
-    { date:'03 Mar', client:'Fullerton Fund Mgmt', type:'Bloomberg Chat', isin:'SG2134587890', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'QUOTED', stsClr:'#fbbf24', stsBg:'rgba(251,191,36,0.12)', price:'99.50 / 100.25' },
-    { date:'02 Mar', client:'Lion Global Investors', type:'Email', isin:'US5949181045', dir:'SELL', dirClr:'#f87171', dirBg:'rgba(248,113,113,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'101.25' },
-    { date:'02 Mar', client:'GIC Private Ltd', type:'Symphony', isin:'XS2485790445', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
+    { date:'03 Mar', client:'Arcstone Holdings', type:'Phone Call', isin:'US4592001014', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'98.75' },
+    { date:'03 Mar', client:'Hartwell Fund Mgmt', type:'Bloomberg Chat', isin:'SG2134587890', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'QUOTED', stsClr:'#fbbf24', stsBg:'rgba(251,191,36,0.12)', price:'99.50 / 100.25' },
+    { date:'02 Mar', client:'Apex Global Investors', type:'Email', isin:'US5949181045', dir:'SELL', dirClr:'#f87171', dirBg:'rgba(248,113,113,0.12)', sts:'EXECUTED', stsClr:'#22c55e', stsBg:'rgba(34,197,94,0.12)', price:'101.25' },
+    { date:'02 Mar', client:'Meridian Capital Ltd', type:'Symphony', isin:'XS2485790445', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -315,9 +315,9 @@ function ActivityCRMPreview() {
 
 function PipelinePreview() {
   const issues = [
-    { date:'03 Mar', issuer:'Sembcorp Industries', tranches:'3Y USD / 5Y USD', size:'500', runners:'JPM, GS, HSBC', filled:85 },
-    { date:'02 Mar', issuer:'CapitaLand Investments', tranches:'5Y SGD / 10Y SGD', size:'300', runners:'HSBC, SCB', filled:62 },
-    { date:'01 Mar', issuer:'DBS Bank', tranches:'3Y USD / 5Y USD / 10Y USD', size:'750', runners:'JPM, MS, GS', filled:94 },
+    { date:'03 Mar', issuer:'Nexvast Industries', tranches:'3Y USD / 5Y USD', size:'500', runners:'KBL, VTG, PBX', filled:85 },
+    { date:'02 Mar', issuer:'Trillium Investments', tranches:'5Y SGD / 10Y SGD', size:'300', runners:'PBX, NCB', filled:62 },
+    { date:'01 Mar', issuer:'Fortis Bank', tranches:'3Y USD / 5Y USD / 10Y USD', size:'750', runners:'KBL, TVR, VTG', filled:94 },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -360,11 +360,11 @@ function PipelinePreview() {
 
 function AnalyticsPreview() {
   const clients = [
-    { name:'Temasek Holdings', vol:85, pct:'85%' },
-    { name:'Lion Global Investors', vol:68, pct:'68%' },
-    { name:'Fullerton Fund Mgmt', vol:54, pct:'54%' },
-    { name:'Eastspring Investments', vol:41, pct:'41%' },
-    { name:'Aberdeen Asset Mgmt', vol:29, pct:'29%' },
+    { name:'Arcstone Holdings', vol:85, pct:'85%' },
+    { name:'Apex Global Investors', vol:68, pct:'68%' },
+    { name:'Hartwell Fund Mgmt', vol:54, pct:'54%' },
+    { name:'Crestfield Investments', vol:41, pct:'41%' },
+    { name:'Norbridge Asset Mgmt', vol:29, pct:'29%' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
@@ -411,17 +411,17 @@ function AnalyticsPreview() {
 
 function AIPreview() {
   const results = [
-    { client:'GIC Private Ltd', isin:'HSBC 5.25 2028', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'10', ccy:'USD', price:'100.15', status:'EXECUTED', statusClr:'#22c55e' },
-    { client:'Fidelity Intl', isin:'STANCHART 6.17 2027', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'15', ccy:'USD', price:'99.75 / 100.25', status:'QUOTED', statusClr:'#fbbf24' },
-    { client:'Ping An Asset Mgmt', isin:'BOC 5.00 2026', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'50', ccy:'USD', price:'101.50', status:'EXECUTED', statusClr:'#22c55e' },
+    { client:'Meridian Capital Ltd', isin:'PRAXIS 5.25 2028', dir:'BUY', dirClr:'#22c55e', dirBg:'rgba(34,197,94,0.12)', size:'10', ccy:'USD', price:'100.15', status:'EXECUTED', statusClr:'#22c55e' },
+    { client:'Vantage Asset Management', isin:'CANVEX 6.17 2027', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', size:'15', ccy:'USD', price:'99.75 / 100.25', status:'QUOTED', statusClr:'#fbbf24' },
+    { client:'Northstar Asset Mgmt', isin:'FORTIS 5.00 2026', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'50', ccy:'USD', price:'101.50', status:'EXECUTED', statusClr:'#22c55e' },
   ];
   return (
     <div style={{ fontFamily:"'Outfit',sans-serif" }}>
       {/* Transcript input preview */}
       <div style={{ padding:'10px 14px', background:'rgba(255,255,255,0.02)', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.06)', marginBottom:'12px', fontFamily:"'JetBrains Mono', monospace", fontSize:'10px', color:'rgba(255,255,255,0.3)', lineHeight:'1.7' }}>
-        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:14]</span> GIC: can you show me axe on HSBC 5.25 2028? looking for 10mm usd &nbsp;
+        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:14]</span> Meridian: can you show me axe on PRAXIS 5.25 2028? looking for 10mm usd &nbsp;
         <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:16]</span> done at 100.15, bought 10mm &nbsp;
-        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:32]</span> Fidelity: offer 15mm STANCHART 6.17 at 52...
+        <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:32]</span> Vantage: offer 15mm CANVEX 6.17 at 52...
       </div>
       {/* Status bar */}
       <div style={{ padding:'12px 18px', background:'rgba(255,255,255,0.03)', borderRadius:'8px', border:'1px solid rgba(200,162,88,0.2)', marginBottom:'14px', display:'flex', alignItems:'center', gap:'14px' }}>

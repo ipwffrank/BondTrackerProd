@@ -10,20 +10,20 @@ const PHASE_DURATIONS = [2800, 1600, 1800, 2200, 1800]; // ms per phase
 const TOTAL = PHASE_DURATIONS.reduce((a, b) => a + b, 0); // 10200ms
 
 const TRANSCRIPT_LINES = [
-  { time: '09:14', sender: 'GIC Singapore', msg: 'can you show HSBC 5.25 28 two-way?' },
-  { time: '09:14', sender: 'GIC Singapore', msg: 'looking for 10mm usd' },
+  { time: '09:14', sender: 'Meridian Capital', msg: 'can you show PRAXIS 5.25 28 two-way?' },
+  { time: '09:14', sender: 'Meridian Capital', msg: 'looking for 10mm usd' },
   { time: '09:15', sender: 'You', msg: '100.12 / 100.22, good for 10mm each side' },
-  { time: '09:16', sender: 'GIC Singapore', msg: 'done at 100.12, we buy 10mm' },
-  { time: '09:31', sender: 'Fidelity', msg: 'any interest in STANLN 6.17 27?' },
-  { time: '09:32', sender: 'Fidelity', msg: 'we can sell 15mm at 100.125' },
+  { time: '09:16', sender: 'Meridian Capital', msg: 'done at 100.12, we buy 10mm' },
+  { time: '09:31', sender: 'Vantage', msg: 'any interest in CANVEX 6.17 27?' },
+  { time: '09:32', sender: 'Vantage', msg: 'we can sell 15mm at 100.125' },
   { time: '09:33', sender: 'You', msg: "let me check with desk" },
   { time: '09:45', sender: 'You', msg: 'sorry best bid 100/' },
-  { time: '09:46', sender: 'Fidelity', msg: 'pass please' },
+  { time: '09:46', sender: 'Vantage', msg: 'pass please' },
 ];
 
 const EXTRACTED_ROWS = [
-  { client: 'GIC Singapore', bond: 'HSBC 5.25 2028', dir: 'BUY', dirColor: '#22c55e', price: '100.12', status: 'EXECUTED', statusColor: '#22c55e' },
-  { client: 'Fidelity', bond: 'STANLN 6.17 2027', dir: 'SELL', dirColor: '#ef4444', price: '100.125', status: 'PASSED', statusColor: '#f97316' },
+  { client: 'Meridian Capital', bond: 'PRAXIS 5.25 2028', dir: 'BUY', dirColor: '#22c55e', price: '100.12', status: 'EXECUTED', statusColor: '#22c55e' },
+  { client: 'Vantage', bond: 'CANVEX 6.17 2027', dir: 'SELL', dirColor: '#ef4444', price: '100.125', status: 'PASSED', statusColor: '#f97316' },
 ];
 
 const KEYFRAMES = `
