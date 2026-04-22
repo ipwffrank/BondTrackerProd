@@ -37,6 +37,11 @@ export default function Contacts() {
   // Delete confirm
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // CSV bulk import
+  const [csvUploading, setCsvUploading] = useState(false);
+  const [csvNotification, setCsvNotification] = useState(null);
+  const csvInputRef = useRef(null);
+
   // Toast
   const [toast, setToast] = useState(null);
   useEffect(() => {
@@ -130,6 +135,101 @@ export default function Contacts() {
       setToast('Contact deleted.');
     } catch (err) { console.error(err); }
     finally { setDeleteConfirm(null); }
+  }
+
+  // Parse a single CSV line, handling simple quoted fields.
+  function parseCsvLine(line) {
+    const out = [];
+    let cur = '';
+    let inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; continue; }
+      if (ch === '"') { inQ = !inQ; continue; }
+      if (ch === ',' && !inQ) { out.push(cur); cur = ''; continue; }
+      cur += ch;
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  function downloadContactsTemplate() {
+    const header = 'name,title,email,phone\n';
+    const sample = 'Jane Smith,Portfolio Manager,jane.smith@example.com,+65 9000 0000\n';
+    const blob = new Blob([header + sample], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'contacts-template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleContactsCsvUpload(e) {
+    const file = e.target.files[0];
+    if (file) e.target.value = ''; // allow re-selecting the same file later
+    if (!file || !userData?.organizationId || !selectedClient) return;
+
+    setCsvUploading(true);
+    setCsvNotification(null);
+    try {
+      const text = await file.text();
+      const lines = text.split(/\r?\n/).filter(l => l.trim());
+      if (lines.length === 0) {
+        setCsvNotification({ type: 'error', message: 'CSV file is empty.' });
+        return;
+      }
+
+      // Skip header row if present
+      let startIdx = 0;
+      const firstLower = lines[0].toLowerCase();
+      if (firstLower.includes('name') || firstLower.includes('email') || firstLower.includes('title')) startIdx = 1;
+
+      const rows = lines.slice(startIdx).map(line => {
+        const cols = parseCsvLine(line);
+        return {
+          name: cols[0] || '',
+          title: cols[1] || '',
+          email: cols[2] || '',
+          phone: cols[3] || '',
+        };
+      }).filter(r => r.name);
+
+      if (rows.length === 0) {
+        setCsvNotification({ type: 'error', message: 'No valid rows found. The "name" column is required.' });
+        return;
+      }
+
+      // Dedup: skip rows whose email OR (name + title) already exists for this client
+      const existingEmails = new Set(contacts.map(c => (c.email || '').toLowerCase()).filter(Boolean));
+      const existingNameTitle = new Set(contacts.map(c => `${(c.name || '').toLowerCase()}|${(c.title || '').toLowerCase()}`));
+
+      let added = 0;
+      let skipped = 0;
+      for (const r of rows) {
+        const emailKey = r.email.toLowerCase();
+        const nameTitleKey = `${r.name.toLowerCase()}|${r.title.toLowerCase()}`;
+        if ((emailKey && existingEmails.has(emailKey)) || existingNameTitle.has(nameTitleKey)) {
+          skipped++;
+          continue;
+        }
+        await addContact(userData.organizationId, selectedClient.id, r);
+        if (emailKey) existingEmails.add(emailKey);
+        existingNameTitle.add(nameTitleKey);
+        added++;
+      }
+
+      const parts = [`Added ${added} contact${added !== 1 ? 's' : ''}`];
+      if (skipped > 0) parts.push(`skipped ${skipped} duplicate${skipped !== 1 ? 's' : ''}`);
+      setCsvNotification({ type: added > 0 ? 'success' : 'error', message: parts.join(', ') + '.' });
+    } catch (err) {
+      console.error('Contacts CSV import error:', err);
+      setCsvNotification({ type: 'error', message: `Import failed: ${err.message}` });
+    } finally {
+      setCsvUploading(false);
+    }
   }
 
   const filteredClients = clients.filter(c =>
@@ -239,8 +339,42 @@ export default function Contacts() {
               {/* Contacts table */}
               <div className="card">
                 <div className="card-header" style={{ fontSize: '15px' }}>
-                  Contacts ({contacts.length})
+                  <span>Contacts ({contacts.length})</span>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <button
+                      type="button"
+                      onClick={downloadContactsTemplate}
+                      className="btn btn-muted"
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                      title="Download a CSV template with the expected columns"
+                    >
+                      Download Template
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => csvInputRef.current?.click()}
+                      className="btn btn-secondary"
+                      disabled={csvUploading}
+                      style={{ fontSize: '12px', padding: '6px 12px' }}
+                      title="Bulk-import contacts for this client from a CSV"
+                    >
+                      {csvUploading ? 'Uploading...' : 'Upload CSV'}
+                    </button>
+                    <input ref={csvInputRef} type="file" accept=".csv" style={{ display: 'none' }} onChange={handleContactsCsvUpload} />
+                  </div>
                 </div>
+                {csvNotification && (
+                  <div style={{
+                    padding: '10px 24px',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    borderBottom: '1px solid var(--border)', fontSize: '13px', fontWeight: 500,
+                    background: csvNotification.type === 'success' ? 'var(--badge-success-bg)' : 'var(--badge-danger-bg)',
+                    color: csvNotification.type === 'success' ? 'var(--badge-success-text)' : 'var(--badge-danger-text)',
+                  }}>
+                    <span>{csvNotification.message}</span>
+                    <button onClick={() => setCsvNotification(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', fontSize: '16px', lineHeight: 1 }}>×</button>
+                  </div>
+                )}
                 {contactsLoading ? (
                   <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
                 ) : (
