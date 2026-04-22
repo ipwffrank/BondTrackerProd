@@ -9,6 +9,7 @@ import AcceptInvite from './pages/AcceptInvite';
 import Activities from './pages/Activities';
 import AIAssistant from './pages/AIAssistant';
 import Clients from './pages/Clients';
+import Dashboard from './pages/Dashboard';
 import Contacts from './pages/Contacts';
 import SecurityPage from './pages/SecurityPage';
 import Analytics from './pages/Analytics';
@@ -55,6 +56,7 @@ function AppRoutes() {
         <Route path="/disclaimer" element={<Navigate to="/legal/disclaimer" replace />} />
         
         {/* Main application routes */}
+        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
         <Route path="/activities" element={<ProtectedRoute><Activities /></ProtectedRoute>} />
         <Route path="/ai-assistant" element={<ProtectedRoute><AIAssistant /></ProtectedRoute>} />
         <Route path="/pipeline" element={<ProtectedRoute><Pipeline /></ProtectedRoute>} />
@@ -62,20 +64,17 @@ function AppRoutes() {
         <Route path="/contacts" element={<ProtectedRoute><Contacts /></ProtectedRoute>} />
         <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
         <Route path="/team" element={<ProtectedRoute><Team /></ProtectedRoute>} />
-        
-        {/* Redirect old dashboard route to activities */}
-        <Route path="/dashboard" element={<Navigate to="/activities" replace />} />
-        
-        {/* Root: landing page for visitors, app for authenticated users */}
+
+        {/* Root: landing page for visitors, dashboard for authenticated users */}
         <Route
           path="/"
-          element={currentUser ? <Navigate to="/activities" replace /> : <LandingPage />}
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <LandingPage />}
         />
-        
-        {/* Catch all - redirect to activities if logged in, login if not */}
-        <Route 
-          path="*" 
-          element={currentUser ? <Navigate to="/activities" replace /> : <Navigate to="/login" replace />} 
+
+        {/* Catch-all: dashboard if logged in, login otherwise */}
+        <Route
+          path="*"
+          element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
         />
       </Routes>
     </Router>

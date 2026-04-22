@@ -634,12 +634,12 @@ export default function Analytics() {
 
   const statCards = [
     {value:stats.totalActivities, label:'Total Activities', type:'stat-activities'},
-    {value:`$${stats.totalVolume}MM`, label:'Total Volume', type:'stat-volume'},
+    {value:`$${stats.totalVolume}MM`, label:'Total Trades Volume', type:'stat-volume'},
     {value:stats.totalClients, label:'Active Clients', type:'stat-clients'},
     {value:stats.executedCount, label:'Executed Trades', type:'stat-executed'},
     {value:`$${stats.executedVolume}MM`, label:'Executed Volume', type:'stat-exec-volume'},
     {value:`${stats.conversionRate}%`, label:'Conversion Rate', type:'stat-conversion'},
-    {value:`$${stats.avgTicketSize}MM`, label:'Avg Ticket Size', type:'stat-avg-ticket'},
+    {value:`$${stats.avgTicketSize}MM`, label:'Average Ticket Size', type:'stat-avg-ticket'},
   ];
 
   const salespersonRows = viewMode === 'desk' ? getSalespersonBreakdown() : [];
@@ -795,7 +795,7 @@ export default function Analytics() {
         <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'24px',marginBottom:'24px'}}>
           <div className="card">
             <div className="card-header">
-              <span>Top Clients by Volume</span>
+              <span>Top Clients (Executed)</span>
               <button onClick={handleExportClientsCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px'}}>
