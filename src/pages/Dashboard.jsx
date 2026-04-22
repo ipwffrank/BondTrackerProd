@@ -306,11 +306,11 @@ export default function Dashboard() {
         ) : (
           <>
             <div className="stat-row">
-              <StatCard label="Total Trades Volume" value={fmtMM(m.totalExecVolume)} sub={`${fmtInt(m.executedCount)} executed · ${rangeLabel}`} />
               <StatCard label="Enquiries" value={fmtInt(m.enquiryCount)} sub={`${fmtMM(m.enquiryVolume)} notional · incl. executed`} />
-              <StatCard label="Active Clients" value={fmtInt(m.activeClients)} sub={rangeLabel} />
-              <StatCard label="Conversion Rate" value={fmtPct(m.conversion)} sub="executed / enquiries" />
+              <StatCard label="Executed Volume" value={fmtMM(m.totalExecVolume)} sub={`${fmtInt(m.executedCount)} executed · ${rangeLabel}`} />
               <StatCard label="Average Ticket Size" value={fmtMM(m.avgTicket)} sub="per executed trade" />
+              <StatCard label="Conversion Rate" value={fmtPct(m.conversion)} sub="executed / enquiries" />
+              <StatCard label="Active Clients" value={fmtInt(m.activeClients)} sub={rangeLabel} />
             </div>
 
             <div className="panels-grid">
