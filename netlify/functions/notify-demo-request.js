@@ -1,6 +1,7 @@
 const { Resend } = require('resend');
 const { getCorsHeaders, handlePreflight } = require('./utils/cors');
 const { enforceRateLimit } = require('./utils/rate-limit');
+const { escapeHtml } = require('./utils/escape-html');
 
 exports.handler = async (event) => {
   const origin = event.headers?.origin || '';
@@ -55,12 +56,12 @@ exports.handler = async (event) => {
                 <h1>New Demo Request</h1>
               </div>
               <div class="content">
-                <div class="field"><span class="label">Name:</span> ${firstName} ${lastName || ''}</div>
-                <div class="field"><span class="label">Job Title:</span> ${jobTitle || 'N/A'}</div>
-                <div class="field"><span class="label">Email:</span> ${email}</div>
-                <div class="field"><span class="label">Company:</span> ${company}</div>
-                <div class="field"><span class="label">Company Size:</span> ${employees || 'N/A'}</div>
-                <div class="field"><span class="label">Phone:</span> ${phone || 'N/A'}</div>
+                <div class="field"><span class="label">Name:</span> ${escapeHtml(firstName)} ${escapeHtml(lastName || '')}</div>
+                <div class="field"><span class="label">Job Title:</span> ${escapeHtml(jobTitle || 'N/A')}</div>
+                <div class="field"><span class="label">Email:</span> ${escapeHtml(email)}</div>
+                <div class="field"><span class="label">Company:</span> ${escapeHtml(company)}</div>
+                <div class="field"><span class="label">Company Size:</span> ${escapeHtml(employees || 'N/A')}</div>
+                <div class="field"><span class="label">Phone:</span> ${escapeHtml(phone || 'N/A')}</div>
                 <div class="footer">
                   <p>This request was submitted via the Axle website demo form.</p>
                 </div>

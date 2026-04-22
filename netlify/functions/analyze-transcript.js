@@ -1,4 +1,10 @@
 const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { verifyIdToken } = require('./utils/auth');
+const { enforceRateLimit } = require('./utils/rate-limit');
+
+// Cap base64 image payloads at ~8MB (base64 is ~33% larger than raw bytes)
+const MAX_IMAGE_BASE64_CHARS = 8 * 1024 * 1024;
+const MAX_TRANSCRIPT_CHARS = 200 * 1024;
 
 exports.handler = async (event) => {
   const origin = event.headers?.origin || '';
@@ -7,16 +13,33 @@ exports.handler = async (event) => {
   const preflight = handlePreflight(event, headers);
   if (preflight) return preflight;
 
-  // Verify Firebase ID token
-  const authHeader = event.headers?.authorization || '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return { statusCode: 401, headers, body: JSON.stringify({ error: 'Missing authentication token' }) };
+  // Actually verify the Firebase ID token — previously only the presence of a
+  // Bearer prefix was checked, which let any attacker drain the OpenAI quota.
+  try {
+    await verifyIdToken(event);
+  } catch (authErr) {
+    return {
+      statusCode: authErr.statusCode || 401,
+      headers,
+      body: JSON.stringify({ error: authErr.message }),
+    };
   }
+
+  // 20 calls / minute / IP is generous for interactive use but caps cost spikes
+  const rateLimited = enforceRateLimit(event, headers, { windowMs: 60000, maxRequests: 20 });
+  if (rateLimited) return rateLimited;
 
   try {
     const body = JSON.parse(event.body || '{}');
     const { transcript, imageBase64, fileType, corrections } = body;
     const isImage = !!imageBase64;
+
+    if (transcript && typeof transcript === 'string' && transcript.length > MAX_TRANSCRIPT_CHARS) {
+      return { statusCode: 413, headers, body: JSON.stringify({ error: 'Transcript too large' }) };
+    }
+    if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.length > MAX_IMAGE_BASE64_CHARS) {
+      return { statusCode: 413, headers, body: JSON.stringify({ error: 'Image too large (max ~6MB)' }) };
+    }
 
     if (!process.env.OPENAI_API_KEY) {
       return {

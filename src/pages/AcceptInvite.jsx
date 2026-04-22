@@ -223,7 +223,17 @@ export default function AcceptInvite() {
     try {
       setError('');
       setSsoLoading(true);
-      await loginWithSso(invitation.email);
+      const result = await loginWithSso(invitation.email);
+      // Enforce that the SSO'd identity matches the invited email — otherwise
+      // any user who can complete SSO for the org's IdP could claim an
+      // invitation that was meant for someone else (and its role).
+      const authedEmail = (result?.user?.email || '').toLowerCase();
+      const invitedEmail = (invitation.email || '').toLowerCase();
+      if (!authedEmail || authedEmail !== invitedEmail) {
+        setError('This invitation was sent to ' + invitation.email + '. Please sign in with that account.');
+        setSsoLoading(false);
+        return;
+      }
       await teamService.acceptInvitation(orgId, token);
       navigate('/activities');
     } catch (err) {
@@ -252,8 +262,8 @@ export default function AcceptInvite() {
       return setError('Passwords do not match');
     }
 
-    if (password.length < 6) {
-      return setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      return setError('Password must be at least 8 characters');
     }
 
     try {

@@ -1,5 +1,7 @@
 const { Resend } = require('resend');
 const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { enforceRateLimit } = require('./utils/rate-limit');
+const { escapeHtml } = require('./utils/escape-html');
 
 exports.handler = async (event) => {
   const origin = event.headers?.origin || '';
@@ -12,16 +14,23 @@ exports.handler = async (event) => {
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // Anyone can call this endpoint (it fires after a successful password reset
+  // before the client is signed in), so cap it tightly to avoid being abused
+  // as a spam/phishing amplifier against arbitrary email addresses.
+  const rateLimited = enforceRateLimit(event, headers, { windowMs: 60000, maxRequests: 3 });
+  if (rateLimited) return rateLimited;
+
   try {
     const { email } = JSON.parse(event.body || '{}');
 
-    if (!email) {
+    if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Email is required' }),
+        body: JSON.stringify({ error: 'Valid email is required' }),
       };
     }
+    const safeEmail = escapeHtml(email);
 
     if (!process.env.RESEND_API_KEY) {
       console.warn('RESEND_API_KEY not configured — skipping confirmation email');
@@ -100,13 +109,13 @@ exports.handler = async (event) => {
 
                   <p>
                     This is a confirmation that the password for your Axle account
-                    (<strong>${email}</strong>) was recently changed.
+                    (<strong>${safeEmail}</strong>) was recently changed.
                   </p>
 
                   <table class="meta-table">
                     <tr>
                       <td>Account</td>
-                      <td>${email}</td>
+                      <td>${safeEmail}</td>
                     </tr>
                     <tr>
                       <td>Time</td>

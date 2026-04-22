@@ -3,6 +3,16 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { logAudit } from './audit.service';
 
+// Excel/Sheets will evaluate any cell that starts with = + - @ \t \r as a
+// formula on open. A client name like "=WEBSERVICE(...)" in an exported XLSX
+// could exfiltrate data from whoever opens the file. Prefix these with a
+// single quote so the cell is treated as literal text.
+function sanitizeCell(value) {
+  if (value == null) return value;
+  if (typeof value !== 'string') return value;
+  return /^[=+\-@\t\r]/.test(value) ? `'${value}` : value;
+}
+
 export const exportService = {
   // Internal helper to log export audit events (non-blocking)
   _logExport(orgId, { action, format, recordCount, userId, userName, userEmail }) {
@@ -20,16 +30,16 @@ export const exportService = {
   exportActivitiesToExcel(activities, organizationName, auditContext) {
     try {
       const data = activities.map(a => ({
-        'Date': a.createdAt ? new Date(a.createdAt).toLocaleDateString() : '',
-        'Client': a.clientName || '',
-        'Bond': a.bondName || a.ticker || '',
-        'ISIN': a.isin || '',
+        'Date': a.createdAt?.toDate ? a.createdAt.toDate().toLocaleDateString() : (a.createdAt ? new Date(a.createdAt).toLocaleDateString() : ''),
+        'Client': sanitizeCell(a.clientName || ''),
+        'Bond': sanitizeCell(a.bondName || a.ticker || ''),
+        'ISIN': sanitizeCell(a.isin || ''),
         'Direction': a.direction || '',
         'Size (MM)': a.size || 0,
         'Currency': a.currency || 'USD',
         'Price': a.price || '',
-        'Added By': a.addedByName || a.addedBy || '',
-        'Notes': a.notes || ''
+        'Added By': sanitizeCell(a.addedByName || a.addedBy || ''),
+        'Notes': sanitizeCell(a.notes || '')
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
@@ -122,15 +132,15 @@ export const exportService = {
   exportClientsToExcel(clients, organizationName, auditContext) {
     try {
       const data = clients.map(c => ({
-        'Client Name': c.name || '',
-        'Type': c.type || '',
-        'Region': c.region || '',
-        'Sales Coverage': c.salesCoverage || '',
-        'Contact Email': c.contactEmail || '',
-        'Contact Phone': c.contactPhone || '',
-        'Notes': c.notes || '',
-        'Added By': c.addedByName || c.addedBy || '',
-        'Date Added': c.createdAt ? new Date(c.createdAt.toDate()).toLocaleDateString() : ''
+        'Client Name': sanitizeCell(c.name || ''),
+        'Type': sanitizeCell(c.type || ''),
+        'Region': sanitizeCell(c.region || ''),
+        'Sales Coverage': sanitizeCell(c.salesCoverage || ''),
+        'Contact Email': sanitizeCell(c.contactEmail || ''),
+        'Contact Phone': sanitizeCell(c.contactPhone || ''),
+        'Notes': sanitizeCell(c.notes || ''),
+        'Added By': sanitizeCell(c.addedByName || c.addedBy || ''),
+        'Date Added': c.createdAt?.toDate ? c.createdAt.toDate().toLocaleDateString() : (c.createdAt ? new Date(c.createdAt).toLocaleDateString() : '')
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);
@@ -356,18 +366,18 @@ export const exportService = {
   exportPipelineToExcel(issues, organizationName, auditContext) {
     try {
       const data = issues.map(issue => ({
-        'Issuer': issue.issuer || '',
-        'Bond Type': issue.bondType || '',
+        'Issuer': sanitizeCell(issue.issuer || ''),
+        'Bond Type': sanitizeCell(issue.bondType || ''),
         'Expected Size (MM)': issue.expectedSize || 0,
         'Currency': issue.currency || 'USD',
-        'Maturity': issue.maturity || '',
+        'Maturity': sanitizeCell(issue.maturity || ''),
         'Coupon (%)': issue.coupon || '',
         'Status': issue.status || '',
-        'Bookrunners': issue.bookrunners?.join(', ') || '',
-        'Pricing Date': issue.pricingDate || '',
-        'Notes': issue.notes || '',
-        'Added By': issue.addedByName || issue.addedBy || '',
-        'Date Added': issue.createdAt ? new Date(issue.createdAt.toDate()).toLocaleDateString() : ''
+        'Bookrunners': sanitizeCell(issue.bookrunners?.join(', ') || ''),
+        'Pricing Date': sanitizeCell(issue.pricingDate || ''),
+        'Notes': sanitizeCell(issue.notes || ''),
+        'Added By': sanitizeCell(issue.addedByName || issue.addedBy || ''),
+        'Date Added': issue.createdAt?.toDate ? issue.createdAt.toDate().toLocaleDateString() : (issue.createdAt ? new Date(issue.createdAt).toLocaleDateString() : '')
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(data);

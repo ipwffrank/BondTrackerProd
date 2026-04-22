@@ -1,6 +1,7 @@
 const { Resend } = require('resend');
 const { getCorsHeaders, handlePreflight } = require('./utils/cors');
 const { enforceRateLimit } = require('./utils/rate-limit');
+const { escapeHtml } = require('./utils/escape-html');
 
 exports.handler = async (event) => {
   const origin = event.headers?.origin || '';
@@ -57,11 +58,11 @@ exports.handler = async (event) => {
                 <h1>New Contact Message</h1>
               </div>
               <div class="content">
-                <div class="field"><span class="label">Name:</span> ${firstName} ${lastName}</div>
-                <div class="field"><span class="label">Email:</span> ${email}</div>
-                <div class="field"><span class="label">Phone:</span> ${phone || 'N/A'}</div>
+                <div class="field"><span class="label">Name:</span> ${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+                <div class="field"><span class="label">Email:</span> ${escapeHtml(email)}</div>
+                <div class="field"><span class="label">Phone:</span> ${escapeHtml(phone || 'N/A')}</div>
                 <div class="label" style="margin-top: 16px;">Message:</div>
-                <div class="message-box">${message.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                <div class="message-box">${escapeHtml(message)}</div>
                 <div class="footer">
                   <p>Submitted via the Axle website contact form.</p>
                 </div>

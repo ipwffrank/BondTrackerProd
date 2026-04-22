@@ -6,6 +6,10 @@
 //
 // Optional env var: OPENFIGI_API_KEY  (raises rate limit from 25 → 250 req/min)
 
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
+const { verifyIdToken } = require('./utils/auth');
+const { enforceRateLimit } = require('./utils/rate-limit');
+
 async function lookupViaOpenFIGI(identifier, identifierType) {
   const API_KEY = process.env.OPENFIGI_API_KEY;
 
@@ -51,54 +55,78 @@ async function lookupViaOpenFIGI(identifier, identifierType) {
   };
 }
 
-export default async (req, context) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-      status: 405, headers: { 'Content-Type': 'application/json' }
-    });
+exports.handler = async (event) => {
+  const origin = event.headers?.origin || '';
+  const headers = getCorsHeaders(origin);
+
+  const preflight = handlePreflight(event, headers);
+  if (preflight) return preflight;
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
   }
 
+  // Require an authenticated caller — this endpoint was previously open and
+  // could be used to exhaust the shared OpenFIGI quota from anywhere.
   try {
-    const { isin, ticker } = await req.json();
+    await verifyIdToken(event);
+  } catch (authErr) {
+    return {
+      statusCode: authErr.statusCode || 401,
+      headers,
+      body: JSON.stringify({ error: authErr.message }),
+    };
+  }
+
+  const rateLimited = enforceRateLimit(event, headers, { windowMs: 60000, maxRequests: 30 });
+  if (rateLimited) return rateLimited;
+
+  try {
+    const { isin, ticker } = JSON.parse(event.body || '{}');
 
     if (!isin && !ticker) {
-      return new Response(JSON.stringify({ error: 'Either ISIN or ticker must be provided' }), {
-        status: 400, headers: { 'Content-Type': 'application/json' }
-      });
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Either ISIN or ticker must be provided' }),
+      };
+    }
+
+    // Sanity-check identifiers: ISIN is 12 chars (alnum); ticker is short
+    const rawId = (isin || ticker || '').toString().trim();
+    if (rawId.length > 32 || !/^[A-Za-z0-9 .\-]+$/.test(rawId)) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid identifier' }) };
     }
 
     let bondData = null;
-
     if (isin) {
       bondData = await lookupViaOpenFIGI(isin.toUpperCase().trim(), 'ID_ISIN');
-    } else if (ticker) {
+    } else {
       bondData = await lookupViaOpenFIGI(ticker.toUpperCase().trim(), 'TICKER');
     }
 
     if (!bondData) {
-      return new Response(JSON.stringify({
-        error: 'Bond not found',
-        message: 'No results returned from OpenFIGI for the provided identifier.'
-      }), { status: 404, headers: { 'Content-Type': 'application/json' } });
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({
+          error: 'Bond not found',
+          message: 'No results returned from OpenFIGI for the provided identifier.',
+        }),
+      };
     }
 
-    return new Response(JSON.stringify({ success: true, data: bondData }), {
-      status: 200, headers: { 'Content-Type': 'application/json' }
-    });
-
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ success: true, data: bondData }),
+    };
   } catch (error) {
     console.error('Bond lookup error:', error);
-    return new Response(JSON.stringify({ error: 'Internal server error', message: error.message }), {
-      status: 500, headers: { 'Content-Type': 'application/json' }
-    });
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Internal server error', message: error.message }),
+    };
   }
 };
-
-/*
- * MOCK FALLBACK (disabled)
- *
- * const MOCK_BONDS_DB = {
- *   'US88579YAA56': { isin: 'US88579YAA56', ticker: 'TSLA', bondName: 'TESLA INC 5.3% 08/15/2025', ... },
- *   'US912828YK25': { isin: 'US912828YK25', ticker: 'T',    bondName: 'US TREASURY 2.5% 02/15/2026', ... },
- * };
- */

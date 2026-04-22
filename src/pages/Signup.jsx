@@ -17,9 +17,19 @@ export default function Signup() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    
+
     if (!firstName.trim() || !surname.trim()) {
       setError('Please enter both your first name and surname.');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Please enter a valid email address.');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters.');
       return;
     }
 
@@ -32,8 +42,8 @@ export default function Signup() {
       setError('');
       setLoading(true);
       const fullName = `${firstName.trim()} ${surname.trim()}`;
-      await signup(email, password, fullName, organizationName);
-      navigate('/dashboard');
+      await signup(email.trim(), password, fullName, organizationName);
+      navigate('/activities');
     } catch (err) {
       setError('Failed to create account: ' + err.message);
     } finally {
@@ -115,7 +125,7 @@ export default function Signup() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
-              minLength={6}
+              minLength={8}
             />
           </div>
 

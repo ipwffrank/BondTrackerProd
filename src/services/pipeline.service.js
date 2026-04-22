@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
 export const pipelineService = {
@@ -6,7 +6,7 @@ export const pipelineService = {
   subscribe(organizationId, callback) {
     const pipelineRef = collection(db, `organizations/${organizationId}/pipeline`);
     const q = query(pipelineRef, orderBy('createdAt', 'desc'));
-    
+
     return onSnapshot(q, (snapshot) => {
       const issues = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -21,8 +21,8 @@ export const pipelineService = {
     const pipelineRef = collection(db, `organizations/${organizationId}/pipeline`);
     return await addDoc(pipelineRef, {
       ...issueData,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
   },
 
@@ -31,7 +31,7 @@ export const pipelineService = {
     const issueRef = doc(db, `organizations/${organizationId}/pipeline/${issueId}`);
     return await updateDoc(issueRef, {
       ...issueData,
-      updatedAt: new Date()
+      updatedAt: serverTimestamp()
     });
   },
 

@@ -175,6 +175,20 @@ export default function AIAssistant() {
   async function handleAiAnalysis() {
     if (!aiFile) return;
 
+    // Hard cap on upload size — images balloon ~33% under base64, and large
+    // transcripts waste tokens and can hit backend body size limits.
+    const MAX_IMAGE_BYTES = 6 * 1024 * 1024; // 6 MB raw → ~8 MB base64
+    const MAX_TEXT_BYTES = 200 * 1024;       // 200 KB of text
+    const isImage = isImageFile(aiFile);
+    if (isImage && aiFile.size > MAX_IMAGE_BYTES) {
+      setAiError('Image is too large. Please upload a screenshot under 6 MB.');
+      return;
+    }
+    if (!isImage && aiFile.size > MAX_TEXT_BYTES) {
+      setAiError('Transcript is too large. Please upload a file under 200 KB.');
+      return;
+    }
+
     // Check AI consent before first use
     if (!aiConsentStatus) {
       setShowAiConsentPrompt(true);
@@ -188,7 +202,6 @@ export default function AIAssistant() {
     setAnalysisFileName(aiFile.name);
 
     try {
-      const isImage = isImageFile(aiFile);
       let payload;
       if (isImage) {
         const base64 = await readFileAsBase64(aiFile);

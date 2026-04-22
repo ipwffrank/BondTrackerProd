@@ -1,4 +1,4 @@
-import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, addDoc, updateDoc, deleteDoc, doc, query, orderBy, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { db } from './firebase';
 
 export const clientsService = {
@@ -6,7 +6,7 @@ export const clientsService = {
   subscribe(organizationId, callback) {
     const clientsRef = collection(db, `organizations/${organizationId}/clients`);
     const q = query(clientsRef, orderBy('name', 'asc'));
-    
+
     return onSnapshot(q, (snapshot) => {
       const clients = snapshot.docs.map(doc => ({
         id: doc.id,
@@ -21,8 +21,8 @@ export const clientsService = {
     const clientsRef = collection(db, `organizations/${organizationId}/clients`);
     return await addDoc(clientsRef, {
       ...clientData,
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     });
   },
 
@@ -31,7 +31,7 @@ export const clientsService = {
     const clientRef = doc(db, `organizations/${organizationId}/clients/${clientId}`);
     return await updateDoc(clientRef, {
       ...clientData,
-      updatedAt: new Date()
+      updatedAt: serverTimestamp()
     });
   },
 

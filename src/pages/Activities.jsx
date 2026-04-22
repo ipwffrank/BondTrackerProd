@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { db, auth } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
 import { canExport } from '../config/moduleAccess';
@@ -73,7 +73,8 @@ export default function Activities() {
     if(!value||value.length<2) return;
     setBondLookupLoading(true);
     try{
-      const r=await fetch('/.netlify/functions/bloomberg-lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(type==='isin'?{isin:value}:{ticker:value})});
+      const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
+      const r=await fetch('/.netlify/functions/bloomberg-lookup',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${idToken}`},body:JSON.stringify(type==='isin'?{isin:value}:{ticker:value})});
       if(!r.ok) return;
       const result=await r.json();
       if(result.success&&result.data) setActivityForm(p=>({...p,isin:p.isin||result.data.isin||'',ticker:p.ticker||result.data.ticker||''}));

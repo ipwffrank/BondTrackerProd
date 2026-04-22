@@ -72,6 +72,20 @@ exports.handler = async (event) => {
     const userEmail = userData.email || '';
     const userName = userData.name || '';
 
+    // Guard against cross-org deletion: an org admin for orgA must not be able
+    // to delete a user who actually belongs to orgB by passing orgA + userId.
+    // Host admins are allowed regardless.
+    if (!isHostAdmin) {
+      const targetOrgId = userData.organizationId || '';
+      if (targetOrgId && targetOrgId !== organizationId) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: 'Target user does not belong to this organization' }),
+        };
+      }
+    }
+
     // 1. Delete organizations/{orgId}/users/{userId} doc
     try {
       await db.collection('organizations').doc(organizationId).collection('users').doc(userId).delete();

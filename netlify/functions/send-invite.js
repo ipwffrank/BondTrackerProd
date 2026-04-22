@@ -1,6 +1,7 @@
 const { Resend } = require('resend');
 const { getCorsHeaders, handlePreflight } = require('./utils/cors');
 const { verifyIdToken } = require('./utils/auth');
+const { escapeHtml, safeHttpUrl } = require('./utils/escape-html');
 
 exports.handler = async (event) => {
   const origin = event.headers?.origin || '';
@@ -56,6 +57,11 @@ exports.handler = async (event) => {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
 
+    const safeEmail = escapeHtml(email);
+    const safeOrgName = escapeHtml(organizationName);
+    const safeInvitedBy = escapeHtml(invitedBy);
+    const safeSignupUrl = safeHttpUrl(signupUrl, 'https://axle-finance.com/signup');
+
     // Send email
     const data = await resend.emails.send({
       from: 'Axle <info@axle-finance.com>',
@@ -82,14 +88,14 @@ exports.handler = async (event) => {
               </div>
               <div class="content">
                 <p>Hi there,</p>
-                <p><strong>${invitedBy}</strong> has invited you to join <strong>${organizationName}</strong> on Axle.</p>
+                <p><strong>${safeInvitedBy}</strong> has invited you to join <strong>${safeOrgName}</strong> on Axle.</p>
                 <p>Axle is the central intelligence platform for bond sales desks — managing activities, client relationships, and deal pipelines.</p>
                 <p style="text-align: center;">
-                  <a href="${signupUrl || 'https://axle-finance.com/signup'}" class="button">
+                  <a href="${safeSignupUrl}" class="button">
                     Accept Invitation
                   </a>
                 </p>
-                <p><strong>Important:</strong> Please use this email address (<strong>${email}</strong>) when signing up to join the organization.</p>
+                <p><strong>Important:</strong> Please use this email address (<strong>${safeEmail}</strong>) when signing up to join the organization.</p>
                 <div class="footer">
                   <p>This invitation was sent from Axle</p>
                   <p>If you didn't expect this invitation, you can safely ignore this email.</p>
