@@ -222,18 +222,20 @@ export default function Dashboard() {
     );
 
     const start = getRangeStart(range);
-    const actsQ = query(
-      collection(db, `organizations/${userData.organizationId}/activities`),
-      where('createdAt', '>=', Timestamp.fromDate(start)),
-      orderBy('createdAt', 'desc'),
-    );
+    const actsColl = collection(db, `organizations/${userData.organizationId}/activities`);
+    const myName = (userData?.name || '').trim();
+    // Non-admins must filter server-side on coverageUsers (Firestore rule
+    // requirement). Admins see org-wide and skip the extra filter.
+    const actsQ = isAdmin || !myName
+      ? query(actsColl, where('createdAt', '>=', Timestamp.fromDate(start)), orderBy('createdAt', 'desc'))
+      : query(actsColl, where('coverageUsers', 'array-contains', myName), where('createdAt', '>=', Timestamp.fromDate(start)), orderBy('createdAt', 'desc'));
     const unsubActs = onSnapshot(actsQ, snap => {
       setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     }, () => setLoading(false));
 
     return () => { unsubClients(); unsubActs(); };
-  }, [userData?.organizationId, range]);
+  }, [userData?.organizationId, userData?.name, isAdmin, range]);
 
   // Scope: admins see everything; non-admin sales see only activities for
   // clients where they are the named coverage in the Clients Mapping. Writes

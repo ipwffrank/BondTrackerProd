@@ -168,10 +168,25 @@ service cloud.firestore {
     // ============================================
 
     match /organizations/{orgId}/activities/{activityId} {
-      // Org members or host admins can read (host admin for aggregate monitoring only)
-      allow read: if isSameOrg(orgId) || isHostAdmin();
+      // Read visibility is scoped by sales coverage (see also Dashboard
+      // client-side filter — this rule makes the restriction server-side):
+      //   - Org admins and host admins see everything
+      //   - Other org members only see activities where their user name is
+      //     listed in the denormalized `coverageUsers` array (primary or
+      //     backup coverage of the client, stamped at write time)
+      // Non-admin queries MUST include where('coverageUsers', 'array-contains',
+      // <my name>) — otherwise the rule rejects the query. See Activities /
+      // Dashboard / Analytics for the admin-aware query pattern.
+      allow read: if isAdminInOrg(orgId)
+        || isHostAdmin()
+        || (isSameOrg(orgId)
+            && 'coverageUsers' in resource.data
+            && resource.data.coverageUsers.hasAny([getUserData().name]));
 
-      // Org members can create activities
+      // Org members can create activities (spec: anyone can log a trade for
+      // any client, even clients they don't cover). The write handler is
+      // responsible for stamping coverageUsers from the client record so the
+      // read rule above can gate visibility.
       allow create: if isSameOrg(orgId);
 
       // Org members can update activities (for inline status/price edits)

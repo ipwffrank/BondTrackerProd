@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where } from 'firebase/firestore';
 import { db } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
@@ -30,7 +30,14 @@ export default function Analytics() {
     if(!userData?.organizationId){ setLoading(false); return; }
     const unsubscribes = [];
     try {
-      unsubscribes.push(onSnapshot(query(collection(db,`organizations/${userData.organizationId}/activities`),orderBy('createdAt','desc')),(snapshot)=>{
+      // Non-admin sales only see their own coverage. Mirrors the Firestore
+      // rule; unfiltered queries by non-admins are rejected.
+      const actsColl = collection(db, `organizations/${userData.organizationId}/activities`);
+      const myName = (userData?.name || '').trim();
+      const actsQuery = isAdmin || !myName
+        ? query(actsColl, orderBy('createdAt', 'desc'))
+        : query(actsColl, where('coverageUsers', 'array-contains', myName), orderBy('createdAt', 'desc'));
+      unsubscribes.push(onSnapshot(actsQuery, (snapshot) => {
         const data = snapshot.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()}));
         setActivities(data);
         setLoading(false);
@@ -40,7 +47,7 @@ export default function Analytics() {
       }));
     } catch(e){ console.error(e); setLoading(false); }
     return ()=>unsubscribes.forEach(u=>u());
-  },[userData?.organizationId]);
+  },[userData?.organizationId, userData?.name, isAdmin]);
 
   // Derive filteredActivities from activities + date range + viewMode
   const filteredActivities = activities.filter(a => {

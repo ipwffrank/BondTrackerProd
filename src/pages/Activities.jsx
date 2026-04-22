@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Navigation from '../components/Navigation';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, updateDoc, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, orderBy, where, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db, auth } from '../services/firebase';
 import { exportToPDF, exportToExcel } from '../utils/exportUtils';
 import { logAudit } from '../services/audit.service';
@@ -43,7 +43,15 @@ export default function Activities() {
     if (!userData?.organizationId) { setLoading(false); return; }
     const unsubscribes = [];
     try {
-      const activitiesQuery = query(collection(db,`organizations/${userData.organizationId}/activities`),orderBy('createdAt','desc'));
+      // Non-admin sales only see activities where their name is in the
+      // denormalized coverageUsers array (primary OR backup coverage). This
+      // filter is required by Firestore rules — an unfiltered query by a
+      // non-admin would be rejected with "missing or insufficient permissions".
+      const actsColl = collection(db, `organizations/${userData.organizationId}/activities`);
+      const myName = (userData?.name || '').trim();
+      const activitiesQuery = isAdmin || !myName
+        ? query(actsColl, orderBy('createdAt', 'desc'))
+        : query(actsColl, where('coverageUsers', 'array-contains', myName), orderBy('createdAt', 'desc'));
       unsubscribes.push(onSnapshot(activitiesQuery,(snapshot) => {
         const data = snapshot.docs.map(d=>({id:d.id,...d.data(),createdAt:d.data().createdAt?.toDate()}));
         setActivities(data);
@@ -56,7 +64,7 @@ export default function Activities() {
       }));
     } catch(e){ console.error(e); setLoading(false); }
     return ()=>unsubscribes.forEach(u=>u());
-  },[userData?.organizationId]);
+  },[userData?.organizationId, userData?.name, isAdmin]);
 
   useEffect(() => { setCurrentPage(1); }, [activities, actSearch, actFilterDir, actFilterStatus]);
 
