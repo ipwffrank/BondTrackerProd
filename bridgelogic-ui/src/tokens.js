@@ -19,8 +19,8 @@ const tokens = {
   BORDER_DEFAULT: '#334155',
 
   // Typography
-  FONT_DISPLAY:   "'Sora', sans-serif",
-  FONT_BODY:      "'Outfit', sans-serif",
+  FONT_DISPLAY:   "'Manrope', sans-serif",
+  FONT_BODY:      "'Manrope', sans-serif",
   FONT_MONO:      "'JetBrains Mono', monospace",
 
   // Spacing (px values as strings)

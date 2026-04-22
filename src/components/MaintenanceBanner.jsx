@@ -64,7 +64,7 @@ export default function MaintenanceBanner() {
       color: isActive ? '#fff' : '#0F2137',
       fontSize: '13px',
       fontWeight: 600,
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "'Manrope', sans-serif",
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',

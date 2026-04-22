@@ -42,7 +42,7 @@ export default function AxleLogo({ variant = 'dark', size = 'md', animated = tru
         e('circle', { cx: 22, cy: 22, r: 1.8, fill: hubCut }),
       ),
       e('span', {
-        style: { fontFamily: "'Outfit', sans-serif", fontSize: s.wordmark + 'px', fontWeight: 700, color: textClr, letterSpacing: '4px' }
+        style: { fontFamily: "'Manrope', sans-serif", fontSize: s.wordmark + 'px', fontWeight: 700, color: textClr, letterSpacing: '4px' }
       }, 'AXLE'),
     )
   );

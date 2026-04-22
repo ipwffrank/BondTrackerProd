@@ -14,7 +14,7 @@ const STYLES = `
   @keyframes lp-orbPulse { 0%,100% { opacity:0.12; transform:scale(1); } 50% { opacity:0.2; transform:scale(1.08); } }
 
   html { scroll-behavior: smooth; }
-  .lp2 { font-family: 'Outfit', -apple-system, sans-serif; background: #0F2137; color: #F0EDE8; overflow-x: hidden; }
+  .lp2 { font-family: 'Manrope', -apple-system, sans-serif; background: #0F2137; color: #F0EDE8; overflow-x: hidden; }
   .lp2 *, .lp2 *::before, .lp2 *::after { box-sizing: border-box; }
   .lp2 a { color: inherit; }
   .lp2 button { font-family: inherit; }
@@ -34,7 +34,7 @@ const STYLES = `
   /* Gold primary button */
   .lp2-btn-gold {
     background: #C8A258; color: #0F2137; border: none; cursor: pointer;
-    font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 15px;
+    font-family: 'Manrope', sans-serif; font-weight: 600; font-size: 15px;
     padding: 13px 28px; border-radius: 6px; text-decoration: none;
     display: inline-block; transition: background 0.25s, transform 0.2s, box-shadow 0.3s;
     letter-spacing: 0.01em;
@@ -44,7 +44,7 @@ const STYLES = `
   /* Ghost / outline button */
   .lp2-btn-ghost {
     background: transparent; color: rgba(240,237,232,0.8); border: 1px solid rgba(240,237,232,0.2);
-    cursor: pointer; font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 15px;
+    cursor: pointer; font-family: 'Manrope', sans-serif; font-weight: 500; font-size: 15px;
     padding: 13px 28px; border-radius: 6px; text-decoration: none;
     display: inline-block; transition: border-color 0.25s, color 0.25s, background 0.25s;
   }
@@ -86,14 +86,14 @@ const STYLES = `
   .lp2-form-label { display: block; font-size: 13px; font-weight: 600; color: #8A8680; margin-bottom: 6px; letter-spacing: 0.02em; }
   .lp2-form-input {
     width: 100%; padding: 10px 14px; background: #F4F2ED; border: 1px solid #E4E0DA;
-    border-radius: 6px; color: #0C1017; font-size: 14px; font-family: 'Outfit', sans-serif;
+    border-radius: 6px; color: #0C1017; font-size: 14px; font-family: 'Manrope', sans-serif;
     transition: border-color 0.2s; outline: none;
   }
   .lp2-form-input:focus { border-color: #C8A258; background: #FFFFFF; }
   .lp2-form-input::placeholder { color: #C0BDB8; }
   .lp2-form-select {
     width: 100%; padding: 10px 14px; background: #F4F2ED; border: 1px solid #E4E0DA;
-    border-radius: 6px; color: #0C1017; font-size: 14px; font-family: 'Outfit', sans-serif;
+    border-radius: 6px; color: #0C1017; font-size: 14px; font-family: 'Manrope', sans-serif;
     transition: border-color 0.2s; outline: none; cursor: pointer; appearance: none;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238A8680' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
     background-repeat: no-repeat; background-position: right 12px center; padding-right: 36px;
@@ -225,7 +225,7 @@ function SectionLabel({ children }) {
       background: 'rgba(200,162,88,0.1)',
       border: '1px solid rgba(200,162,88,0.25)',
       borderRadius: '100px', padding: '5px 16px', marginBottom: '20px',
-      fontFamily: "'Outfit', sans-serif",
+      fontFamily: "'Manrope', sans-serif",
       fontSize: '12px', fontWeight: '600', color: '#C8A258',
       letterSpacing: '0.07em', textTransform: 'uppercase',
     }}>
@@ -263,7 +263,7 @@ function renderCell(val, isAxle) {
 // ─── Dark badge helper ────────────────────────────────────────────────────────────
 function DarkBadge({ text, color, bg }) {
   return (
-    <span style={{ padding:'2px 8px', borderRadius:'12px', background:bg, color, fontSize:'10px', fontWeight:600, fontFamily:"'Outfit',sans-serif", whiteSpace:'nowrap' }}>
+    <span style={{ padding:'2px 8px', borderRadius:'12px', background:bg, color, fontSize:'10px', fontWeight:600, fontFamily:"'Manrope',sans-serif", whiteSpace:'nowrap' }}>
       {text}
     </span>
   );
@@ -278,7 +278,7 @@ function ActivityCRMPreview() {
     { date:'02 Mar', client:'Meridian Capital Ltd', type:'Symphony', isin:'XS2485790445', dir:'TWO-WAY', dirClr:'#fbbf24', dirBg:'rgba(251,191,36,0.12)', sts:'ENQUIRY', stsClr:'#93c5fd', stsBg:'rgba(147,197,253,0.12)', price:'—' },
   ];
   return (
-    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+    <div style={{ fontFamily:"'Manrope',sans-serif" }}>
       <div style={{ display:'flex', gap:'12px', marginBottom:'16px', flexWrap:'wrap' }}>
         {[{label:'Total',val:'47',clr:'#C8A258'},{label:'Volume',val:'$234.5MM',clr:'#C8A258'},{label:'Buy',val:'28',clr:'#22c55e'},{label:'Sell',val:'19',clr:'#f87171'}].map(s=>(
           <div key={s.label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:'8px', padding:'10px 14px', border:'1px solid rgba(255,255,255,0.07)', minWidth:'80px' }}>
@@ -320,7 +320,7 @@ function PipelinePreview() {
     { date:'01 Mar', issuer:'Fortis Bank', tranches:'3Y USD / 5Y USD / 10Y USD', size:'750', runners:'KBL, TVR, VTG', filled:94 },
   ];
   return (
-    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+    <div style={{ fontFamily:"'Manrope',sans-serif" }}>
       <div style={{ display:'flex', gap:'4px', marginBottom:'16px', borderBottom:'1px solid rgba(255,255,255,0.06)', paddingBottom:'0' }}>
         {['New Issues (3)', 'Order Book'].map((t,i)=>(
           <div key={t} style={{ padding:'8px 16px', fontSize:'12px', fontWeight:600, cursor:'pointer', color:i===0?'#C8A258':'rgba(255,255,255,0.35)', borderBottom:i===0?'2px solid #C8A258':'2px solid transparent', marginBottom:'-1px' }}>{t}</div>
@@ -367,7 +367,7 @@ function AnalyticsPreview() {
     { name:'Norbridge Asset Mgmt', vol:29, pct:'29%' },
   ];
   return (
-    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+    <div style={{ fontFamily:"'Manrope',sans-serif" }}>
       <div style={{ display:'flex', gap:'12px', marginBottom:'20px', flexWrap:'wrap' }}>
         {[{label:'Hit Rate',val:'34.2%',sub:'of enquiries executed'},{label:'Total Volume',val:'$1.2B',sub:'this quarter'},{label:'Avg Ticket Size',val:'$47.3MM',sub:'per trade'}].map(s=>(
           <div key={s.label} style={{ background:'rgba(255,255,255,0.04)', borderRadius:'8px', padding:'12px 16px', border:'1px solid rgba(255,255,255,0.07)', flex:'1', minWidth:'120px' }}>
@@ -416,7 +416,7 @@ function AIPreview() {
     { client:'Northstar Asset Mgmt', isin:'FORTIS 5.00 2026', dir:'SELL', dirClr:'#ef4444', dirBg:'rgba(239,68,68,0.12)', size:'50', ccy:'USD', price:'101.50', status:'EXECUTED', statusClr:'#22c55e' },
   ];
   return (
-    <div style={{ fontFamily:"'Outfit',sans-serif" }}>
+    <div style={{ fontFamily:"'Manrope',sans-serif" }}>
       {/* Transcript input preview */}
       <div style={{ padding:'10px 14px', background:'rgba(255,255,255,0.02)', borderRadius:'6px', border:'1px solid rgba(255,255,255,0.06)', marginBottom:'12px', fontFamily:"'JetBrains Mono', monospace", fontSize:'10px', color:'rgba(255,255,255,0.3)', lineHeight:'1.7' }}>
         <span style={{ color:'rgba(200,162,88,0.5)' }}>[09:14]</span> Meridian: can you show me axe on PRAXIS 5.25 2028? looking for 10mm usd &nbsp;
@@ -538,10 +538,10 @@ function ContactSection() {
             <polyline points="20 6 9 17 4 12" />
           </svg>
         </div>
-        <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 12px' }}>
+        <h3 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 12px' }}>
           Request Received
         </h3>
-        <p style={{ fontFamily: "'Outfit', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: '0 auto 24px', maxWidth: '400px' }}>
+        <p style={{ fontFamily: "'Manrope', sans-serif", color: '#8A8680', fontSize: '16px', lineHeight: '1.7', margin: '0 auto 24px', maxWidth: '400px' }}>
           Thank you, {form.firstName}. Our team will be in touch within one business day to schedule your demo.
         </p>
         <button
@@ -630,7 +630,7 @@ function ContactSection() {
           onChange={(e) => { setPicsConsent(e.target.checked); if (errors.consent) setErrors(p => ({ ...p, consent: '' })); }}
           style={{ marginTop: '3px', accentColor: '#C8A258' }}
         />
-        <label htmlFor="pics-consent" style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', color: '#C0BDB8', lineHeight: 1.5 }}>
+        <label htmlFor="pics-consent" style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: '#C0BDB8', lineHeight: 1.5 }}>
           I voluntarily provide my personal data for the purpose of receiving a product demo and related communications from Axle. My data may be shared with our team for follow-up. I understand I may request access to or correction of my data at any time by contacting{' '}
           <a href="mailto:info@axle-finance.com" style={{ color: '#C8A258', textDecoration: 'none' }}>info@axle-finance.com</a>.
         </label>
@@ -757,7 +757,7 @@ export default function LandingPage({ showLogin = false }) {
               background: 'rgba(200,162,88,0.1)',
               border: '1px solid rgba(200,162,88,0.2)',
               borderRadius: '100px', padding: '6px 18px',
-              fontFamily: "'Outfit', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: '12px', fontWeight: '600', color: '#C8A258',
               letterSpacing: '0.07em', textTransform: 'uppercase',
             }}>
@@ -766,7 +766,7 @@ export default function LandingPage({ showLogin = false }) {
           </div>
 
           <h1 className="lp2-hero-h1" style={{
-            fontFamily: "'Sora', sans-serif",
+            fontFamily: "'Manrope', sans-serif",
             fontSize: 'clamp(32px, 5vw, 56px)',
             fontWeight: 600,
             color: '#F0EDE8',
@@ -779,7 +779,7 @@ export default function LandingPage({ showLogin = false }) {
           </h1>
 
           <p className="lp2-hero-sub" style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "'Manrope', sans-serif",
             fontSize: 'clamp(16px, 2vw, 20px)',
             fontWeight: 300,
             color: 'rgba(240,237,232,0.65)',
@@ -798,7 +798,7 @@ export default function LandingPage({ showLogin = false }) {
               Request a Demo
             </button>
           </div>
-          <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(240,237,232,0.35)', marginTop: '16px' }}>
+          <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'rgba(240,237,232,0.35)', marginTop: '16px' }}>
             30-day paid pilot · First month credited on subscription
           </p>
         </div>
@@ -811,13 +811,13 @@ export default function LandingPage({ showLogin = false }) {
             <AnimatedSection>
               <SectionLabel>The Problem</SectionLabel>
               <h2 style={{
-                fontFamily: "'Sora', sans-serif",
+                fontFamily: "'Manrope', sans-serif",
                 fontSize: 'clamp(28px, 4vw, 42px)',
                 fontWeight: 600, color: '#0C1017', margin: '0 0 24px', lineHeight: '1.2',
               }}>
                 Your desk still runs on spreadsheets.
               </h2>
-              <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '16px', fontWeight: 300, color: '#8A8680', lineHeight: '1.8' }}>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '16px', fontWeight: 300, color: '#8A8680', lineHeight: '1.8' }}>
                 Bond sales is relationship-driven, high-velocity, and data-dense. But most desks track their most valuable asset — client interactions — in a patchwork of Excel files, chat logs, and email threads. That's revenue walking out the door.
               </p>
             </AnimatedSection>
@@ -862,10 +862,10 @@ export default function LandingPage({ showLogin = false }) {
                       </svg>
                     </div>
                     <div>
-                      <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: '600', color: '#0C1017', margin: '0 0 4px' }}>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: '600', color: '#0C1017', margin: '0 0 4px' }}>
                         {item.title}
                       </p>
-                      <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: '300', color: '#8A8680', margin: 0, lineHeight: '1.6' }}>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: '300', color: '#8A8680', margin: 0, lineHeight: '1.6' }}>
                         {item.desc}
                       </p>
                     </div>
@@ -883,13 +883,13 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Platform</SectionLabel>
             <h2 style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '700px',
             }}>
               A bond sales CRM that works<br />the way your desk does
             </h2>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
               Designed for how fixed income sales actually works — fast, relationship-driven, and data-rich.
             </p>
           </AnimatedSection>
@@ -919,10 +919,10 @@ export default function LandingPage({ showLogin = false }) {
             ].map((feat, i) => (
               <AnimatedSection key={feat.title} delay={i * 80} className="lp2-feat-card">
                 <GoldIcon path={feat.icon} />
-                <h3 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: '600', color: '#0C1017', margin: '0 0 10px' }}>
+                <h3 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: '600', color: '#0C1017', margin: '0 0 10px' }}>
                   {feat.title}
                 </h3>
-                <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: '300', color: '#8A8680', margin: 0, lineHeight: '1.7' }}>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: '300', color: '#8A8680', margin: 0, lineHeight: '1.7' }}>
                   {feat.desc}
                 </p>
               </AnimatedSection>
@@ -932,10 +932,10 @@ export default function LandingPage({ showLogin = false }) {
           {/* ── Product Preview ── */}
           <AnimatedSection style={{ marginTop: '64px' }}>
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-              <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 8px' }}>
+              <h3 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '26px', fontWeight: 600, color: '#0C1017', margin: '0 0 8px' }}>
                 See it in action
               </h3>
-              <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '15px', color: '#8A8680', margin: 0 }}>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', color: '#8A8680', margin: 0 }}>
                 A purpose-built workspace designed for the pace of bond sales
               </p>
             </div>
@@ -956,7 +956,7 @@ export default function LandingPage({ showLogin = false }) {
                     border: activePreview === tab.id ? '1px solid #C8A258' : '1px solid #E4E0DA',
                     background: activePreview === tab.id ? 'rgba(200,162,88,0.1)' : 'transparent',
                     color: activePreview === tab.id ? '#C8A258' : '#8A8680',
-                    fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600,
+                    fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600,
                     transition: 'all 0.2s',
                   }}
                 >
@@ -997,14 +997,14 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>AI-Powered</SectionLabel>
             <h2 style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px', lineHeight: '1.2',
             }}>
               From Bloomberg and Symphony chats to structured deal data<br />
               <span style={{ color: '#C8A258' }}>in seconds.</span>
             </h2>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
               Stop re-keying trades from Bloomberg IB and Symphony. Axle's AI reads your transcripts and extracts every activity — client, bond, size, direction, price — ready to import with one click.
             </p>
           </AnimatedSection>
@@ -1026,10 +1026,10 @@ export default function LandingPage({ showLogin = false }) {
                   }}>
                     {step.num}
                   </div>
-                  <h4 style={{ fontFamily: "'Outfit', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: '0 0 8px' }}>
+                  <h4 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: '0 0 8px' }}>
                     {step.title}
                   </h4>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 300, color: 'rgba(240,237,232,0.5)', lineHeight: '1.6', margin: 0 }}>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 300, color: 'rgba(240,237,232,0.5)', lineHeight: '1.6', margin: 0 }}>
                     {step.desc}
                   </p>
                 </div>
@@ -1051,7 +1051,7 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '64px' }}>
             <SectionLabel>How It Works</SectionLabel>
             <h2 style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#0C1017', margin: 0,
             }}>
@@ -1084,12 +1084,12 @@ export default function LandingPage({ showLogin = false }) {
                   {step.num}
                 </div>
                 <h3 style={{
-                  fontFamily: "'Sora', sans-serif",
+                  fontFamily: "'Manrope', sans-serif",
                   fontSize: '22px', fontWeight: 600, color: '#0C1017', margin: '0 0 12px',
                 }}>
                   {step.title}
                 </h3>
-                <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: 300, color: '#8A8680', lineHeight: '1.7', margin: 0 }}>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: 300, color: '#8A8680', lineHeight: '1.7', margin: 0 }}>
                   {step.desc}
                 </p>
               </AnimatedSection>
@@ -1103,10 +1103,10 @@ export default function LandingPage({ showLogin = false }) {
         <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Pricing</SectionLabel>
-            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#F0EDE8', margin: '0 auto 16px', lineHeight: '1.2' }}>
+            <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#F0EDE8', margin: '0 auto 16px', lineHeight: '1.2' }}>
               Transparent pricing for fixed income desks.
             </h2>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
               No hidden fees. Start with a 30-day paid pilot.
             </p>
           </AnimatedSection>
@@ -1116,16 +1116,16 @@ export default function LandingPage({ showLogin = false }) {
             <AnimatedSection delay={0}>
               <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Essential</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Essential</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$250</span>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$250</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 5 seats. Activities, Clients, Contacts, CSV export. Get your desk off spreadsheets.</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 5 seats. Activities, Clients, Contacts, CSV export. Get your desk off spreadsheets.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {['Activity logging', 'Client & contact CRM', 'Team management', 'CSV export', '12-month data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
@@ -1140,16 +1140,16 @@ export default function LandingPage({ showLogin = false }) {
               <div className="lp2-price-card featured" style={{ background: 'rgba(200,162,88,0.07)', border: '2px solid rgba(200,162,88,0.5)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
                 <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#C8A258', color: '#0F2137', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Most Popular</div>
                 <div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$400</span>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$400</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 8 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 8 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {['Everything in Essential', 'Pipeline & DCM deal tracking', 'Analytics dashboard', 'AI transcript analysis (Bloomberg, Symphony, Email)', 'Excel & PDF export', '36-month data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
@@ -1163,16 +1163,16 @@ export default function LandingPage({ showLogin = false }) {
             <AnimatedSection delay={200}>
               <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Professional</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Professional</p>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$450</span>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$450</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
                   </div>
-                  <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 15 seats. SSO, API access, dedicated CSM, white-glove onboarding, unlimited retention.</p>
+                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 15 seats. SSO, API access, dedicated CSM, white-glove onboarding, unlimited retention.</p>
                 </div>
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {['Everything in Growth', 'SSO / SAML', 'API access', 'Custom branding', 'Dedicated CSM (4hr SLA)', 'Unlimited data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {f}
                     </li>
@@ -1190,21 +1190,21 @@ export default function LandingPage({ showLogin = false }) {
         <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Why Axle</SectionLabel>
-            <h2 style={{ fontFamily: "'Sora', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '620px', lineHeight: '1.2' }}>
+            <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#0C1017', margin: '0 auto 16px', maxWidth: '620px', lineHeight: '1.2' }}>
               Built for bond sales. Not adapted for it.
             </h2>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: '#8A8680', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
               General-purpose CRMs require months of customisation to approximate what Axle delivers out of the box.
             </p>
           </AnimatedSection>
 
           <AnimatedSection delay={100} style={{ overflowX: 'auto', borderRadius: '16px', border: '1px solid #E4E0DA', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'Outfit', sans-serif", minWidth: '640px' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontFamily: "'Manrope', sans-serif", minWidth: '640px' }}>
               <thead>
                 <tr>
                   <th style={{ padding: '16px 24px', textAlign: 'left', background: '#F4F2ED', color: '#8A8680', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid #E4E0DA', width: '36%' }}>Feature</th>
                   <th style={{ padding: '16px 20px', textAlign: 'center', background: 'rgba(200,162,88,0.07)', borderBottom: '2px solid #C8A258', borderLeft: '1px solid rgba(200,162,88,0.2)', borderRight: '1px solid rgba(200,162,88,0.2)' }}>
-                    <span style={{ fontFamily: "'Sora', sans-serif", fontSize: '15px', fontWeight: 700, color: '#0C1017' }}>Axle</span>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', fontWeight: 700, color: '#0C1017' }}>Axle</span>
                     <div style={{ fontSize: '11px', color: '#8A8680', fontWeight: 400, marginTop: '2px' }}>by Bridge Logic</div>
                   </th>
                   {['Salesforce', 'HubSpot', 'Generic CRM'].map(col => (
@@ -1259,13 +1259,13 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Security & Privacy</SectionLabel>
             <h2 style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#F0EDE8', margin: '0 0 16px',
             }}>
               Enterprise-grade security for regulated financial institutions.
             </h2>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', maxWidth: '580px', margin: '0 auto', lineHeight: '1.7' }}>
               Your data stays yours. Every layer designed for compliance.
             </p>
           </AnimatedSection>
@@ -1319,11 +1319,11 @@ export default function LandingPage({ showLogin = false }) {
                       {item.icon}
                     </svg>
                   </div>
-                  <h3 style={{ fontFamily: "'Sora', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: 0 }}>
+                  <h3 style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', fontWeight: 600, color: '#F0EDE8', margin: 0 }}>
                     {item.title}
                   </h3>
                 </div>
-                <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', lineHeight: '1.7', margin: 0 }}>
+                <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: 300, color: 'rgba(240,237,232,0.6)', lineHeight: '1.7', margin: 0 }}>
                   {item.desc}
                 </p>
               </AnimatedSection>
@@ -1331,7 +1331,7 @@ export default function LandingPage({ showLogin = false }) {
           </div>
 
           <AnimatedSection delay={500} style={{ textAlign: 'center' }}>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.4)', lineHeight: '1.7', maxWidth: '600px', margin: '0 auto' }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.4)', lineHeight: '1.7', maxWidth: '600px', margin: '0 auto' }}>
               Need a Data Processing Agreement or have specific compliance requirements? <a href="mailto:info@axle-finance.com?subject=Security%20%26%20Compliance%20Enquiry" style={{ color: '#C8A258', textDecoration: 'none', borderBottom: '1px solid rgba(200,162,88,0.3)' }}>Contact our team</a> — we work with regulated institutions across Asia-Pacific.
             </p>
           </AnimatedSection>
@@ -1347,7 +1347,7 @@ export default function LandingPage({ showLogin = false }) {
           <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
             <SectionLabel>Testimonials</SectionLabel>
             <h2 style={{
-              fontFamily: "'Sora', sans-serif",
+              fontFamily: "'Manrope', sans-serif",
               fontSize: 'clamp(28px, 4vw, 42px)',
               fontWeight: 600, color: '#F0EDE8', margin: 0,
             }}>
@@ -1392,7 +1392,7 @@ export default function LandingPage({ showLogin = false }) {
                 </svg>
 
                 <p style={{
-                  fontFamily: "'Outfit', sans-serif", fontSize: '15px', fontWeight: 300,
+                  fontFamily: "'Manrope', sans-serif", fontSize: '15px', fontWeight: 300,
                   color: 'rgba(240,237,232,0.8)', lineHeight: '1.75', margin: 0, flexGrow: 1,
                 }}>
                   {t.quote}
@@ -1405,16 +1405,16 @@ export default function LandingPage({ showLogin = false }) {
                     background: 'rgba(200,162,88,0.15)',
                     border: '1px solid rgba(200,162,88,0.3)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontFamily: "'Outfit', sans-serif", fontSize: '13px', fontWeight: '600',
+                    fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: '600',
                     color: '#C8A258', letterSpacing: '0.04em',
                   }}>
                     {t.initials}
                   </div>
                   <div>
-                    <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '14px', fontWeight: '600', color: '#F0EDE8', margin: '0 0 2px' }}>
+                    <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', fontWeight: '600', color: '#F0EDE8', margin: '0 0 2px' }}>
                       {t.name}
                     </p>
-                    <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '12px', fontWeight: '300', color: 'rgba(240,237,232,0.4)', margin: 0, lineHeight: '1.4' }}>
+                    <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', fontWeight: '300', color: 'rgba(240,237,232,0.4)', margin: 0, lineHeight: '1.4' }}>
                       {t.role}<br />{t.institution}
                     </p>
                   </div>
@@ -1422,7 +1422,7 @@ export default function LandingPage({ showLogin = false }) {
               </AnimatedSection>
             ))}
           </div>
-          <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(240,237,232,0.3)', marginTop: '32px', fontFamily: "'Outfit', sans-serif" }}>
+          <p style={{ textAlign: 'center', fontSize: '12px', color: 'rgba(240,237,232,0.3)', marginTop: '32px', fontFamily: "'Manrope', sans-serif" }}>
             Quotes reflect early customer feedback. Names abbreviated for privacy.
           </p>
         </div>
@@ -1437,14 +1437,14 @@ export default function LandingPage({ showLogin = false }) {
             <AnimatedSection>
               <SectionLabel>Request a Demo</SectionLabel>
               <h2 style={{
-                fontFamily: "'Sora', sans-serif",
+                fontFamily: "'Manrope', sans-serif",
                 fontSize: 'clamp(28px, 4vw, 42px)',
                 fontWeight: 600, color: '#0C1017',
                 margin: '0 0 20px', lineHeight: '1.2',
               }}>
                 See Axle in action.
               </h2>
-              <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '16px', fontWeight: 300, color: '#8A8680', lineHeight: '1.8', margin: '0 0 32px' }}>
+              <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '16px', fontWeight: 300, color: '#8A8680', lineHeight: '1.8', margin: '0 0 32px' }}>
                 Book a 30-minute session with our team. We'll walk through your desk's workflow and show you how Axle fits in.
               </p>
 
@@ -1455,10 +1455,10 @@ export default function LandingPage({ showLogin = false }) {
                   { label: 'Contact', value: 'info@axle-finance.com' },
                 ].map(item => (
                   <div key={item.label} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', fontWeight: '600', color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                       {item.label}
                     </span>
-                    <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '15px', color: '#2C2C2C' }}>
+                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', color: '#2C2C2C' }}>
                       {item.value}
                     </span>
                   </div>

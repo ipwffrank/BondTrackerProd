@@ -3,9 +3,9 @@ import MarketingNav from '../components/marketing/MarketingNav';
 import MarketingFooter from '../components/marketing/MarketingFooter';
 
 const STYLES = `
-  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
 
-  .lp2 { font-family: 'Outfit', -apple-system, sans-serif; background: #0F2137; color: #F0EDE8; overflow-x: hidden; }
+  .lp2 { font-family: 'Manrope', -apple-system, sans-serif; background: #0F2137; color: #F0EDE8; overflow-x: hidden; }
   .lp2 *, .lp2 *::before, .lp2 *::after { box-sizing: border-box; }
   .lp2 a { color: inherit; }
   .lp2 button { font-family: inherit; }

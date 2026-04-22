@@ -20,7 +20,7 @@ const ACTION_LABELS = {
 
 const STYLES = `
   .ha-root {
-    font-family: 'Outfit', -apple-system, sans-serif;
+    font-family: 'Manrope', -apple-system, sans-serif;
     min-height: 100vh; background: #0f172a;
     display: flex; align-items: center; justify-content: center;
     padding: 24px;

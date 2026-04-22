@@ -350,7 +350,7 @@ const PAGES = {
 // ─── Styles ──────────────────────────────────────────────────────────────────────
 const LEGAL_STYLES = `
   .legal-page {
-    font-family: 'Outfit', -apple-system, sans-serif;
+    font-family: 'Manrope', -apple-system, sans-serif;
     background: #0F2137;
     color: #F0EDE8;
     min-height: 100vh;
@@ -368,7 +368,7 @@ const LEGAL_STYLES = `
     border-bottom: 1px solid rgba(200,162,88,0.15);
   }
   .legal-nav a {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 13px;
     font-weight: 500;
     color: rgba(255,255,255,0.4);

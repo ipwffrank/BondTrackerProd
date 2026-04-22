@@ -111,7 +111,7 @@
 
 body {
   margin: 0;
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-base);
@@ -395,14 +395,14 @@ select {
   min-height: 100vh;
 }
 
-/* === APP TYPOGRAPHY — Sora for display, Outfit for body === */
+/* === APP TYPOGRAPHY — Manrope for display and body === */
 .page-title {
-  font-family: 'Sora', sans-serif;
+  font-family: 'Manrope', sans-serif;
   letter-spacing: -0.02em;
 }
 
 .table th {
-  font-family: 'Sora', sans-serif;
+  font-family: 'Manrope', sans-serif;
 }
 
 [data-theme="dark"] .card-header {

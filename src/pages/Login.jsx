@@ -82,7 +82,7 @@ const EMPLOYEE_OPTIONS = ['1-5', '6-30', '31-200', '201-500', '501-2000', '2000+
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const STYLES = `
   .login-root {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     min-height: 100vh;
     background: #0f172a;
     display: flex;
@@ -227,7 +227,7 @@ const STYLES = `
     background: rgba(0,0,0,0.75); backdrop-filter: blur(4px);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
   .demo-overlay *, .demo-overlay *::before, .demo-overlay *::after { box-sizing: border-box; }
   .demo-modal {

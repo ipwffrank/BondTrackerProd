@@ -7,7 +7,7 @@ import { AxleLogo } from '@bridgelogic/ui';
 // ─── Styles ────────────────────────────────────────────────────────────────────
 const STYLES = `
   .auth-action-root {
-    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-family: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     min-height: 100vh;
     background: #0f172a;
     display: flex;

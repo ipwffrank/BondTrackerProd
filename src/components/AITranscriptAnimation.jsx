@@ -89,7 +89,7 @@ function TranscriptPanel({ phase }) {
       }}>
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#ef4444' }} />
         <span style={{
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: '10px',
           fontWeight: 600,
           color: 'rgba(255,255,255,0.35)',
@@ -133,7 +133,7 @@ function TranscriptPanel({ phase }) {
                   color: 'rgba(200,162,88,0.55)',
                 }}>{line.time}</span>
                 <span style={{
-                  fontFamily: "'Outfit', sans-serif",
+                  fontFamily: "'Manrope', sans-serif",
                   fontSize: '9px',
                   fontWeight: 600,
                   color: isYou ? 'rgba(200,162,88,0.7)' : 'rgba(255,255,255,0.45)',
@@ -226,7 +226,7 @@ function ScanOverlay({ phase }) {
             }} />
           ))}
           <span style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "'Manrope', sans-serif",
             fontSize: '11px',
             fontWeight: 600,
             color: '#C8A258',
@@ -265,7 +265,7 @@ function ExtractedPanel({ phase }) {
       }}>
         <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e' }} />
         <span style={{
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: '10px',
           fontWeight: 600,
           color: '#C8A258',
@@ -294,7 +294,7 @@ function ExtractedPanel({ phase }) {
       }}>
         {['CLIENT', 'BOND', 'DIR', 'PRICE', 'STATUS'].map(h => (
           <span key={h} style={{
-            fontFamily: "'Outfit', sans-serif",
+            fontFamily: "'Manrope', sans-serif",
             fontSize: '8px',
             fontWeight: 700,
             color: 'rgba(255,255,255,0.25)',
@@ -321,7 +321,7 @@ function ExtractedPanel({ phase }) {
               opacity: visible ? undefined : 0,
             }}
           >
-            <span style={{ fontFamily: "'Outfit', sans-serif", fontSize: '11px', fontWeight: 600, color: '#F0EDE8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '11px', fontWeight: 600, color: '#F0EDE8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {row.client}
             </span>
             <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '9px', color: 'rgba(240,237,232,0.5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -369,7 +369,7 @@ function ExtractedPanel({ phase }) {
           border: '1px solid rgba(200,162,88,0.4)',
           borderRadius: '6px',
           color: phase === 3 ? '#0F2137' : '#C8A258',
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: '11px',
           fontWeight: 700,
           letterSpacing: '0.04em',
@@ -462,7 +462,7 @@ function PhaseStrip({ phase }) {
                 transition: 'all 0.4s ease',
               }}>{p.num}</div>
               <span style={{
-                fontFamily: "'Outfit', sans-serif",
+                fontFamily: "'Manrope', sans-serif",
                 fontSize: '9px',
                 fontWeight: active ? 600 : 400,
                 color: active ? '#C8A258' : done ? 'rgba(200,162,88,0.5)' : 'rgba(255,255,255,0.2)',
@@ -524,7 +524,7 @@ export default function AITranscriptAnimation() {
         padding: '20px',
         maxWidth: '720px',
         margin: '0 auto',
-        fontFamily: "'Outfit', sans-serif",
+        fontFamily: "'Manrope', sans-serif",
       }}>
         {/* Phase progress strip */}
         <PhaseStrip phase={phase} />
@@ -558,7 +558,7 @@ export default function AITranscriptAnimation() {
           textAlign: 'center',
           marginTop: 14,
           marginBottom: 0,
-          fontFamily: "'Outfit', sans-serif",
+          fontFamily: "'Manrope', sans-serif",
           fontSize: '11px',
           fontWeight: 300,
           color: 'rgba(240,237,232,0.35)',

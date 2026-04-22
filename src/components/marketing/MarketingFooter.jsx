@@ -5,7 +5,7 @@ import AxleLogo from './AxleLogo';
 const STYLES = `
   .mkt-footer-link {
     color: rgba(255,255,255,0.45);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 14px;
     text-decoration: none;
     display: block;
@@ -19,7 +19,7 @@ const STYLES = `
   .mkt-footer-link:hover { color: rgba(255,255,255,0.8); }
 
   .mkt-footer-heading {
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 11px;
     font-weight: 600;
     color: rgba(200,162,88,0.7);
@@ -61,14 +61,14 @@ export default function MarketingFooter() {
                 <AxleLogo variant="dark" size="sm" />
               </div>
               <p style={{
-                fontFamily: "'Outfit', sans-serif", fontSize: '14px',
+                fontFamily: "'Manrope', sans-serif", fontSize: '14px',
                 color: 'rgba(255,255,255,0.4)', lineHeight: '1.7',
                 maxWidth: '260px', margin: '0 0 20px',
               }}>
                 The central intelligence platform for bond sales desks.
               </p>
               <a href="mailto:info@axle-finance.com" style={{
-                fontFamily: "'Outfit', sans-serif", fontSize: '14px',
+                fontFamily: "'Manrope', sans-serif", fontSize: '14px',
                 color: '#C8A258', textDecoration: 'none',
               }}>
                 info@axle-finance.com
@@ -107,10 +107,10 @@ export default function MarketingFooter() {
             display: 'flex', justifyContent: 'space-between',
             alignItems: 'center', flexWrap: 'wrap', gap: '12px',
           }}>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
               &copy; 2026 Bridge Logic LP All rights reserved.
             </p>
-            <p style={{ fontFamily: "'Outfit', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.25)', margin: 0 }}>
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.25)', margin: 0 }}>
               Singapore
             </p>
           </div>

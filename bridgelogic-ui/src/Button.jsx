@@ -6,7 +6,7 @@ const BASE = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  fontFamily: "'Outfit', sans-serif",
+  fontFamily: "'Manrope', sans-serif",
   fontWeight: 600,
   letterSpacing: '0.02em',
   cursor: 'pointer',

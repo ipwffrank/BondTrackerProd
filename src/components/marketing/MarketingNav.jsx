@@ -13,7 +13,7 @@ const NAV_LINKS = [
 const STYLES = `
   .mkt-nav-link {
     color: rgba(255,255,255,0.65);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 14px;
     font-weight: 500;
     background: none;
@@ -42,7 +42,7 @@ const STYLES = `
     color: #0F2137;
     border: none;
     cursor: pointer;
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 14px;
     font-weight: 600;
     padding: 9px 20px;
@@ -56,7 +56,7 @@ const STYLES = `
 
   .mkt-btn-login {
     color: rgba(255,255,255,0.65);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
@@ -100,7 +100,7 @@ const STYLES = `
 
   .mkt-drawer-btn {
     color: rgba(255,255,255,0.75);
-    font-family: 'Outfit', sans-serif;
+    font-family: 'Manrope', sans-serif;
     font-size: 17px;
     font-weight: 500;
     background: none;
@@ -233,7 +233,7 @@ export default function MarketingNav() {
 
             <div style={{ marginTop: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <Link to="/login" onClick={() => setMenuOpen(false)} style={{
-                color: 'rgba(255,255,255,0.65)', fontFamily: "'Outfit', sans-serif",
+                color: 'rgba(255,255,255,0.65)', fontFamily: "'Manrope', sans-serif",
                 fontSize: '15px', textDecoration: 'none', padding: '10px 0',
               }}>
                 Login

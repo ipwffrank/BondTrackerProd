@@ -26,13 +26,13 @@ function LoadingScreen() {
     <div style={{
       minHeight: '100vh', background: '#0F2137',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: "'Outfit', -apple-system, sans-serif",
+      fontFamily: "'Manrope', -apple-system, sans-serif",
     }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{ marginBottom: '28px', display: 'flex', justifyContent: 'center' }}>
           <AxleLogo variant="dark" size="lg" />
         </div>
-        <p style={{ color: 'rgba(240,237,232,0.45)', fontSize: '14px', fontFamily: "'Outfit', sans-serif", margin: 0 }}>Loading your workplace</p>
+        <p style={{ color: 'rgba(240,237,232,0.45)', fontSize: '14px', fontFamily: "'Manrope', sans-serif", margin: 0 }}>Loading your workplace</p>
       </div>
     </div>
   );
