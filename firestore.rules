@@ -117,8 +117,11 @@ service cloud.firestore {
         && getUserData().isAdmin == true
         && get(/databases/$(database)/documents/users/$(userId)).data.organizationId == getUserData().organizationId
         && userId != request.auth.uid;
+
+      // Host admins can delete any user except themselves (admin portal).
+      allow delete: if isHostAdmin() && userId != request.auth.uid;
     }
-    
+
     // ============================================
     // ORGANIZATION USERS SUB-COLLECTION
     // ============================================
@@ -136,6 +139,11 @@ service cloud.firestore {
       // Admins can create phantom/demo users in their org
       allow create: if isAdminInOrg(orgId);
 
+      // Host admins can create users in any org (used by the admin portal
+      // when moving a user to a different org — setDoc-merge hits the
+      // create branch if the sub-collection doc doesn't exist yet).
+      allow create: if isHostAdmin();
+
       // Users can update their own profile (non-privileged fields only —
       // mirrors the guard on /users/{uid}).
       allow update: if isAuthenticated() && request.auth.uid == userId && userSelfEditAllowed();
@@ -143,8 +151,16 @@ service cloud.firestore {
       // Admins can update other users in their organization
       allow update: if isAdminInOrg(orgId);
 
+      // Host admins can update any user across orgs (admin portal).
+      allow update: if isHostAdmin();
+
       // Admins can delete other users (but not themselves)
       allow delete: if isAdminInOrg(orgId) && userId != request.auth.uid;
+
+      // Host admins can delete any user except themselves (admin portal —
+      // used when reassigning a user to a new org, which removes the
+      // doc from the previous org's sub-collection).
+      allow delete: if isHostAdmin() && userId != request.auth.uid;
     }
 
     // ============================================
