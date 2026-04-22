@@ -278,7 +278,7 @@ export default function Analytics() {
           <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">${buyVol.toFixed(1)}MM</span></div>
           <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">${sellVol.toFixed(1)}MM</span></div>
           <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">${twVol.toFixed(1)}MM</span></div>
-          <button className="hover-card-csv-btn" onClick={downloadVolumeCSV}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={downloadVolumeCSV}>Download CSV</button>
         </>
       );
     }
@@ -301,7 +301,7 @@ export default function Analytics() {
               <span className="hover-card-value" style={{fontSize:'11px'}}>${vol.toFixed(1)}MM · {clientCounts[name]}</span>
             </div>
           ))}
-          <button className="hover-card-csv-btn" onClick={downloadClientsVolumeCSV}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={downloadClientsVolumeCSV}>Download CSV</button>
         </>
       );
     }
@@ -324,7 +324,7 @@ export default function Analytics() {
               <span className="hover-card-value" style={{fontSize:'11px'}}>{count} · ${execVolByClient[name].toFixed(1)}MM</span>
             </div>
           ))}
-          <button className="hover-card-csv-btn" onClick={downloadExecutedTradesCSV}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={downloadExecutedTradesCSV}>Download CSV</button>
         </>
       );
     }
@@ -345,7 +345,7 @@ export default function Analytics() {
               <span className="hover-card-value">${d.volume.toFixed(1)}MM · {d.count}</span>
             </div>
           ))}
-          <button className="hover-card-csv-btn" onClick={downloadExecVolumeCSV}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={downloadExecVolumeCSV}>Download CSV</button>
         </>
       );
     }
@@ -426,7 +426,7 @@ export default function Analytics() {
           <div className="hover-card-row"><span className="hover-card-label">BUY</span><span className="hover-card-value">${buyVol.toFixed(1)}MM</span></div>
           <div className="hover-card-row"><span className="hover-card-label">SELL</span><span className="hover-card-value">${sellVol.toFixed(1)}MM</span></div>
           <div className="hover-card-row"><span className="hover-card-label">TWO-WAY</span><span className="hover-card-value">${twVol.toFixed(1)}MM</span></div>
-          <button className="hover-card-csv-btn" onClick={()=>downloadClientActivitiesCSV(clientName)}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={()=>downloadClientActivitiesCSV(clientName)}>Download CSV</button>
         </>
       );
     }
@@ -451,7 +451,7 @@ export default function Analytics() {
             </div>
           ))}
           {sorted.length===0 && <div style={{fontSize:'12px',color:'var(--text-muted)'}}>No data</div>}
-          <button className="hover-card-csv-btn" onClick={()=>downloadDirectionCSV(dir)}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={()=>downloadDirectionCSV(dir)}>Download CSV</button>
         </>
       );
     }
@@ -474,7 +474,7 @@ export default function Analytics() {
             </div>
           ))}
           {sorted.length===0 && <div style={{fontSize:'12px',color:'var(--text-muted)'}}>No data</div>}
-          <button className="hover-card-csv-btn" onClick={()=>downloadStatusCSV(statusVal)}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={()=>downloadStatusCSV(statusVal)}>Download CSV</button>
         </>
       );
     }
@@ -505,7 +505,7 @@ export default function Analytics() {
               <span className="hover-card-value">${vol.toFixed(1)}MM</span>
             </div>
           ))}
-          <button className="hover-card-csv-btn" onClick={()=>downloadCurrencyCSV(currency)}>⬇ Download CSV</button>
+          <button className="hover-card-csv-btn" onClick={()=>downloadCurrencyCSV(currency)}>Download CSV</button>
         </>
       );
     }
@@ -709,7 +709,7 @@ export default function Analytics() {
                 onMouseEnter={e=>showTooltip(s.type, null, e.currentTarget.getBoundingClientRect())}
                 onMouseLeave={scheduleHide}
               >
-                <span className="stat-card-hint">ℹ</span>
+                <span className="stat-card-hint">i</span>
                 <div className="stat-value">{s.value}</div>
                 <div className="stat-label">{s.label}</div>
               </div>
@@ -722,7 +722,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Direction Breakdown</span>
-              <button onClick={handleExportDirectionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportDirectionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px',display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'12px'}}>
               <div
@@ -761,7 +761,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Status Breakdown</span>
-              <button onClick={handleExportStatusCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportStatusCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {[
@@ -796,7 +796,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Top Clients by Volume</span>
-              <button onClick={handleExportClientsCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportClientsCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px'}}>
               {stats.topClients.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
@@ -821,7 +821,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Most Active Users</span>
-              <button onClick={handleExportUsersCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportUsersCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px'}}>
               {stats.topUsers.length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
@@ -844,7 +844,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Activity Type Breakdown</span>
-              <button onClick={handleExportActivityTypeCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportActivityTypeCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.activityTypeBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
@@ -864,7 +864,7 @@ export default function Analytics() {
           <div className="card">
             <div className="card-header">
               <span>Region Breakdown</span>
-              <button onClick={handleExportRegionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+              <button onClick={handleExportRegionCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
             </div>
             <div style={{padding:'24px',display:'flex',flexDirection:'column',gap:'10px'}}>
               {Object.keys(stats.regionBreakdown).length===0?(<div style={{textAlign:'center',padding:'30px',color:'var(--text-muted)'}}>No data yet</div>):(
@@ -887,7 +887,7 @@ export default function Analytics() {
         <div className="card" style={{marginBottom:'24px'}}>
           <div className="card-header">
             <span>Currency Breakdown</span>
-            <button onClick={handleExportCurrencyCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>⬇ CSV</button>
+            <button onClick={handleExportCurrencyCSV} className="btn btn-secondary" style={{fontSize:'12px',padding:'5px 10px'}}>CSV</button>
           </div>
           <div className="table-container">
             <table className="table">

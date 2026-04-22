@@ -367,10 +367,10 @@ export default function Clients() {
         {/* Client Directory - Export buttons IN the card header */}
         <div className="card" style={{marginTop:'24px'}}>
           <div className="card-header">
-            <span>📋 Client Directory ({filteredClients.length < clients.length ? `${filteredClients.length} of ${clients.length}` : clients.length})</span>
+            <span>Client Directory ({filteredClients.length < clients.length ? `${filteredClients.length} of ${clients.length}` : clients.length})</span>
             <div style={{display:'flex',gap:'10px',flexWrap:'wrap'}}>
               {isAdmin && selectedIds.size > 0 && (
-                <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
+                <button onClick={handleBulkDelete} className="btn btn-danger">Delete {selectedIds.size} Selected</button>
               )}
               <button onClick={handleExportCSV} className="btn btn-secondary">Export CSV</button>
               {canExport('excel', orgPlan) ? (
@@ -384,7 +384,7 @@ export default function Clients() {
                 <button className="btn btn-secondary" disabled title="Upgrade to Growth for PDF export" style={{opacity:0.5,cursor:'not-allowed'}}>Export PDF <span style={{fontSize:'9px',fontWeight:700,background:'rgba(200,162,88,0.15)',color:'#C8A258',padding:'2px 6px',borderRadius:'4px',marginLeft:'4px',letterSpacing:'0.05em',border:'1px solid rgba(200,162,88,0.3)'}}>PRO</span></button>
               )}
               <button onClick={() => csvInputRef.current?.click()} className="btn btn-secondary" disabled={csvUploading}>
-                {csvUploading ? '⏳ Uploading...' : '📤 Upload CSV'}
+                {csvUploading ? 'Uploading...' : 'Upload CSV'}
               </button>
               <input ref={csvInputRef} type="file" accept=".csv" style={{display:'none'}} onChange={handleCsvUpload} />
             </div>
@@ -432,7 +432,7 @@ export default function Clients() {
               background: csvNotification.type === 'success' ? 'var(--badge-success-bg)' : 'var(--badge-danger-bg)',
               color: csvNotification.type === 'success' ? 'var(--badge-success-text)' : 'var(--badge-danger-text)',
             }}>
-              <span>{csvNotification.type === 'success' ? '✓ ' : '⚠ '}{csvNotification.message}</span>
+              <span>{csvNotification.message}</span>
               <button onClick={() => setCsvNotification(null)} style={{background:'none',border:'none',cursor:'pointer',color:'inherit',fontSize:'18px',padding:'0 4px',lineHeight:1}}>×</button>
             </div>
           )}
@@ -462,7 +462,7 @@ export default function Clients() {
                         <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
                           <a href={`/contacts?clientId=${c.id}&clientName=${encodeURIComponent(c.name)}`} style={{fontSize:'12px',color:'#C8A258',textDecoration:'none',padding:'4px 8px',border:'1px solid rgba(200,162,88,0.3)',borderRadius:'4px',whiteSpace:'nowrap'}}>Contacts</a>
                           <button className="btn-edit" onClick={()=>handleEditClient(c)} title="Edit"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                          {isAdmin&&<button className="btn-icon" onClick={()=>handleDeleteClient(c.id)} title="Delete (Admin only)">🗑️</button>}
+                          {isAdmin&&<button className="btn-icon" onClick={()=>handleDeleteClient(c.id)} title="Delete (Admin only)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/><path d="M10 11v6M14 11v6"/></svg></button>}
                         </div>
                       </td>
                     </tr>
@@ -474,7 +474,7 @@ export default function Clients() {
         </div>
 
         <div style={{marginTop:'24px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
-          <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>💡 Client Management</h4>
+          <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>Client Management</h4>
           <ul style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,paddingLeft:'20px',margin:0}}>
             <li>All users can view, create, and edit clients</li>
             <li>Only admins can delete clients</li>
@@ -567,7 +567,7 @@ export default function Clients() {
         )}
 
         <div style={{marginTop:'16px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
-          <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>📋 CSV Bulk Upload Format</h4>
+          <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>CSV Bulk Upload Format</h4>
           <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, salesCoverage</strong> (header row optional)</p>
           <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'0 0 4px'}}>Valid types: FUND, HEDGE FUND, BANK, CENTRAL BANK, INSURANCE, PENSION, SOVEREIGN, CORPORATE, PRIVATE BANK, FAMILY OFFICE</p>
           <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>Valid regions: APAC, EMEA, AMERICAS · Example row: <em>Temasek Holdings,FUND,APAC,Jane Doe</em></p>

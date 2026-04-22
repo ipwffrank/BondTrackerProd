@@ -480,7 +480,7 @@ export default function AIAssistant() {
               />
               {aiFile && (
                 <p style={{fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px'}}>
-                  {isImageFile(aiFile) ? '🖼' : '✓'} Selected: {aiFile.name}{isImageFile(aiFile) ? ' (image — will use AI vision)' : ''}
+                  Selected: {aiFile.name}{isImageFile(aiFile) ? ' (image — will use AI vision)' : ''}
                 </p>
               )}
             </div>
@@ -495,12 +495,12 @@ export default function AIAssistant() {
 
             {aiError && (
               <div style={{marginTop: '20px', padding: '16px', background: 'var(--badge-danger-bg)', color: 'var(--badge-danger-text)', borderRadius: '8px', border: '1px solid var(--badge-danger-text)'}}>
-                ⚠️ {aiError}
+                {aiError}
               </div>
             )}
 
             <div style={{marginTop: '24px', padding: '16px', background: 'var(--badge-primary-bg)', borderRadius: '8px', border: '1px solid var(--badge-primary-text)'}}>
-              <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>💡 How AI Analysis Works</h4>
+              <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>How AI Analysis Works</h4>
               <ul style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
                 <li>Paste a Bloomberg IB, Symphony, or email transcript — or upload a file or screenshot</li>
                 <li>Supported formats: text files (.txt, .csv, .md) and images (.png, .jpg)</li>
@@ -550,7 +550,7 @@ export default function AIAssistant() {
                 </div>
                 <div style={{padding: '16px', background: '#7c3a001a', border: '1px solid #d97706', borderRadius: '8px'}}>
                 <div style={{fontWeight: 700, fontSize: '14px', color: '#d97706', marginBottom: '12px'}}>
-                  ⚠️ New Client Registration Required ({newClientNames.length} new {newClientNames.length === 1 ? 'client' : 'clients'})
+                  New Client Registration Required ({newClientNames.length} new {newClientNames.length === 1 ? 'client' : 'clients'})
                 </div>
                 <p style={{fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '16px'}}>
                   The following clients are not in your database. Please fill in their details before importing.

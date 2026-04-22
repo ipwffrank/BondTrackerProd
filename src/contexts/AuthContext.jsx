@@ -38,7 +38,7 @@ export function AuthProvider({ children }) {
   // Signup function
   async function signup(email, password, name) {
     try {
-      console.log('🔵 Starting signup for:', email);
+      console.log('Starting signup for:', email);
       
       // Create Firebase auth user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
       const domain = email.split('@')[1];
       const orgId = `org_${domain.replace(/\./g, '_')}`;
       
-      console.log('🔵 Organization ID:', orgId);
+      console.log('Organization ID:', orgId);
 
       // Check if organization exists
       const orgRef = doc(db, `organizations/${orgId}`);
@@ -57,7 +57,7 @@ export function AuthProvider({ children }) {
 
       // Create organization if it doesn't exist
       if (isFirstUser) {
-        console.log('🔵 Creating new organization:', orgId);
+        console.log('Creating new organization:', orgId);
         await setDoc(orgRef, {
           name: domain,
           domain: domain,
@@ -81,7 +81,7 @@ export function AuthProvider({ children }) {
 
       // Create user document
       const userRef = doc(db, `organizations/${orgId}/users/${user.uid}`);
-      console.log('🔵 Creating user document at:', `organizations/${orgId}/users/${user.uid}`);
+      console.log('Creating user document at:', `organizations/${orgId}/users/${user.uid}`);
       
       await setDoc(userRef, {
         email: email,
@@ -113,7 +113,7 @@ export function AuthProvider({ children }) {
 
       return userCredential;
     } catch (error) {
-      console.error('❌ Signup error:', error);
+      console.error('Signup error:', error);
       throw error;
     }
   }
@@ -121,8 +121,8 @@ export function AuthProvider({ children }) {
   // Signup with invitation - joins an existing organization
   async function signupWithInvitation(email, password, name, organizationId, organizationName, role) {
     try {
-      console.log('🔵 Starting signup with invitation for:', email);
-      console.log('🔵 Joining organization:', organizationId);
+      console.log('Starting signup with invitation for:', email);
+      console.log('Joining organization:', organizationId);
 
       // Create Firebase auth user
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -130,7 +130,7 @@ export function AuthProvider({ children }) {
 
       // Create user document in the invited organization
       const userRef = doc(db, `organizations/${organizationId}/users/${user.uid}`);
-      console.log('🔵 Creating user document at:', `organizations/${organizationId}/users/${user.uid}`);
+      console.log('Creating user document at:', `organizations/${organizationId}/users/${user.uid}`);
 
       const isAdmin = role === 'admin';
 
@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
 
       return userCredential;
     } catch (error) {
-      console.error('❌ Signup with invitation error:', error);
+      console.error('Signup with invitation error:', error);
       throw error;
     }
   }
@@ -173,7 +173,7 @@ export function AuthProvider({ children }) {
   // Login function
   async function login(email, password) {
     try {
-      console.log('🔵 Logging in:', email);
+      console.log('Logging in:', email);
 
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
@@ -195,14 +195,14 @@ export function AuthProvider({ children }) {
           lastLogin: serverTimestamp()
         }, { merge: true });
       } catch (updateError) {
-        console.warn('⚠️ Could not update lastLogin:', updateError.message);
+        console.warn('Could not update lastLogin:', updateError.message);
         // Don't fail the login - the auth state listener will handle user data
       }
 
-      console.log('✅ Login successful');
+      console.log('Login successful');
       return userCredential;
     } catch (error) {
-      console.error('❌ Login error:', error);
+      console.error('Login error:', error);
       throw error;
     }
   }
@@ -359,13 +359,13 @@ export function AuthProvider({ children }) {
 
   // Listen to auth state changes and load user data
   useEffect(() => {
-    console.log('🔵 Setting up auth state listener');
+    console.log('Setting up auth state listener');
 
     let orgUserUnsubscribe = null;
     let orgDocUnsubscribe = null;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      console.log('🔵 Auth state changed:', user ? user.email : 'No user');
+      console.log('Auth state changed:', user ? user.email : 'No user');
 
       // Clean up previous listeners when user changes
       if (orgUserUnsubscribe) { orgUserUnsubscribe(); orgUserUnsubscribe = null; }
@@ -385,9 +385,9 @@ export function AuthProvider({ children }) {
 
           if (userMappingSnap.exists() && userMappingSnap.data().organizationId) {
             orgId = userMappingSnap.data().organizationId;
-            console.log('🔍 Found user mapping, using organization:', orgId);
+            console.log('Found user mapping, using organization:', orgId);
           } else {
-            console.log('🔍 No valid user mapping found, using domain-derived org:', orgId);
+            console.log('No valid user mapping found, using domain-derived org:', orgId);
           }
 
           // Subscribe to the org document for plan/tier updates
@@ -400,7 +400,7 @@ export function AuthProvider({ children }) {
             }
           }, (err) => console.warn('Org doc listener error:', err));
 
-          console.log('🔍 Subscribing to user data at:', `organizations/${orgId}/users/${user.uid}`);
+          console.log('Subscribing to user data at:', `organizations/${orgId}/users/${user.uid}`);
 
           // Subscribe to the org user doc so role changes reflect immediately without re-login
           const userDocRef = doc(db, `organizations/${orgId}/users/${user.uid}`);
@@ -429,7 +429,7 @@ export function AuthProvider({ children }) {
 
               // Create user mapping on first load if it doesn't exist
               if (isFirstSnapshot && !userMappingSnap.exists()) {
-                console.log('🔵 Creating user mapping for existing user');
+                console.log('Creating user mapping for existing user');
                 try {
                   await setDoc(userMappingRef, {
                     organizationId: orgId,
@@ -439,14 +439,14 @@ export function AuthProvider({ children }) {
                     role: completeUserData.role,
                     createdAt: serverTimestamp()
                   });
-                  console.log('✅ User mapping created successfully');
+                  console.log('User mapping created successfully');
                 } catch (mappingError) {
-                  console.error('⚠️ Failed to create user mapping:', mappingError);
+                  console.error('Failed to create user mapping:', mappingError);
                 }
               }
               isFirstSnapshot = false;
 
-              console.log('✅ User data updated:', {
+              console.log('User data updated:', {
                 email: completeUserData.email,
                 organizationId: completeUserData.organizationId,
                 isAdmin: completeUserData.isAdmin
@@ -479,12 +479,12 @@ export function AuthProvider({ children }) {
                     createdAt: data.createdAt,
                     lastLogin: data.lastLogin
                   });
-                  console.log('✅ User data loaded via getDoc fallback');
+                  console.log('User data loaded via getDoc fallback');
                   setLoading(false);
                 } else if (retryCount < MAX_RETRIES) {
                   // Document may not exist yet (signup race condition) — retry after delay
                   retryCount++;
-                  console.warn(`⏳ User doc not found, retrying (${retryCount}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
+                  console.warn(`User doc not found, retrying (${retryCount}/${MAX_RETRIES}) in ${RETRY_DELAY}ms...`);
                   setTimeout(async () => {
                     try {
                       const retrySnap = await getDoc(userDocRef);
@@ -501,49 +501,49 @@ export function AuthProvider({ children }) {
                           createdAt: data.createdAt,
                           lastLogin: data.lastLogin
                         });
-                        console.log('✅ User data loaded on retry');
+                        console.log('User data loaded on retry');
                       } else {
-                        console.warn(`⚠️ Retry ${retryCount}/${MAX_RETRIES}: doc still not found`);
+                        console.warn(`Retry ${retryCount}/${MAX_RETRIES}: doc still not found`);
                       }
                     } catch (retryError) {
-                      console.error('❌ Retry getDoc failed:', retryError);
+                      console.error('Retry getDoc failed:', retryError);
                     }
                     setLoading(false);
                   }, RETRY_DELAY);
                 } else {
-                  console.error('❌ User document not found after retries at:', `organizations/${orgId}/users/${user.uid}`);
+                  console.error('User document not found after retries at:', `organizations/${orgId}/users/${user.uid}`);
                   // Do NOT clear userData if we already have valid data for this user
                   setUserData((prev) => (prev?.uid === user.uid ? prev : null));
                   setLoading(false);
                 }
               } catch (fallbackError) {
-                console.error('❌ getDoc fallback failed:', fallbackError);
+                console.error('getDoc fallback failed:', fallbackError);
                 // Preserve existing userData if it belongs to the current user
                 setUserData((prev) => (prev?.uid === user.uid ? prev : null));
                 setLoading(false);
               }
             }
           }, (error) => {
-            console.error('❌ Error in user doc snapshot (keeping last known userData):', error);
+            console.error('Error in user doc snapshot (keeping last known userData):', error);
             // Do NOT clear userData on connection errors — keep the last known value
             // so forms remain functional during transient Firestore issues.
             setLoading(false);
           });
 
         } catch (error) {
-          console.error('❌ Error loading user data:', error);
+          console.error('Error loading user data:', error);
           setUserData(null);
           setLoading(false);
         }
       } else {
-        console.log('🔵 No user logged in, clearing user data');
+        console.log('No user logged in, clearing user data');
         setUserData(null);
         setLoading(false);
       }
     });
 
     return () => {
-      console.log('🔵 Cleaning up auth state listener');
+      console.log('Cleaning up auth state listener');
       if (orgUserUnsubscribe) orgUserUnsubscribe();
       if (orgDocUnsubscribe) orgDocUnsubscribe();
       unsubscribe();

@@ -63,7 +63,6 @@ function AuditTrailTab({ orgId }) {
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>Loading audit logs...</div>
         ) : logs.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '64px', marginBottom: '16px' }}>📋</div>
             <p style={{ fontSize: '18px', fontWeight: 600, marginBottom: '8px' }}>No audit logs yet</p>
             <p style={{ fontSize: '14px' }}>Export actions will be recorded here automatically.</p>
           </div>
@@ -383,7 +382,6 @@ export default function Team() {
         <Navigation />
         <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh'}}>
           <div style={{textAlign: 'center'}}>
-            <div style={{fontSize: '64px', marginBottom: '16px'}}>🔒</div>
             <h2 style={{fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px'}}>Access Denied</h2>
             <p style={{color: 'var(--text-secondary)'}}>Only admins can access team management</p>
           </div>
@@ -437,31 +435,31 @@ export default function Team() {
             className={`sub-tab ${activeSubTab === 'members' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('members')}
           >
-            👥 Members ({members.length})
+            Members ({members.length})
           </button>
-          <button 
+          <button
             className={`sub-tab ${activeSubTab === 'invitations' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('invitations')}
           >
-            ✉️ Pending Invitations ({invitations.length})
+            Pending Invitations ({invitations.length})
           </button>
           <button
             className={`sub-tab ${activeSubTab === 'activity' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('activity')}
           >
-            📊 Activity Stats
+            Activity Stats
           </button>
           <button
             className={`sub-tab ${activeSubTab === 'audit' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('audit')}
           >
-            📋 Audit Trail
+            Audit Trail
           </button>
           <button
             className={`sub-tab ${activeSubTab === 'mydata' ? 'active' : ''}`}
             onClick={() => setActiveSubTab('mydata')}
           >
-            📥 My Data
+            My Data
           </button>
         </div>
 
@@ -479,7 +477,7 @@ export default function Team() {
               {/* Info Box */}
               <div className="info-box" style={{marginBottom: '24px'}}>
                 <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--accent)'}}>
-                  💡 Role Permissions
+                  Role Permissions
                 </h4>
                 <ul style={{fontSize: '13px', lineHeight: 1.6, paddingLeft: '20px', margin: 0, color: 'var(--text-primary)'}}>
                   <li><strong>Admin:</strong> Can invite members, assign roles, delete clients, and access team management</li>
@@ -490,7 +488,6 @@ export default function Team() {
 
               {members.length === 0 ? (
                 <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
-                  <div style={{fontSize: '64px', marginBottom: '16px'}}>👥</div>
                   <p style={{fontSize: '18px', marginBottom: '16px', fontWeight: 600}}>No team members yet</p>
                   <p style={{fontSize: '14px', marginBottom: '24px'}}>Start by inviting your first team member!</p>
                   <button
@@ -595,7 +592,6 @@ export default function Team() {
             <div style={{padding: '24px'}}>
               {invitations.length === 0 ? (
                 <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
-                  <div style={{fontSize: '64px', marginBottom: '16px'}}>✉️</div>
                   <p style={{fontSize: '18px', marginBottom: '8px', fontWeight: 600}}>No pending invitations</p>
                   <p style={{fontSize: '14px', marginBottom: '24px'}}>Invite team members to join your organization</p>
                   <button
@@ -625,16 +621,16 @@ export default function Team() {
                               {invitation.email}
                             </span>
                             <span className="badge badge-primary" style={{opacity: invitation.role === 'admin' ? 1 : 0.6}}>
-                              {invitation.role === 'admin' ? '👑 Admin' : '👤 User'}
+                              {invitation.role === 'admin' ? 'Admin' : 'User'}
                             </span>
                             {invitation.emailSent && (
                               <span className="badge badge-success" style={{fontSize: '10px'}}>
-                                ✓ Email Sent
+                                Email Sent
                               </span>
                             )}
                             {invitation.emailSent === false && (
                               <span className="badge badge-danger" style={{fontSize: '10px'}}>
-                                ✗ Email Failed
+                                Email Failed
                               </span>
                             )}
                           </div>
@@ -685,7 +681,6 @@ export default function Team() {
             <div style={{padding: '24px'}}>
               {activityStats.length === 0 ? (
                 <div style={{textAlign: 'center', padding: '60px 20px', color: 'var(--text-muted)'}}>
-                  <div style={{fontSize: '64px', marginBottom: '16px'}}>📊</div>
                   <p style={{fontSize: '18px'}}>No activity data yet</p>
                 </div>
               ) : (
@@ -765,7 +760,7 @@ export default function Team() {
         <div className="modal-overlay">
           <div className="modal-content">
             <h2 style={{fontSize: '24px', fontWeight: 700, marginBottom: '8px', color: 'var(--text-primary)'}}>
-              ✉️ Invite New Team Member
+              Invite New Team Member
             </h2>
             <p style={{fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '24px'}}>
               Send an invitation email to add someone to your organization
@@ -800,8 +795,8 @@ export default function Team() {
                   className="form-select"
                   style={{fontSize: '15px', padding: '12px 16px'}}
                 >
-                  <option value="user">👤 User - Can view and add data</option>
-                  <option value="admin">👑 Admin - Full access + team management</option>
+                  <option value="user">User - Can view and add data</option>
+                  <option value="admin">Admin - Full access + team management</option>
                 </select>
               </div>
 
@@ -815,12 +810,12 @@ export default function Team() {
                   marginBottom: '20px',
                   border: '1px solid var(--badge-danger-text)'
                 }}>
-                  ⚠️ {inviteError}
+                  {inviteError}
                 </div>
               )}
 
               <div className="info-box" style={{marginBottom: '24px'}}>
-                <p style={{fontWeight: 600, marginBottom: '8px', fontSize: '13px'}}>📧 How invitations work:</p>
+                <p style={{fontWeight: 600, marginBottom: '8px', fontSize: '13px'}}>How invitations work:</p>
                 <ul style={{fontSize: '13px', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
                   <li>An email will be sent to the invitee with a signup link</li>
                   <li>They must use the exact email address you entered</li>

@@ -328,7 +328,6 @@ export default function Activities() {
           <div style={{marginBottom:'24px',border:'1px solid rgba(200,162,88,0.4)',borderRadius:'10px',background:'rgba(200,162,88,0.08)',overflow:'hidden'}}>
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 20px',cursor:'pointer',userSelect:'none'}} onClick={()=>setFollowUpBannerOpen(p=>!p)}>
               <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
-                <span style={{fontSize:'16px'}}>⏰</span>
                 <span style={{fontWeight:700,fontSize:'14px',color:'#C8A258'}}>Follow-Ups Due</span>
                 <span style={{background:'#C8A258',color:'#0F2137',borderRadius:'12px',padding:'2px 8px',fontSize:'12px',fontWeight:700}}>{dueSoon.length}</span>
               </div>
@@ -366,7 +365,7 @@ export default function Activities() {
 
         <div className="card">
           <div className="card-header">
-            <span>📝 {editingActivity?'Edit Activity':'New Activity'}</span>
+            <span>{editingActivity?'Edit Activity':'New Activity'}</span>
             {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});}}>Cancel Edit</button>}
           </div>
           <form onSubmit={handleActivitySubmit}>
@@ -480,10 +479,10 @@ export default function Activities() {
         {/* Activity History - Export buttons IN the card header */}
         <div className="card" style={{marginTop:'24px'}}>
           <div className="card-header">
-            <span>📊 Activity History ({filteredActivities.length < activities.length ? `${filteredActivities.length} of ${activities.length}` : activities.length})</span>
+            <span>Activity History ({filteredActivities.length < activities.length ? `${filteredActivities.length} of ${activities.length}` : activities.length})</span>
             <div style={{display:'flex',gap:'10px'}}>
               {selectedIds.size > 0 && (
-                <button onClick={handleBulkDelete} className="btn btn-danger">🗑️ Delete {selectedIds.size} Selected</button>
+                <button onClick={handleBulkDelete} className="btn btn-danger">Delete {selectedIds.size} Selected</button>
               )}
               <button onClick={handleExportCSV} className="btn btn-secondary">Export CSV</button>
               {canExport('excel', orgPlan) ? (
@@ -587,7 +586,7 @@ export default function Activities() {
                           </span>
                         ) : '-'}
                       </td>
-                      <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete">🗑️</button></div></td>
+                      <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/><path d="M10 11v6M14 11v6"/></svg></button></div></td>
                     </tr>
                   ))
                 )}
@@ -611,7 +610,6 @@ export default function Activities() {
       {/* Toast notification */}
       {toastMsg && (
         <div style={{position:'fixed',top:'20px',right:'20px',zIndex:10000,background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'10px',padding:'12px 20px',boxShadow:'0 8px 32px rgba(0,0,0,0.3)',fontSize:'14px',fontWeight:600,color:'var(--text-primary)',display:'flex',alignItems:'center',gap:'10px',maxWidth:'320px'}}>
-          <span style={{fontSize:'16px'}}>ℹ️</span>
           {toastMsg}
           <button onClick={()=>setToastMsg('')} style={{marginLeft:'auto',background:'none',border:'none',cursor:'pointer',color:'var(--text-muted)',fontSize:'18px',lineHeight:1,padding:'0 4px'}}>×</button>
         </div>
@@ -621,7 +619,6 @@ export default function Activities() {
       {deleteConfirm && (
         <div style={{position:'fixed',inset:0,zIndex:10001,background:'rgba(0,0,0,0.6)',display:'flex',alignItems:'center',justifyContent:'center'}} onClick={()=>setDeleteConfirm(null)}>
           <div style={{background:'var(--card-bg)',border:'1px solid var(--border)',borderRadius:'14px',padding:'32px',maxWidth:'380px',width:'90%',boxShadow:'0 16px 48px rgba(0,0,0,0.4)'}} onClick={e=>e.stopPropagation()}>
-            <div style={{fontSize:'32px',textAlign:'center',marginBottom:'16px'}}>🗑️</div>
             <div style={{fontSize:'18px',fontWeight:700,color:'var(--text-primary)',textAlign:'center',marginBottom:'8px'}}>Confirm Delete</div>
             <div style={{fontSize:'14px',color:'var(--text-secondary)',textAlign:'center',marginBottom:'28px'}}>
               {deleteConfirm.bulk
