@@ -47,19 +47,18 @@ function fmtPct(n) {
   return `${n.toFixed(1)}%`;
 }
 
-// Activities are counted as EXECUTED strictly. Everything else (ENQUIRY,
-// QUOTED, PASSED, TRADED AWAY) counts as an inquiry for the conversion-rate
-// denominator. This mirrors how the sales desk talks about it.
+// Desk vocabulary: an "enquiry" is any inbound client interest, including
+// ones that went on to execute. Conversion rate is executed / enquiries.
+// Total Trades Volume is the executed-only notional.
 function computeMetrics(activities) {
   const executed = activities.filter(a => (a.status || '').toUpperCase() === 'EXECUTED');
-  const inquiries = activities.filter(a => (a.status || '').toUpperCase() !== 'EXECUTED');
 
   const execVolume = executed.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
-  const inqVolume  = inquiries.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
+  const enquiryCount = activities.length;
+  const enquiryVolume = activities.reduce((s, a) => s + (parseFloat(a.size) || 0), 0);
 
   const activeClients = new Set(activities.map(a => (a.clientName || '').trim()).filter(Boolean)).size;
-  const totalDenom = executed.length + inquiries.length;
-  const conversion = totalDenom > 0 ? (executed.length / totalDenom) * 100 : 0;
+  const conversion = enquiryCount > 0 ? (executed.length / enquiryCount) * 100 : 0;
   const avgTicket = executed.length > 0 ? execVolume / executed.length : 0;
 
   // Direction: counts + executed-volume per BUY/SELL/TWO-WAY
@@ -103,8 +102,8 @@ function computeMetrics(activities) {
   return {
     totalExecVolume: execVolume,
     executedCount: executed.length,
-    inquiryCount: inquiries.length,
-    inquiryVolume: inqVolume,
+    enquiryCount,
+    enquiryVolume,
     activeClients,
     conversion,
     avgTicket,
@@ -308,9 +307,9 @@ export default function Dashboard() {
           <>
             <div className="stat-row">
               <StatCard label="Total Trades Volume" value={fmtMM(m.totalExecVolume)} sub={`${fmtInt(m.executedCount)} executed · ${rangeLabel}`} />
-              <StatCard label="Enquiries" value={fmtInt(m.inquiryCount)} sub={`${fmtMM(m.inquiryVolume)} notional`} />
+              <StatCard label="Enquiries" value={fmtInt(m.enquiryCount)} sub={`${fmtMM(m.enquiryVolume)} notional · incl. executed`} />
               <StatCard label="Active Clients" value={fmtInt(m.activeClients)} sub={rangeLabel} />
-              <StatCard label="Conversion Rate" value={fmtPct(m.conversion)} sub="executed / all activities" />
+              <StatCard label="Conversion Rate" value={fmtPct(m.conversion)} sub="executed / enquiries" />
               <StatCard label="Average Ticket Size" value={fmtMM(m.avgTicket)} sub="per executed trade" />
             </div>
 
