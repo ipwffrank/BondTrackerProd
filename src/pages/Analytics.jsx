@@ -641,7 +641,7 @@ export default function Analytics() {
 
   const statCards = [
     {value:stats.totalActivities, label:'Total Activities', type:'stat-activities'},
-    {value:`$${stats.totalVolume}MM`, label:'Total Trades Volume', type:'stat-volume'},
+    {value:`$${stats.totalVolume}MM`, label:'Total Notional', type:'stat-volume'},
     {value:stats.totalClients, label:'Active Clients', type:'stat-clients'},
     {value:stats.executedCount, label:'Executed Trades', type:'stat-executed'},
     {value:`$${stats.executedVolume}MM`, label:'Executed Volume', type:'stat-exec-volume'},
