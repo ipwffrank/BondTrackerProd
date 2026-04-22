@@ -111,7 +111,14 @@ export default function Activities() {
     setSubmitLoading(true);
     try{
       const isTwoWay = activityForm.direction === 'TWO-WAY';
-      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:sc?.salesCoverage||'',activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,followUpDate:activityForm.followUpDate||null,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+      // coverageUsers is the denormalized list of sales people who "own" this
+      // activity for scope-filtering in the dashboard and (V2) Firestore rule
+      // enforcement. We keep salesCoverage as a string for display and also
+      // mirror the backup on salesCoverageSecondary for legibility.
+      const primary = (sc?.salesCoverage || '').trim();
+      const secondary = (sc?.salesCoverageSecondary || '').trim();
+      const coverageUsers = [primary, secondary].filter(Boolean);
+      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:primary,salesCoverageSecondary:secondary,coverageUsers,activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,followUpDate:activityForm.followUpDate||null,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
       else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
       setFormError('');

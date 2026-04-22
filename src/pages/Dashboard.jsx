@@ -238,13 +238,20 @@ export default function Dashboard() {
   // Scope: admins see everything; non-admin sales see only activities for
   // clients where they are the named coverage in the Clients Mapping. Writes
   // are not scoped — a salesperson can still enter activities on anyone.
+  // Sales coverage for this user — primary OR backup. When a primary is out
+  // the backup takes over, so the dashboard should already reflect that
+  // permission.
   const scopedActivities = useMemo(() => {
     if (isAdmin) return activities;
     const myName = (userData?.name || '').trim().toLowerCase();
     if (!myName) return [];
     const mine = new Set(
       clients
-        .filter(c => (c.salesCoverage || '').trim().toLowerCase() === myName)
+        .filter(c => {
+          const p = (c.salesCoverage || '').trim().toLowerCase();
+          const s = (c.salesCoverageSecondary || '').trim().toLowerCase();
+          return p === myName || s === myName;
+        })
         .map(c => (c.name || '').trim().toLowerCase())
     );
     if (mine.size === 0) return [];
@@ -256,7 +263,11 @@ export default function Dashboard() {
   const myCoveredCount = useMemo(() => {
     if (isAdmin) return null;
     const myName = (userData?.name || '').trim().toLowerCase();
-    return clients.filter(c => (c.salesCoverage || '').trim().toLowerCase() === myName).length;
+    return clients.filter(c => {
+      const p = (c.salesCoverage || '').trim().toLowerCase();
+      const s = (c.salesCoverageSecondary || '').trim().toLowerCase();
+      return p === myName || s === myName;
+    }).length;
   }, [clients, isAdmin, userData?.name]);
 
   return (

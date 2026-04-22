@@ -278,6 +278,7 @@ export default function AIAssistant() {
           type: form.type,
           region: form.region,
           salesCoverage: form.salesCoverage || '',
+          salesCoverageSecondary: form.salesCoverageSecondary || '',
           createdAt: serverTimestamp(),
           createdBy: userData.name || userData.email
         });
@@ -294,11 +295,16 @@ export default function AIAssistant() {
         const clientName = clientMappings[rawName] || rawName;
         const clientData = registeredClients[clientName] || existingClientMap[clientName] || registeredClients[rawName] || {};
         const isTwoWay = activity.direction === 'TWO-WAY';
+        const primary = (clientData.salesCoverage || '').trim();
+        const secondary = (clientData.salesCoverageSecondary || '').trim();
+        const coverageUsers = [primary, secondary].filter(Boolean);
         await addDoc(activitiesRef, {
           clientName,
           clientType: clientData.type || '',
           clientRegion: clientData.region || '',
-          salesCoverage: clientData.salesCoverage || '',
+          salesCoverage: primary,
+          salesCoverageSecondary: secondary,
+          coverageUsers,
           activityType: analysisFileName && /\.(png|jpe?g)$/i.test(analysisFileName) ? 'Chat Screenshot' : 'Bloomberg Chat',
           isin: activity.isin || '',
           ticker: activity.ticker || '',

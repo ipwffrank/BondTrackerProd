@@ -10,7 +10,7 @@ import { findSimilarClients } from '../utils/clientDedup';
 
 export default function Clients() {
   const { userData, isAdmin, currentUser, orgPlan } = useAuth();
-  const [clientForm, setClientForm] = useState({ name:'',type:'FUND',region:'APAC',salesCoverage:'' });
+  const [clientForm, setClientForm] = useState({ name:'',type:'FUND',region:'APAC',salesCoverage:'',salesCoverageSecondary:'' });
   const [clients, setClients] = useState([]);
   const [editingClient, setEditingClient] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,7 +22,7 @@ export default function Clients() {
   const [clientSearch, setClientSearch] = useState('');
   const [filterType, setFilterType] = useState('');
   const [filterRegion, setFilterRegion] = useState('');
-  const [clientColFilters, setClientColFilters] = useState({ name:'', type:'', region:'', salesCoverage:'', createdBy:'' });
+  const [clientColFilters, setClientColFilters] = useState({ name:'', type:'', region:'', salesCoverage:'', salesCoverageSecondary:'', createdBy:'' });
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [dedupMatches, setDedupMatches] = useState([]);
   const [showDedupModal, setShowDedupModal] = useState(false);
@@ -54,7 +54,7 @@ export default function Clients() {
       }
       return;
     }
-    const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+    const data={name:clientForm.name,type:clientForm.type,region:clientForm.region,salesCoverage:clientForm.salesCoverage,salesCoverageSecondary:clientForm.salesCoverageSecondary,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
 
     // Check for similar clients
     const similar = findSimilarClients(clientForm.name, clients);
@@ -73,7 +73,7 @@ export default function Clients() {
     try {
       await addDoc(collection(db,`organizations/${userData.organizationId}/clients`),data);
       setFormError('');
-      setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
+      setClientForm({name:'',type:'FUND',region:'APAC',salesCoverage:'',salesCoverageSecondary:''});
     }catch(e){ console.error(e); alert('Failed to save client'); }finally{ setSubmitLoading(false); }
   }
 
@@ -102,10 +102,10 @@ export default function Clients() {
   }
 
   const [showEditModal, setShowEditModal] = useState(false);
-  const [editForm, setEditForm] = useState({name:'',type:'FUND',region:'APAC',salesCoverage:''});
+  const [editForm, setEditForm] = useState({name:'',type:'FUND',region:'APAC',salesCoverage:'',salesCoverageSecondary:''});
 
   function handleEditClient(c) {
-    setEditForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||''});
+    setEditForm({name:c.name,type:c.type,region:c.region,salesCoverage:c.salesCoverage||'',salesCoverageSecondary:c.salesCoverageSecondary||''});
     setEditingClient(c.id);
     setShowEditModal(true);
   }
@@ -113,7 +113,7 @@ export default function Clients() {
   function cancelEditClient() {
     setEditingClient(null);
     setShowEditModal(false);
-    setEditForm({name:'',type:'FUND',region:'APAC',salesCoverage:''});
+    setEditForm({name:'',type:'FUND',region:'APAC',salesCoverage:'',salesCoverageSecondary:''});
   }
 
   async function handleEditClientSubmit(e) {
@@ -126,7 +126,7 @@ export default function Clients() {
     setSubmitLoading(true);
     try {
       await updateDoc(doc(db,`organizations/${userData.organizationId}/clients`,editingClient),{
-        name:editForm.name,type:editForm.type,region:editForm.region,salesCoverage:editForm.salesCoverage,
+        name:editForm.name,type:editForm.type,region:editForm.region,salesCoverage:editForm.salesCoverage,salesCoverageSecondary:editForm.salesCoverageSecondary,
       });
       cancelEditClient();
       setFormError('');
@@ -199,6 +199,7 @@ export default function Clients() {
           type: VALID_TYPES.includes((cols[1] || '').toUpperCase()) ? cols[1].toUpperCase() : 'FUND',
           region: VALID_REGIONS.includes((cols[2] || '').toUpperCase()) ? cols[2].toUpperCase() : 'APAC',
           salesCoverage: cols[3] || '',
+          salesCoverageSecondary: cols[4] || '',
         };
       }).filter(r => r.name);
 
@@ -225,7 +226,8 @@ export default function Clients() {
 
       for (const row of toAdd) {
         await addDoc(collection(db, `organizations/${userData.organizationId}/clients`), {
-          name: row.name, type: row.type, region: row.region, salesCoverage: row.salesCoverage,
+          name: row.name, type: row.type, region: row.region,
+          salesCoverage: row.salesCoverage, salesCoverageSecondary: row.salesCoverageSecondary,
           createdAt: serverTimestamp(), createdBy: userData.name || userData.email,
         });
       }
@@ -249,7 +251,10 @@ export default function Clients() {
     if (filterRegion && c.region !== filterRegion) return false;
     if (clientSearch) {
       const q = clientSearch.toLowerCase();
-      if (!(c.name?.toLowerCase().includes(q) || c.salesCoverage?.toLowerCase().includes(q) || c.createdBy?.toLowerCase().includes(q))) return false;
+      if (!(c.name?.toLowerCase().includes(q)
+         || c.salesCoverage?.toLowerCase().includes(q)
+         || c.salesCoverageSecondary?.toLowerCase().includes(q)
+         || c.createdBy?.toLowerCase().includes(q))) return false;
     }
     if (hasClientColFilters) {
       const f = clientColFilters;
@@ -257,6 +262,7 @@ export default function Clients() {
       if (f.type && !(c.type || '').toLowerCase().includes(f.type.toLowerCase())) return false;
       if (f.region && !(c.region || '').toLowerCase().includes(f.region.toLowerCase())) return false;
       if (f.salesCoverage && !(c.salesCoverage || '').toLowerCase().includes(f.salesCoverage.toLowerCase())) return false;
+      if (f.salesCoverageSecondary && !(c.salesCoverageSecondary || '').toLowerCase().includes(f.salesCoverageSecondary.toLowerCase())) return false;
       if (f.createdBy && !(c.createdBy || '').toLowerCase().includes(f.createdBy.toLowerCase())) return false;
     }
     return true;
@@ -265,8 +271,8 @@ export default function Clients() {
   // Export functions
   function handleExportCSV() {
     if(clients.length===0){ alert('No clients to export!'); return; }
-    const cols = ['Name','Type','Region','Sales Coverage','Created By'];
-    const rows = clients.map(c => [c.name,c.type,c.region,c.salesCoverage||'',c.createdBy||''].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
+    const cols = ['Name','Type','Region','Primary Coverage','Backup Coverage','Created By'];
+    const rows = clients.map(c => [c.name,c.type,c.region,c.salesCoverage||'',c.salesCoverageSecondary||'',c.createdBy||''].map(v => `"${String(v).replace(/"/g,'""')}"`).join(','));
     const csv = [cols.join(','), ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -281,7 +287,8 @@ export default function Clients() {
       {header:'Name',field:'name'},
       {header:'Type',field:'type'},
       {header:'Region',field:'region'},
-      {header:'Sales Coverage',field:'salesCoverage'},
+      {header:'Primary Coverage',field:'salesCoverage'},
+      {header:'Backup Coverage',field:'salesCoverageSecondary'},
       {header:'Created By',field:'createdBy'}
     ],'clients-export','Clients');
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_clients_excel',details:`Exported ${clients.length} clients to Excel`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
@@ -293,7 +300,8 @@ export default function Clients() {
       {header:'Name',field:'name'},
       {header:'Type',field:'type'},
       {header:'Region',field:'region'},
-      {header:'Sales Coverage',field:'salesCoverage'},
+      {header:'Primary Coverage',field:'salesCoverage'},
+      {header:'Backup Coverage',field:'salesCoverageSecondary'},
       {header:'Created By',field:'createdBy'}
     ],'clients-export','Client Directory');
     if(userData?.organizationId) logAudit(userData.organizationId,{action:'export_clients_pdf',details:`Exported ${clients.length} clients to PDF`,userId:currentUser?.uid,userName:userData?.name,userEmail:userData?.email});
@@ -350,9 +358,16 @@ export default function Clients() {
                   </select>
                 </div>
                 <div className="field-group">
-                  <label className="form-label">Sales Coverage</label>
+                  <label className="form-label">Primary Coverage</label>
                   <input type="text" className="form-input" placeholder="e.g., John Doe" value={clientForm.salesCoverage} onChange={e=>setClientForm({...clientForm,salesCoverage:e.target.value})}/>
                 </div>
+              </div>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Backup Coverage</label>
+                  <input type="text" className="form-input" placeholder="Covers when primary is out" value={clientForm.salesCoverageSecondary} onChange={e=>setClientForm({...clientForm,salesCoverageSecondary:e.target.value})}/>
+                </div>
+                <div className="field-group">{/* spacer */}</div>
               </div>
             </div>
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
@@ -439,17 +454,17 @@ export default function Clients() {
           <div className="table-container">
             <table className="table">
               <thead>
-                <tr>{isAdmin && <th style={{width:'40px'}}><input type="checkbox" checked={filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>}<th>Name</th><th>Type</th><th>Region</th><th>Sales Coverage</th><th>Created By</th><th>Actions</th></tr>
+                <tr>{isAdmin && <th style={{width:'40px'}}><input type="checkbox" checked={filteredClients.length > 0 && filteredClients.every(c => selectedIds.has(c.id))} onChange={toggleSelectAll} style={{width:'16px',height:'16px',cursor:'pointer'}}/></th>}<th>Name</th><th>Type</th><th>Region</th><th>Primary Coverage</th><th>Backup Coverage</th><th>Created By</th><th>Actions</th></tr>
                 <tr style={{background:'var(--table-header-bg)'}}>
                   {isAdmin && <th></th>}
-                  {['name','type','region','salesCoverage','createdBy'].map(k=>(
+                  {['name','type','region','salesCoverage','salesCoverageSecondary','createdBy'].map(k=>(
                     <th key={k}><input type="text" className="form-input" placeholder="Filter..." value={clientColFilters[k]} onChange={e=>setClientColFilters({...clientColFilters,[k]:e.target.value})} style={{fontSize:'11px',padding:'4px 8px',width:'100%'}}/></th>
                   ))}
-                  <th>{hasClientColFilters&&<button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setClientColFilters({name:'',type:'',region:'',salesCoverage:'',createdBy:''})}>Clear</button>}</th>
+                  <th>{hasClientColFilters&&<button className="btn btn-secondary" style={{padding:'4px 10px',fontSize:'11px'}} onClick={()=>setClientColFilters({name:'',type:'',region:'',salesCoverage:'',salesCoverageSecondary:'',createdBy:''})}>Clear</button>}</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredClients.length===0?(<tr><td colSpan={isAdmin ? 7 : 6} style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(
+                {filteredClients.length===0?(<tr><td colSpan={isAdmin ? 8 : 7} style={{textAlign:'center',padding:'40px',color:'var(--text-muted)'}}>{clients.length===0?'No clients yet. Add your first client above!':'No clients match your filters.'}</td></tr>):(
                   filteredClients.map(c=>(
                     <tr key={c.id} style={selectedIds.has(c.id) ? {background:'var(--accent-glow)'} : undefined}>
                       {isAdmin && <td><input type="checkbox" checked={selectedIds.has(c.id)} onChange={()=>toggleSelect(c.id)} style={{width:'16px',height:'16px',cursor:'pointer'}}/></td>}
@@ -457,6 +472,7 @@ export default function Clients() {
                       <td><span className="badge badge-primary">{c.type}</span></td>
                       <td><span className="badge badge-success">{c.region}</span></td>
                       <td>{c.salesCoverage||'-'}</td>
+                      <td>{c.salesCoverageSecondary ? <span style={{color:'var(--text-secondary)'}}>{c.salesCoverageSecondary}</span> : <span style={{color:'var(--text-muted)'}}>-</span>}</td>
                       <td>{c.createdBy}</td>
                       <td>
                         <div style={{display:'flex',gap:'8px',alignItems:'center'}}>
@@ -512,9 +528,15 @@ export default function Clients() {
                       </select>
                     </div>
                   </div>
-                  <div className="field-group">
-                    <label className="form-label">Sales Coverage</label>
-                    <input type="text" className="form-input" value={editForm.salesCoverage} onChange={e=>setEditForm({...editForm,salesCoverage:e.target.value})}/>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'12px'}}>
+                    <div className="field-group">
+                      <label className="form-label">Primary Coverage</label>
+                      <input type="text" className="form-input" value={editForm.salesCoverage} onChange={e=>setEditForm({...editForm,salesCoverage:e.target.value})}/>
+                    </div>
+                    <div className="field-group">
+                      <label className="form-label">Backup Coverage</label>
+                      <input type="text" className="form-input" placeholder="Covers when primary is out" value={editForm.salesCoverageSecondary} onChange={e=>setEditForm({...editForm,salesCoverageSecondary:e.target.value})}/>
+                    </div>
                   </div>
                 </div>
                 {formError && showEditModal && <div className="form-error-banner" style={{marginTop:'12px'}}>{formError}</div>}
@@ -568,9 +590,9 @@ export default function Clients() {
 
         <div style={{marginTop:'16px',padding:'16px',background:'var(--badge-primary-bg)',borderRadius:'8px',border:'1px solid var(--badge-primary-text)'}}>
           <h4 style={{fontSize:'14px',fontWeight:600,marginBottom:'8px',color:'var(--badge-primary-text)'}}>CSV Bulk Upload Format</h4>
-          <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, salesCoverage</strong> (header row optional)</p>
+          <p style={{fontSize:'13px',color:'var(--text-primary)',lineHeight:1.6,margin:'0 0 6px'}}>Columns: <strong>name, type, region, primaryCoverage, backupCoverage</strong> (header row optional, last column optional)</p>
           <p style={{fontSize:'12px',color:'var(--text-muted)',margin:'0 0 4px'}}>Valid types: FUND, HEDGE FUND, BANK, CENTRAL BANK, INSURANCE, PENSION, SOVEREIGN, CORPORATE, PRIVATE BANK, FAMILY OFFICE</p>
-          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>Valid regions: APAC, EMEA, AMERICAS · Example row: <em>Temasek Holdings,FUND,APAC,Jane Doe</em></p>
+          <p style={{fontSize:'12px',color:'var(--text-muted)',margin:0}}>Valid regions: APAC, EMEA, AMERICAS · Example row: <em>Temasek Holdings,FUND,APAC,Jane Doe,John Smith</em></p>
         </div>
       </main>
       <style jsx>{`
