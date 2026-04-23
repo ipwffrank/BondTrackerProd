@@ -242,7 +242,7 @@ export default function Contacts() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">Contacts</h1>
+            <h1 className="page-title">Client Contacts</h1>
             <p className="page-description">Relationship managers by client institution</p>
           </div>
         </div>

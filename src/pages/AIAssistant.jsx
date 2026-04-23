@@ -403,7 +403,7 @@ export default function AIAssistant() {
       <Navigation />
       <main className="main-content">
         <div className="page-header">
-          <h1 className="page-title"> AI Assistant</h1>
+          <h1 className="page-title">AI Script Reader</h1>
           <p className="page-description">Analyze chat transcripts and automatically extract trading activities</p>
         </div>
 

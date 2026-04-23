@@ -327,7 +327,7 @@ export default function Activities() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">Activity Log</h1>
+            <h1 className="page-title">Trade Activities</h1>
             <p className="page-description">Track client interactions and bond trading activities</p>
           </div>
           <div className="stats-summary">

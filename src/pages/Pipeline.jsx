@@ -796,7 +796,7 @@ export default function Pipeline() {
       <main className="main-content">
         <div className="page-header">
           <div>
-            <h1 className="page-title">Pipeline</h1>
+            <h1 className="page-title">New Issue Pipeline</h1>
             <p className="page-description">Manage new bond issues and order books</p>
           </div>
         </div>
