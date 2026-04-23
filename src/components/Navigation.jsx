@@ -77,13 +77,15 @@ export default function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
   const { userData, orgPlan } = useAuth();
-  const [theme, setTheme] = useState('dark');
+  const [theme, setTheme] = useState(() => {
+    try { return localStorage.getItem('axle-theme') || 'light'; } catch (_) { return 'light'; }
+  });
   const [collapsed, setCollapsed] = useState(
     () => localStorage.getItem('sidebarCollapsed') === 'true'
   );
 
   useEffect(() => {
-    const savedTheme = localStorage.getItem('axle-theme') || 'dark';
+    const savedTheme = localStorage.getItem('axle-theme') || 'light';
     setTheme(savedTheme);
     document.documentElement.setAttribute('data-theme', savedTheme);
   }, []);

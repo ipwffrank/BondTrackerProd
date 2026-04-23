@@ -3,6 +3,18 @@ import { createRoot } from 'react-dom/client'
 import './styles/globals.css'
 import App from './App.jsx'
 
+// Apply the theme attribute BEFORE React renders, so a light-mode user
+// never sees a dark flash (and vice versa). Default is light; users can
+// toggle via the sidebar and the choice persists in localStorage.
+;(function () {
+  try {
+    const saved = localStorage.getItem('axle-theme');
+    document.documentElement.setAttribute('data-theme', saved || 'light');
+  } catch (_) {
+    document.documentElement.setAttribute('data-theme', 'light');
+  }
+})();
+
 // Redirect Firebase auth action params to /auth-action before React mounts.
 // Handles multiple URL formats Firebase may use for password reset emails.
 ;(function () {
