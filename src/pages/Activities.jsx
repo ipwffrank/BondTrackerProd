@@ -524,7 +524,7 @@ export default function Activities() {
                 <div className="field-group">
                   <label className="form-label">Ticker</label>
                   <input type="text" className="form-input" placeholder="e.g., AAPL" value={activityForm.ticker} onChange={e=>setActivityForm({...activityForm,ticker:e.target.value.toUpperCase()})}/>
-                  <div className="form-hint">Enter ISIN or Ticker — the other side and the currency auto-fill via OpenFIGI</div>
+                  <div className="form-hint">Enter ISIN → ticker + currency auto-fill. Ticker → name + currency auto-fill (ISIN not provided by OpenFIGI's free tier).</div>
                   {bondLookupLoading&&<div style={{fontSize:'11px',color:'var(--accent)',marginTop:'4px',display:'flex',alignItems:'center',gap:'6px'}}><span className="spinner" style={{width:'10px',height:'10px'}}></span>Looking up bond details...</div>}
                 </div>
               </div>

@@ -15,10 +15,9 @@ async function lookupViaOpenFIGI(identifier, identifierType) {
 
   const query = { idType: identifierType, idValue: identifier };
 
-  // Filter ticker lookups to corporate bonds only
-  if (identifierType === 'TICKER') {
-    query.marketSecDes = 'Corp';
-  }
+  // No marketSecDes filter: bond desks trade across sectors (Corp, Govt,
+  // Muni, Supra). An earlier version filtered ticker lookups to "Corp"
+  // which silently dropped sovereigns like ROMANI 6.5 10/07/45 REGS.
 
   const response = await fetch('https://api.openfigi.com/v3/mapping', {
     method: 'POST',
