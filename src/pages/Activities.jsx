@@ -529,19 +529,6 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
-                  <label className="form-label">Credit Rating</label>
-                  <select className="form-select" value={activityForm.creditRating} onChange={e=>setActivityForm({...activityForm,creditRating:e.target.value})}>
-                    <option value="">— select —</option>
-                    <option value="IG">IG (Investment Grade)</option>
-                    <option value="HY">HY (High Yield)</option>
-                    <option value="NR">NR (Non-Rated)</option>
-                  </select>
-                  <div className="form-hint">OpenFIGI does not return ratings; select manually.</div>
-                </div>
-                <div className="field-group">{/* spacer */}</div>
-              </div>
-              <div className="field-row">
-                <div className="field-group">
                   <label className="form-label">Size (MM) *{editingActivity && !isAdmin ? ' (admin only)' : ''}</label>
                   <input type="number" step="0.01" className="form-input" placeholder="e.g., 50" value={activityForm.size} onChange={e=>setActivityForm({...activityForm,size:e.target.value})} disabled={editingActivity && !isAdmin} title={editingActivity && !isAdmin ? 'Only admins can edit size' : ''}/>
                 </div>
@@ -593,6 +580,15 @@ export default function Activities() {
               </div>
               <div className="field-row">
                 <div className="field-group">
+                  <label className="form-label">Credit Rating</label>
+                  <select className="form-select" value={activityForm.creditRating} onChange={e=>setActivityForm({...activityForm,creditRating:e.target.value})}>
+                    <option value="">— select —</option>
+                    <option value="IG">IG (Investment Grade)</option>
+                    <option value="HY">HY (High Yield)</option>
+                    <option value="NR">NR (Non-Rated)</option>
+                  </select>
+                </div>
+                <div className="field-group">
                   <label className="form-label">Follow-Up Date</label>
                   <input
                     type="date"
@@ -600,9 +596,7 @@ export default function Activities() {
                     value={activityForm.followUpDate}
                     onChange={e=>setActivityForm(p=>({...p,followUpDate:e.target.value}))}
                   />
-                  <div className="form-hint">Set a reminder date for follow-up with this client</div>
                 </div>
-                <div className="field-group"/>
               </div>
             </div>
             <div style={{padding:'20px 24px',borderTop:'1px solid var(--border)'}}>
@@ -792,12 +786,14 @@ export default function Activities() {
         .stat-label{font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;}
         .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
         .card-header{font-size:17px;font-weight:700;color:var(--text-primary);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-        .form-grid{padding:24px;}
-        .field-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+        /* Tighter form density — labels in Dashboard tone (uppercase 11px),
+           reduced padding + row gaps so the form fits more in a screen. */
+        .form-grid{padding:16px 18px 14px;}
+        .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;}
         .field-group{display:flex;flex-direction:column;}
-        .form-label{display:block;font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:5px;}
-        .form-hint{font-size:11.5px;color:var(--text-muted);margin-top:4px;}
-        .form-input,.form-select,.form-textarea{width:100%;padding:10px 14px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;transition:all 0.2s ease;font-family:inherit;}
+        .form-label{display:block;font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:4px;}
+        .form-hint{font-size:10.5px;color:var(--text-muted);margin-top:3px;line-height:1.35;}
+        .form-input,.form-select,.form-textarea{width:100%;padding:7px 10px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:7px;color:var(--text-primary);font-size:13px;transition:all 0.2s ease;font-family:inherit;}
         .form-input:focus,.form-select:focus,.form-textarea:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);box-shadow:0 0 0 3px var(--accent-glow);}
         .form-textarea{resize:vertical;}
         .auto-filled-info{font-size:11px;color:var(--autofill-text);background:var(--autofill-bg);padding:6px 10px;border-radius:6px;margin-top:6px;border:1px solid var(--autofill-border);}

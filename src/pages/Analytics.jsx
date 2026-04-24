@@ -1023,11 +1023,16 @@ export default function Analytics() {
         .page-title{font-size:32px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
         .page-description{font-size:16px;color:var(--text-secondary);}
         .stat-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;}
-        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:left;box-shadow:var(--shadow);position:relative;min-width:0;overflow:hidden;}
+        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:left;position:relative;min-width:0;overflow:hidden;}
         .stat-label{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;line-height:1.3;margin-bottom:8px;}
         .stat-value{font-size:22px;font-weight:700;color:var(--text-primary);line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
         @media (max-width: 1200px){ .stat-row{ grid-template-columns: repeat(4, 1fr); } }
         @media (max-width: 760px){ .stat-row{ grid-template-columns: repeat(2, 1fr); } }
+        /* View-mode toggle styled like the Dashboard time-range pill group */
+        .view-toggle{display:inline-flex;background:var(--card-bg);border:1px solid var(--border);border-radius:10px;padding:4px;gap:2px;}
+        .view-toggle-btn{background:none;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:var(--text-secondary);border-radius:7px;cursor:pointer;font-family:inherit;transition:background 0.15s,color 0.15s;}
+        .view-toggle-btn:hover{color:var(--text-primary);}
+        .view-toggle-btn.active{background:rgba(200,162,88,0.15);color:#C8A258;}
         .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
         .card-header{font-size:17px;font-weight:700;color:var(--text-primary);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
         .breakdown-box{text-align:center;padding:16px;border-radius:8px;}
