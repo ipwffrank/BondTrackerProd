@@ -31,6 +31,7 @@ export default function Activities() {
   const [toastMsg, setToastMsg] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState(null); // { id, label } or { bulk: true, count: N }
   const [followUpBannerOpen, setFollowUpBannerOpen] = useState(true);
+  const [checkingOffIds, setCheckingOffIds] = useState(() => new Set());
   const toastTimerRef = useRef(null);
 
   function showToast(msg) {
@@ -311,13 +312,17 @@ export default function Activities() {
   today.setHours(0,0,0,0);
   const dueSoon = activities.filter(a => {
     if (!a.followUpDate) return false;
-    if (a.followUpCompletedAt) return false; // already checked off
+    if (a.followUpCompletedAt) return false; // already checked off server-side
     const d = new Date(a.followUpDate);
     d.setHours(0,0,0,0);
     return d <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
   }).sort((a,b)=>new Date(a.followUpDate)-new Date(b.followUpDate));
 
+  // Optimistic: as soon as the user clicks, mark the row locally so the
+  // checkbox fills and the text strikes through immediately, before the
+  // snapshot round-trip removes the row from the banner.
   async function markFollowUpDone(id) {
+    setCheckingOffIds(prev => { const n = new Set(prev); n.add(id); return n; });
     try {
       await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, id), {
         followUpCompletedAt: serverTimestamp(),
@@ -326,6 +331,7 @@ export default function Activities() {
     } catch (e) {
       console.error('Failed to mark follow-up done', e);
       showToast('Failed to mark follow-up done');
+      setCheckingOffIds(prev => { const n = new Set(prev); n.delete(id); return n; });
     }
   }
 
@@ -372,25 +378,37 @@ export default function Activities() {
                   const isOverdue = dDate < today;
                   const isToday = dDate.getTime() === today.getTime();
                   const label = isOverdue ? 'Overdue' : isToday ? 'Today' : a.followUpDate;
+                  const checked = checkingOffIds.has(a.id);
+                  const strike = checked ? { textDecoration: 'line-through', opacity: 0.55 } : {};
                   return (
-                    <div key={a.id} style={{display:'flex',alignItems:'center',gap:'16px',padding:'8px 20px',borderBottom:'1px solid rgba(200,162,88,0.1)'}}>
+                    <div key={a.id} style={{display:'flex',alignItems:'center',gap:'16px',padding:'8px 20px',borderBottom:'1px solid rgba(200,162,88,0.1)',transition:'opacity 0.2s'}}>
                       <button
-                        onClick={()=>markFollowUpDone(a.id)}
-                        title="Mark follow-up as done"
-                        aria-label="Mark follow-up as done"
+                        onClick={()=>!checked && markFollowUpDone(a.id)}
+                        title={checked ? 'Follow-up marked done' : 'Mark follow-up as done'}
+                        aria-label={checked ? 'Follow-up marked done' : 'Mark follow-up as done'}
+                        aria-pressed={checked}
+                        disabled={checked}
                         style={{
                           width:'18px', height:'18px', flexShrink:0,
-                          border:'1.5px solid rgba(200,162,88,0.6)',
-                          borderRadius:'4px', background:'transparent', cursor:'pointer',
+                          border:`1.5px solid ${checked ? '#10b981' : 'rgba(200,162,88,0.6)'}`,
+                          background: checked ? '#10b981' : 'transparent',
+                          borderRadius:'4px',
+                          cursor: checked ? 'default' : 'pointer',
                           padding:0, display:'flex', alignItems:'center', justifyContent:'center',
                           transition:'background 0.15s, border-color 0.15s',
                         }}
-                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(200,162,88,0.18)';e.currentTarget.style.borderColor='#C8A258';}}
-                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.borderColor='rgba(200,162,88,0.6)';}}
-                      />
-                      <span style={{fontWeight:600,fontSize:'13px',color:'var(--text-primary)',minWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.clientName}</span>
-                      <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px'}}>{a.isin||a.ticker||'—'}</span>
-                      <span style={{fontSize:'12px',fontWeight:700,color:isOverdue?'#ef4444':isToday?'#f59e0b':'#C8A258',minWidth:'80px'}}>{label}</span>
+                        onMouseEnter={e=>{ if(!checked){ e.currentTarget.style.background='rgba(200,162,88,0.18)'; e.currentTarget.style.borderColor='#C8A258'; } }}
+                        onMouseLeave={e=>{ if(!checked){ e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='rgba(200,162,88,0.6)'; } }}
+                      >
+                        {checked && (
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        )}
+                      </button>
+                      <span style={{fontWeight:600,fontSize:'13px',color:'var(--text-primary)',minWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',...strike}}>{a.clientName}</span>
+                      <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px',...strike}}>{a.isin||a.ticker||'—'}</span>
+                      <span style={{fontSize:'12px',fontWeight:700,color:isOverdue?'#ef4444':isToday?'#f59e0b':'#C8A258',minWidth:'80px',...strike}}>{label}</span>
                       <button
                         onClick={()=>{setActSearch(a.clientName);window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}}
                         style={{marginLeft:'auto',background:'none',border:'1px solid rgba(200,162,88,0.4)',borderRadius:'6px',padding:'3px 10px',fontSize:'12px',fontWeight:600,color:'#C8A258',cursor:'pointer'}}
@@ -623,9 +641,18 @@ export default function Activities() {
                       <td style={{maxWidth:'180px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}} title={a.notes||''}>{a.notes||'-'}</td>
                       <td>
                         {a.followUpDate ? (
-                          <span style={{fontSize:'12px',fontWeight:600,color:new Date(a.followUpDate)<today?'#ef4444':new Date(a.followUpDate).getTime()===today.getTime()?'#f59e0b':'#C8A258'}}>
-                            {a.followUpDate}
-                          </span>
+                          a.followUpCompletedAt ? (
+                            <span
+                              title={`Done${a.followUpCompletedBy ? ` by ${a.followUpCompletedBy}` : ''}`}
+                              style={{fontSize:'12px',fontWeight:500,color:'var(--text-muted)',textDecoration:'line-through'}}
+                            >
+                              {a.followUpDate}
+                            </span>
+                          ) : (
+                            <span style={{fontSize:'12px',fontWeight:600,color:new Date(a.followUpDate)<today?'#ef4444':new Date(a.followUpDate).getTime()===today.getTime()?'#f59e0b':'#C8A258'}}>
+                              {a.followUpDate}
+                            </span>
+                          )
                         ) : '-'}
                       </td>
                       <td><div style={{display:'flex',gap:'8px'}}><button className="btn-icon" onClick={()=>handleDeleteActivity(a.id)} title="Delete"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6h14z"/><path d="M10 11v6M14 11v6"/></svg></button></div></td>
