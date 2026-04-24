@@ -9,7 +9,9 @@ import { canExport } from '../config/moduleAccess';
 
 export default function Activities() {
   const { userData, currentUser, isAdmin, orgPlan } = useAuth();
-  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:'' });
+  const [activityForm, setActivityForm] = useState({ clientName:'',activityType:'',isin:'',ticker:'',creditRating:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:'' });
+  const lastLookedUpIsinRef = useRef('');
+  const lastLookedUpTickerRef = useRef('');
   const [activities, setActivities] = useState([]);
   const [clients, setClients] = useState([]);
   const [stats, setStats] = useState({ totalActivities:0,totalVolume:0,buyCount:0,sellCount:0,twoWayCount:0 });
@@ -71,23 +73,87 @@ export default function Activities() {
 
   useEffect(() => {
     if (editingActivity) return;
-    const t = setTimeout(async()=>{
-      if(activityForm.isin&&!activityForm.ticker) await fetchBondDetails('isin',activityForm.isin);
-      else if(activityForm.ticker&&!activityForm.isin) await fetchBondDetails('ticker',activityForm.ticker);
-    },800);
-    return ()=>clearTimeout(t);
+    const t = setTimeout(async () => {
+      const isin = (activityForm.isin || '').trim().toUpperCase();
+      const ticker = (activityForm.ticker || '').trim().toUpperCase();
+      // Re-lookup whenever the ISIN changes to a new valid value, even if a
+      // ticker is already populated from a previous lookup. Same for ticker
+      // when no ISIN is present.
+      if (isin && isin.length >= 2 && isin !== lastLookedUpIsinRef.current) {
+        lastLookedUpIsinRef.current = isin;
+        await fetchBondDetails('isin', isin);
+      } else if (!isin && ticker && ticker.length >= 2 && ticker !== lastLookedUpTickerRef.current) {
+        lastLookedUpTickerRef.current = ticker;
+        await fetchBondDetails('ticker', ticker);
+      }
+    }, 800);
+    return () => clearTimeout(t);
   },[activityForm.isin,activityForm.ticker,editingActivity]);
 
-  async function fetchBondDetails(type,value){
-    if(!value||value.length<2) return;
+  // OpenFIGI free tier does not return `currency` on bond mappings, so we
+  // infer from the ISIN country prefix plus the Bloomberg securityType
+  // ("EURO NON-DOLLAR" / "EURO-DOLLAR" etc.). The ISIN-prefix mapping is
+  // the authoritative signal for domestic issuances (US/GB/DE/...); the
+  // securityType is the tie-breaker for XS-prefixed Eurobonds.
+  const SUPPORTED_CCY = ['USD','EUR','GBP','AUD','HKD','SGD','CNH'];
+  const EUR_ISIN_PREFIXES = new Set(['DE','FR','IT','ES','NL','IE','BE','AT','FI','PT','GR','LU']);
+  function inferCurrency(data) {
+    if (data.currency) return data.currency.toUpperCase();
+    const isin = (data.isin || '').toUpperCase();
+    const prefix = isin.slice(0, 2);
+    if (prefix === 'US') return 'USD';
+    if (prefix === 'GB') return 'GBP';
+    if (prefix === 'AU') return 'AUD';
+    if (prefix === 'HK') return 'HKD';
+    if (prefix === 'SG') return 'SGD';
+    if (prefix === 'CN') return 'CNH';
+    if (EUR_ISIN_PREFIXES.has(prefix)) return 'EUR';
+    const sType = (data.securityType || '').toUpperCase();
+    if (sType === 'EURO-DOLLAR' || sType === 'GLOBAL') return 'USD';
+    if (sType === 'EURO NON-DOLLAR') return 'EUR'; // common default for XS Eurobonds
+    return null;
+  }
+
+  async function fetchBondDetails(type, value) {
+    if (!value || value.length < 2) return;
     setBondLookupLoading(true);
-    try{
+    try {
       const idToken = auth.currentUser ? await auth.currentUser.getIdToken() : '';
-      const r=await fetch('/.netlify/functions/bloomberg-lookup',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${idToken}`},body:JSON.stringify(type==='isin'?{isin:value}:{ticker:value})});
-      if(!r.ok) return;
-      const result=await r.json();
-      if(result.success&&result.data) setActivityForm(p=>({...p,isin:p.isin||result.data.isin||'',ticker:p.ticker||result.data.ticker||''}));
-    }catch(e){console.error(e);}finally{setBondLookupLoading(false);}
+      const r = await fetch('/.netlify/functions/bloomberg-lookup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${idToken}` },
+        body: JSON.stringify(type === 'isin' ? { isin: value } : { ticker: value }),
+      });
+      if (!r.ok) return;
+      const result = await r.json();
+      if (!result.success || !result.data) return;
+      const d = result.data;
+      const inferredCcy = inferCurrency({ ...d, isin: type === 'isin' ? value : d.isin });
+      setActivityForm(p => {
+        const next = { ...p };
+        // Always overwrite the looked-up counterpart so a new ISIN
+        // triggers a refreshed ticker (and vice versa).
+        if (type === 'isin' && d.ticker) next.ticker = d.ticker;
+        if (type === 'ticker' && d.isin) next.isin = d.isin;
+        // Auto-fill currency if inference produced one of the supported
+        // options; otherwise leave whatever the user had set. Never stomp
+        // a value the user has already adjusted off the USD default by
+        // re-running the lookup — only fill when the current value is
+        // still the untouched default "USD".
+        if (inferredCcy && SUPPORTED_CCY.includes(inferredCcy) && (p.currency === 'USD' || !p.currency)) {
+          next.currency = inferredCcy;
+          next.otherCurrency = '';
+        }
+        // Remember the ticker we auto-populated so a subsequent ISIN
+        // change can safely overwrite it.
+        if (type === 'isin') lastLookedUpTickerRef.current = (next.ticker || '').toUpperCase();
+        return next;
+      });
+    } catch (e) {
+      console.error('Bond lookup failed', e);
+    } finally {
+      setBondLookupLoading(false);
+    }
   }
 
   const getSelectedClient=()=>clients.find(c=>c.name===activityForm.clientName);
@@ -127,11 +193,11 @@ export default function Activities() {
       const primary = (sc?.salesCoverage || '').trim();
       const secondary = (sc?.salesCoverageSecondary || '').trim();
       const coverageUsers = [primary, secondary].filter(Boolean);
-      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:primary,salesCoverageSecondary:secondary,coverageUsers,activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,followUpDate:activityForm.followUpDate||null,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
+      const data={clientName:activityForm.clientName,clientType:sc?.type||'',clientRegion:sc?.region||'',salesCoverage:primary,salesCoverageSecondary:secondary,coverageUsers,activityType:activityForm.activityType,isin:activityForm.isin.toUpperCase(),ticker:activityForm.ticker.toUpperCase(),creditRating:activityForm.creditRating||'',size:parseFloat(activityForm.size)||0,currency:activityForm.currency==='OTHER'?activityForm.otherCurrency:activityForm.currency,price:isTwoWay?null:(activityForm.price?parseFloat(activityForm.price):null),bidPrice:isTwoWay&&activityForm.bidPrice?parseFloat(activityForm.bidPrice):null,offerPrice:isTwoWay&&activityForm.offerPrice?parseFloat(activityForm.offerPrice):null,direction:activityForm.direction,status:activityForm.status,notes:activityForm.notes,followUpDate:activityForm.followUpDate||null,createdAt:serverTimestamp(),createdBy:userData.name||userData.email};
       if(editingActivity){await updateDoc(doc(db,`organizations/${userData.organizationId}/activities`,editingActivity),data);setEditingActivity(null);}
       else{await addDoc(collection(db,`organizations/${userData.organizationId}/activities`),data);}
       setFormError('');
-      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});
+      setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',creditRating:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});
     }catch(e){console.error(e);showToast('Failed to save activity');}finally{setSubmitLoading(false);}
   }
 
@@ -193,7 +259,7 @@ export default function Activities() {
   }
 
   function handleEditActivity(a){
-    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',bidPrice:a.bidPrice?.toString()||'',offerPrice:a.offerPrice?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||'',followUpDate:a.followUpDate||''});
+    setActivityForm({clientName:a.clientName,activityType:a.activityType,isin:a.isin,ticker:a.ticker,creditRating:a.creditRating||'',size:a.size.toString(),currency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?a.currency:'OTHER',otherCurrency:['USD','EUR','GBP','AUD','HKD','SGD','CNH'].includes(a.currency)?'':a.currency,price:a.price?.toString()||'',bidPrice:a.bidPrice?.toString()||'',offerPrice:a.offerPrice?.toString()||'',direction:a.direction,status:a.status,notes:a.notes||'',followUpDate:a.followUpDate||''});
     setEditingActivity(a.id);
     window.scrollTo({top:0,behavior:'smooth'});
   }
@@ -407,7 +473,7 @@ export default function Activities() {
                         )}
                       </button>
                       <span style={{fontWeight:600,fontSize:'13px',color:'var(--text-primary)',minWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',...strike}}>{a.clientName}</span>
-                      <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px',...strike}}>{a.isin||a.ticker||'—'}</span>
+                      <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px',...strike}}>{a.ticker||a.isin||'—'}</span>
                       <span style={{fontSize:'12px',fontWeight:700,color:isOverdue?'#ef4444':isToday?'#f59e0b':'#C8A258',minWidth:'80px',...strike}}>{label}</span>
                       <button
                         onClick={()=>{setActSearch(a.clientName);window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}}
@@ -426,7 +492,7 @@ export default function Activities() {
         <div className="card">
           <div className="card-header">
             <span>{editingActivity?'Edit Activity':'New Activity'}</span>
-            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});}}>Cancel Edit</button>}
+            {editingActivity&&<button className="btn btn-muted" onClick={()=>{setEditingActivity(null);setActivityForm({clientName:'',activityType:'',isin:'',ticker:'',creditRating:'',size:'',currency:'USD',otherCurrency:'',price:'',bidPrice:'',offerPrice:'',direction:'',status:'',notes:'',followUpDate:''});}}>Cancel Edit</button>}
           </div>
           <form onSubmit={handleActivitySubmit}>
             <div className="form-grid">
@@ -458,9 +524,22 @@ export default function Activities() {
                 <div className="field-group">
                   <label className="form-label">Ticker</label>
                   <input type="text" className="form-input" placeholder="e.g., AAPL" value={activityForm.ticker} onChange={e=>setActivityForm({...activityForm,ticker:e.target.value.toUpperCase()})}/>
-                  <div className="form-hint">Enter ISIN or Ticker - other auto-fills via Bloomberg API</div>
+                  <div className="form-hint">Enter ISIN or Ticker — the other side and the currency auto-fill via OpenFIGI</div>
                   {bondLookupLoading&&<div style={{fontSize:'11px',color:'var(--accent)',marginTop:'4px',display:'flex',alignItems:'center',gap:'6px'}}><span className="spinner" style={{width:'10px',height:'10px'}}></span>Looking up bond details...</div>}
                 </div>
+              </div>
+              <div className="field-row">
+                <div className="field-group">
+                  <label className="form-label">Credit Rating</label>
+                  <select className="form-select" value={activityForm.creditRating} onChange={e=>setActivityForm({...activityForm,creditRating:e.target.value})}>
+                    <option value="">— select —</option>
+                    <option value="IG">IG (Investment Grade)</option>
+                    <option value="HY">HY (High Yield)</option>
+                    <option value="NR">NR (Non-Rated)</option>
+                  </select>
+                  <div className="form-hint">OpenFIGI does not return ratings; select manually.</div>
+                </div>
+                <div className="field-group">{/* spacer */}</div>
               </div>
               <div className="field-row">
                 <div className="field-group">
@@ -609,7 +688,7 @@ export default function Activities() {
                       <td style={{fontWeight:600}}>{a.clientName}</td>
                       <td>{a.clientType?<span className="badge badge-primary">{a.clientType}</span>:'-'}</td>
                       <td><span className="badge badge-primary">{a.activityType}</span></td>
-                      <td>{a.isin||a.ticker||'-'}</td>
+                      <td>{a.ticker||a.isin||'-'}</td>
                       <td>{a.size}MM</td>
                       <td>{a.currency}</td>
                       <td><span className={`badge ${dirBadge(a.direction)}`}>{a.direction}</span></td>

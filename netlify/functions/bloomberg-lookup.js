@@ -40,12 +40,19 @@ async function lookupViaOpenFIGI(identifier, identifierType) {
 
   const bondData = data[0];
 
+  // Pass through both securityType and securityType2 — the client uses
+  // securityType ("EURO NON-DOLLAR" / "EURO-DOLLAR" / etc.) to infer
+  // currency on XS-prefixed bonds, where OpenFIGI's free tier leaves
+  // bondData.currency null.
   return {
     isin: identifierType === 'ID_ISIN' ? identifier : null,
     ticker: bondData.ticker || null,
     bondName: bondData.name || null,
     issuer: bondData.name || null,
     type: bondData.securityType2 || bondData.securityType || null,
+    securityType: bondData.securityType || null,
+    securityType2: bondData.securityType2 || null,
+    securityDescription: bondData.securityDescription || null,
     currency: bondData.currency || null,
     country: bondData.exchCode || null,
     coupon: bondData.coupon || null,
