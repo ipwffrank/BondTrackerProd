@@ -113,14 +113,22 @@ export default function Analytics() {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
   }
   function getTooltipStyle(rect) {
-    const TIP_W = 280;
+    const MARGIN = 8;
+    const TIP_H = 320;
     const vw = window.innerWidth;
     const vh = window.innerHeight;
+    // Responsive width: shrink on narrow viewports so the card still fits.
+    const TIP_W = Math.min(280, vw - MARGIN * 2);
+    // Prefer right of the trigger; flip to left if it would overflow right.
     let left = rect.right + 12;
-    if (left + TIP_W > vw - 8) left = rect.left - TIP_W - 12;
+    if (left + TIP_W > vw - MARGIN) left = rect.left - TIP_W - 12;
+    // Clamp to the viewport in case NEITHER side has room (narrow screens
+    // or triggers pinned to one edge) — fixes the overflow bleed past 0
+    // that showed up on the Analytics stat-card hovers.
+    left = Math.max(MARGIN, Math.min(left, vw - TIP_W - MARGIN));
     let top = rect.top;
-    if (top + 320 > vh) top = Math.max(8, vh - 320);
-    return { position:'fixed', left, top, zIndex:9999, width:TIP_W };
+    if (top + TIP_H > vh) top = Math.max(MARGIN, vh - TIP_H - MARGIN);
+    return { position: 'fixed', left, top, zIndex: 9999, width: TIP_W };
   }
 
   // ─── CSV download helpers ───────────────────────────────────────────────────
