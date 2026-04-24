@@ -311,10 +311,23 @@ export default function Activities() {
   today.setHours(0,0,0,0);
   const dueSoon = activities.filter(a => {
     if (!a.followUpDate) return false;
+    if (a.followUpCompletedAt) return false; // already checked off
     const d = new Date(a.followUpDate);
     d.setHours(0,0,0,0);
     return d <= new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
   }).sort((a,b)=>new Date(a.followUpDate)-new Date(b.followUpDate));
+
+  async function markFollowUpDone(id) {
+    try {
+      await updateDoc(doc(db, `organizations/${userData.organizationId}/activities`, id), {
+        followUpCompletedAt: serverTimestamp(),
+        followUpCompletedBy: userData.name || userData.email || '',
+      });
+    } catch (e) {
+      console.error('Failed to mark follow-up done', e);
+      showToast('Failed to mark follow-up done');
+    }
+  }
 
   const dirBadge=(d)=>({'BUY':'badge-success','SELL':'badge-danger','TWO-WAY':'badge-warning'}[d]||'badge-primary');
   const stsBadge=(s)=>({'ENQUIRY':'badge-primary','QUOTED':'badge-warning','EXECUTED':'badge-success','PASSED':'badge-danger','TRADED AWAY':'badge-danger'}[s]||'badge-primary');
@@ -361,6 +374,20 @@ export default function Activities() {
                   const label = isOverdue ? 'Overdue' : isToday ? 'Today' : a.followUpDate;
                   return (
                     <div key={a.id} style={{display:'flex',alignItems:'center',gap:'16px',padding:'8px 20px',borderBottom:'1px solid rgba(200,162,88,0.1)'}}>
+                      <button
+                        onClick={()=>markFollowUpDone(a.id)}
+                        title="Mark follow-up as done"
+                        aria-label="Mark follow-up as done"
+                        style={{
+                          width:'18px', height:'18px', flexShrink:0,
+                          border:'1.5px solid rgba(200,162,88,0.6)',
+                          borderRadius:'4px', background:'transparent', cursor:'pointer',
+                          padding:0, display:'flex', alignItems:'center', justifyContent:'center',
+                          transition:'background 0.15s, border-color 0.15s',
+                        }}
+                        onMouseEnter={e=>{e.currentTarget.style.background='rgba(200,162,88,0.18)';e.currentTarget.style.borderColor='#C8A258';}}
+                        onMouseLeave={e=>{e.currentTarget.style.background='transparent';e.currentTarget.style.borderColor='rgba(200,162,88,0.6)';}}
+                      />
                       <span style={{fontWeight:600,fontSize:'13px',color:'var(--text-primary)',minWidth:'160px',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{a.clientName}</span>
                       <span style={{fontSize:'12px',color:'var(--text-muted)',minWidth:'120px'}}>{a.isin||a.ticker||'—'}</span>
                       <span style={{fontSize:'12px',fontWeight:700,color:isOverdue?'#ef4444':isToday?'#f59e0b':'#C8A258',minWidth:'80px'}}>{label}</span>
