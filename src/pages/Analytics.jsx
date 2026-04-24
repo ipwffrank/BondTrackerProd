@@ -713,25 +713,24 @@ export default function Analytics() {
           </div>
         </div>
 
-        {/* Overview Stats Cards */}
+        {/* Overview Stats Cards — single row, Dashboard-style */}
         <div style={{marginBottom:'24px'}}>
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))',gap:'12px'}}>
+          <div className="stat-row">
             {statCards.map((s,i)=>{
-              // Auto-scale numeric values to the card width. Long values like
-              // "$1232.50MM" at 24px overflow the ~140px card; shrink by length.
+              // Auto-scale the value so long numbers fit a 7th-of-row card.
               const len = String(s.value).length;
-              const valueSize = len <= 6 ? 26 : len <= 8 ? 22 : len <= 10 ? 19 : len <= 12 ? 17 : 15;
+              const valueSize = len <= 6 ? 22 : len <= 8 ? 19 : len <= 10 ? 17 : len <= 12 ? 15 : 14;
               return (
                 <div
                   key={i}
                   className="stat-card"
-                  style={{position:'relative',cursor:'default'}}
+                  style={{cursor:'default'}}
                   onMouseEnter={e=>showTooltip(s.type, null, e.currentTarget.getBoundingClientRect())}
                   onMouseLeave={scheduleHide}
                 >
                   <span className="stat-card-hint">i</span>
-                  <div className="stat-value" style={{fontSize:`${valueSize}px`}}>{s.value}</div>
                   <div className="stat-label">{s.label}</div>
+                  <div className="stat-value" style={{fontSize:`${valueSize}px`}}>{s.value}</div>
                 </div>
               );
             })}
@@ -1023,9 +1022,12 @@ export default function Analytics() {
         .page-header{margin-bottom:32px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:24px;}
         .page-title{font-size:32px;font-weight:700;color:var(--text-primary);margin-bottom:8px;}
         .page-description{font-size:16px;color:var(--text-secondary);}
-        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:center;box-shadow:var(--shadow);position:relative;min-width:0;overflow:hidden;}
-        .stat-value{font-size:24px;font-weight:700;color:var(--accent);margin-bottom:6px;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-        .stat-label{font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.05em;line-height:1.3;}
+        .stat-row{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:12px;}
+        .stat-card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:16px 14px;text-align:left;box-shadow:var(--shadow);position:relative;min-width:0;overflow:hidden;}
+        .stat-label{font-size:11px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;line-height:1.3;margin-bottom:8px;}
+        .stat-value{font-size:22px;font-weight:700;color:var(--text-primary);line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+        @media (max-width: 1200px){ .stat-row{ grid-template-columns: repeat(4, 1fr); } }
+        @media (max-width: 760px){ .stat-row{ grid-template-columns: repeat(2, 1fr); } }
         .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
         .card-header{font-size:17px;font-weight:700;color:var(--text-primary);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
         .breakdown-box{text-align:center;padding:16px;border-radius:8px;}
