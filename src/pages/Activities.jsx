@@ -135,12 +135,11 @@ export default function Activities() {
         // triggers a refreshed ticker (and vice versa).
         if (type === 'isin' && d.ticker) next.ticker = d.ticker;
         if (type === 'ticker' && d.isin) next.isin = d.isin;
-        // Auto-fill currency if inference produced one of the supported
-        // options; otherwise leave whatever the user had set. Never stomp
-        // a value the user has already adjusted off the USD default by
-        // re-running the lookup — only fill when the current value is
-        // still the untouched default "USD".
-        if (inferredCcy && SUPPORTED_CCY.includes(inferredCcy) && (p.currency === 'USD' || !p.currency)) {
+        // Auto-fill currency on every successful lookup — a fresh ISIN
+        // should always refresh the currency the same way it refreshes
+        // the ticker. (If the user wants to override, they pick their
+        // currency after the ISIN is settled.)
+        if (inferredCcy && SUPPORTED_CCY.includes(inferredCcy)) {
           next.currency = inferredCcy;
           next.otherCurrency = '';
         }
