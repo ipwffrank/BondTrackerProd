@@ -679,17 +679,16 @@ export default function Analytics() {
         {/* Date Range Filter + View Toggle */}
         <div className="card" style={{marginBottom:'24px'}}>
           <div style={{padding:'16px 24px',display:'flex',alignItems:'center',gap:'16px',flexWrap:'wrap'}}>
-            {/* View Mode Toggle */}
-            <div style={{display:'flex',gap:'8px',alignItems:'center',marginRight:'8px'}}>
+            {/* View Mode Toggle — Dashboard-style pill group */}
+            <div className="view-toggle" role="tablist" aria-label="View mode">
               {['my', 'desk'].map(mode => (
-                <button key={mode} onClick={() => setViewMode(mode)} style={{
-                  padding:'6px 16px', borderRadius:'6px', border:'1px solid',
-                  borderColor: viewMode === mode ? '#C8A258' : 'var(--border)',
-                  background: viewMode === mode ? 'rgba(200,162,88,0.1)' : 'transparent',
-                  color: viewMode === mode ? '#C8A258' : 'var(--text-secondary)',
-                  fontSize:'13px', fontWeight:600, cursor:'pointer', fontFamily:'inherit',
-                  transition:'all 0.2s'
-                }}>
+                <button
+                  key={mode}
+                  role="tab"
+                  aria-selected={viewMode === mode}
+                  onClick={() => setViewMode(mode)}
+                  className={`view-toggle-btn ${viewMode === mode ? 'active' : ''}`}
+                >
                   {mode === 'my' ? 'My Activities' : 'Desk View'}
                 </button>
               ))}
@@ -1033,8 +1032,8 @@ export default function Analytics() {
         .view-toggle-btn{background:none;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:var(--text-secondary);border-radius:7px;cursor:pointer;font-family:inherit;transition:background 0.15s,color 0.15s;}
         .view-toggle-btn:hover{color:var(--text-primary);}
         .view-toggle-btn.active{background:rgba(200,162,88,0.15);color:#C8A258;}
-        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);}
-        .card-header{font-size:17px;font-weight:700;color:var(--text-primary);padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+        .card{background:var(--card-bg);border:1px solid var(--border);border-radius:12px;}
+        .card-header{font-size:13px;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.06em;padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
         .breakdown-box{text-align:center;padding:16px;border-radius:8px;}
         .btn{padding:10px 18px;border-radius:8px;font-weight:600;font-size:13.5px;transition:all 0.2s ease;cursor:pointer;border:none;display:inline-flex;align-items:center;gap:7px;font-family:inherit;white-space:nowrap;}
         .btn-secondary{background:var(--btn-secondary-bg);color:#fff;padding:8px 14px;font-size:13px;}
@@ -1044,10 +1043,10 @@ export default function Analytics() {
         .form-input{width:100%;padding:10px 14px;background:var(--bg-input);border:1.5px solid var(--border);border-radius:8px;color:var(--text-primary);font-size:14px;transition:all 0.2s ease;font-family:inherit;}
         .form-input:focus{outline:none;border-color:var(--border-focus);background:var(--bg-input-focus);box-shadow:0 0 0 3px var(--accent-glow);}
         .table-container{overflow-x:auto;}
-        .table{width:100%;border-collapse:collapse;font-size:14px;}
-        .table thead{background:var(--table-header-bg);}
-        .table th{padding:12px 16px;text-align:left;font-weight:600;color:var(--text-secondary);font-size:12px;text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);}
-        .table td{padding:14px 16px;border-bottom:1px solid var(--border);color:var(--text-primary);}
+        .table{width:100%;border-collapse:collapse;font-size:13px;}
+        .table thead{background:transparent;}
+        .table th{padding:10px 14px;text-align:left;font-weight:600;color:var(--text-secondary);font-size:11px;text-transform:uppercase;letter-spacing:0.06em;border-bottom:1px solid var(--border);}
+        .table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-primary);}
         .table tbody tr:nth-child(odd){background:var(--table-odd);}
         .table tbody tr:nth-child(even){background:var(--table-even);}
         .table tbody tr:hover{background:var(--table-hover);}
