@@ -1,6 +1,6 @@
 # Axle — Privacy & Data Protection FAQ
 
-**Prepared by:** Bridge Logic LP  
+**Prepared by:** ZHOOZH PTE. LTD.  
 **Last Updated:** April 2026  
 **Applicable Frameworks:** Singapore PDPA 2012, Hong Kong PDPO (Cap. 486)
 
@@ -12,11 +12,11 @@ This document addresses frequently asked questions from institutional clients re
 
 ## 1. General — Access & Governance
 
-### Does Axle or Bridge Logic have a "backdoor" to access our data?
+### Does Axle or ZHOOZH have a "backdoor" to access our data?
 
 There is no hidden or undisclosed access mechanism. However, we want to be fully transparent about how platform-level access works.
 
-Axle's platform administrators at Bridge Logic hold a designated **host admin** role within the system. This role exists for legitimate operational purposes: responding to support requests, investigating security incidents, assisting with account recovery, and monitoring platform health. Host admin access is:
+Axle's platform administrators at ZHOOZH hold a designated **host admin** role within the system. This role exists for legitimate operational purposes: responding to support requests, investigating security incidents, assisting with account recovery, and monitoring platform health. Host admin access is:
 
 - **Authenticated** — host admin accounts are secured with Firebase Authentication (email and password, with the same identity verification as all other users). There is no shared key or backdoor credential.
 - **Audited** — all host admin actions that read or modify organisational data generate an audit log entry with a timestamp and the acting user's identity.
@@ -27,9 +27,9 @@ If you require a contractual undertaking on data access restrictions, please con
 
 ---
 
-### Who within Bridge Logic can access our organisation's data?
+### Who within ZHOOZH can access our organisation's data?
 
-Only designated host administrators at Bridge Logic can access cross-organisation data at the platform level. Access is controlled by an explicit `hostAdmins` collection in our database — being an employee of Bridge Logic does not automatically grant data access. Host admin status is granted deliberately and individually.
+Only designated host administrators at ZHOOZH can access cross-organisation data at the platform level. Access is controlled by an explicit `hostAdmins` collection in our database — being an employee of ZHOOZH does not automatically grant data access. Host admin status is granted deliberately and individually.
 
 Within your own organisation on Axle:
 
@@ -41,7 +41,7 @@ Within your own organisation on Axle:
 
 ### Is Axle compliant with the Singapore PDPA and Hong Kong PDPO?
 
-Yes. Bridge Logic LP is a Singapore-registered entity. Our platform is designed and operated in compliance with:
+Yes. ZHOOZH PTE. LTD. is a Singapore-registered entity. Our platform is designed and operated in compliance with:
 
 - **Personal Data Protection Act 2012 (PDPA)** — Singapore
 - **Personal Data (Privacy) Ordinance, Cap. 486 (PDPO)** — Hong Kong
@@ -54,10 +54,10 @@ We also align our controls with the **MAS Technology Risk Management (TRM) Guide
 
 ### Who is your Data Protection Officer?
 
-Bridge Logic LP has designated a Data Protection Officer (DPO) as required under Section 11(3) of the PDPA. For data access requests, correction requests, consent withdrawal, or privacy complaints, please contact:
+ZHOOZH PTE. LTD. has designated a Data Protection Officer (DPO) as required under Section 11(3) of the PDPA. For data access requests, correction requests, consent withdrawal, or privacy complaints, please contact:
 
 **Data Protection Officer**  
-Bridge Logic LP  
+ZHOOZH PTE. LTD.  
 Email: **info@axle-finance.com**  
 Website: axle-finance.com
 
@@ -109,7 +109,7 @@ Yes, all outbound connections from our serverless functions to third-party provi
 
 ### What encryption standards govern data at rest — and who holds the keys?
 
-Data at rest in Google Cloud Firestore is encrypted using **AES-256**. Encryption keys are managed by **Google Cloud Key Management Service (KMS)** with automatic key rotation. Bridge Logic does not hold or manage these keys directly — this is managed by Google at the infrastructure level.
+Data at rest in Google Cloud Firestore is encrypted using **AES-256**. Encryption keys are managed by **Google Cloud Key Management Service (KMS)** with automatic key rotation. ZHOOZH does not hold or manage these keys directly — this is managed by Google at the infrastructure level.
 
 For clients with specific key management requirements (e.g., Customer-Managed Encryption Keys / CMEK), please contact us to discuss options. CMEK is available on Google Cloud at the project level and can be arranged for enterprise deployments.
 
@@ -135,7 +135,7 @@ Firestore security rules enforce **strict organisational data isolation at the d
 - A Content Security Policy (CSP) is enforced to prevent cross-site scripting (XSS) and data injection attacks.
 
 **Layer 4 — Audit and Accountability**  
-Every action that modifies or exports data on the platform is recorded in an **immutable audit log**. Audit log entries include the acting user's identity, timestamp, and action type. Audit logs cannot be deleted or modified by any user — including platform administrators. Only organisation admins and Bridge Logic's host admins can read audit logs.
+Every action that modifies or exports data on the platform is recorded in an **immutable audit log**. Audit log entries include the acting user's identity, timestamp, and action type. Audit logs cannot be deleted or modified by any user — including platform administrators. Only organisation admins and ZHOOZH's host admins can read audit logs.
 
 ---
 
@@ -263,6 +263,6 @@ NDA and information security agreements can be arranged prior to disclosure of s
 
 ---
 
-*This FAQ is provided for informational purposes and does not constitute legal advice. For legally binding commitments regarding data handling, please refer to our Privacy Policy and your Data Processing Agreement with Bridge Logic LP.*
+*This FAQ is provided for informational purposes and does not constitute legal advice. For legally binding commitments regarding data handling, please refer to our Privacy Policy and your Data Processing Agreement with ZHOOZH PTE. LTD.*
 
-*Bridge Logic LP — Singapore | axle-finance.com | info@axle-finance.com*
+*ZHOOZH PTE. LTD. — Singapore | axle-finance.com | info@axle-finance.com*

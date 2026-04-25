@@ -108,7 +108,7 @@ export default function MarketingFooter() {
             alignItems: 'center', flexWrap: 'wrap', gap: '12px',
           }}>
             <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.3)', margin: 0 }}>
-              &copy; 2026 Bridge Logic LP All rights reserved.
+              &copy; 2026 ZHOOZH PTE. LTD. All rights reserved.
             </p>
             <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', color: 'rgba(255,255,255,0.25)', margin: 0 }}>
               Singapore

@@ -1205,7 +1205,7 @@ export default function LandingPage({ showLogin = false }) {
                   <th style={{ padding: '16px 24px', textAlign: 'left', background: '#F4F2ED', color: '#8A8680', fontSize: '12px', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', borderBottom: '1px solid #E4E0DA', width: '36%' }}>Feature</th>
                   <th style={{ padding: '16px 20px', textAlign: 'center', background: 'rgba(200,162,88,0.07)', borderBottom: '2px solid #C8A258', borderLeft: '1px solid rgba(200,162,88,0.2)', borderRight: '1px solid rgba(200,162,88,0.2)' }}>
                     <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '15px', fontWeight: 700, color: '#0C1017' }}>Axle</span>
-                    <div style={{ fontSize: '11px', color: '#8A8680', fontWeight: 400, marginTop: '2px' }}>by Bridge Logic</div>
+                    <div style={{ fontSize: '11px', color: '#8A8680', fontWeight: 400, marginTop: '2px' }}>by ZHOOZH</div>
                   </th>
                   {['Salesforce', 'HubSpot', 'Generic CRM'].map(col => (
                     <th key={col} style={{ padding: '16px 20px', textAlign: 'center', background: '#F4F2ED', color: '#5A5654', fontSize: '13px', fontWeight: 600, borderBottom: '1px solid #E4E0DA', borderLeft: '1px solid #E4E0DA' }}>{col}</th>
