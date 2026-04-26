@@ -81,7 +81,7 @@ service cloud.firestore {
       // self-extendable).
       allow update: if isAdminInOrg(orgId)
         && !request.resource.data.diff(resource.data).affectedKeys()
-              .hasAny(['pilotStartedAt', 'pilotEndAt', 'pilotDurationDays', 'pilotStatus']);
+              .hasAny(['pilotStartedAt', 'pilotEndAt', 'pilotDurationDays', 'pilotStatus', 'pilotRemindersSent']);
 
       // Prevent deletion of organizations
       allow delete: if false;
