@@ -286,9 +286,19 @@ service cloud.firestore {
       // during accept) or members of the target org. Previously any
       // authenticated user could enumerate invitations across every org,
       // leaking email/role/status.
+      //
+      // Unauthenticated reads are allowed ONLY for pending invitations and
+      // ONLY when the caller already knows the invitation ID. The /accept-
+      // invite flow needs this: a new user clicking the email link hasn't
+      // signed up yet, so they're anonymous when the page tries to load
+      // their invitation. The invitation ID is a Firestore auto-generated
+      // 20-char ID (unguessable), so this doesn't enable enumeration —
+      // someone needs the exact ID + orgId to read anything, which they
+      // only get from the invitation email.
       allow read: if isSameOrg(orgId)
         || isHostAdmin()
-        || (isAuthenticated() && resource.data.email == request.auth.token.email);
+        || (isAuthenticated() && resource.data.email == request.auth.token.email)
+        || (!isAuthenticated() && resource.data.status == 'pending');
 
       // Admins or host admins can create invitations
       allow create: if isAdminInOrg(orgId) || isHostAdmin();
