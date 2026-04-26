@@ -2,6 +2,6 @@
   "projects": {
     "default": "bond-sales-tracker",
     "prod": "bond-sales-tracker",
-    "staging": "bond-sales-tracker-staging"
+    "staging": "axle--staging"
   }
 }
