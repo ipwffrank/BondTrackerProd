@@ -35,9 +35,11 @@ export function canExport(format, orgPlan) {
   return false;
 }
 
-// SSO/SAML access — Professional tier only
+// SSO/SAML access — Growth tier and above. Banks and securities houses
+// require SSO, so it can't be Pro-gated without forcing every ICP
+// customer to the top tier.
 export function canUseSso(orgPlan) {
-  return (TIER_RANK[orgPlan] || 0) >= 3;
+  return (TIER_RANK[orgPlan] || 0) >= 2;
 }
 
 export const TIER_OPTIONS = ['essential', 'growth', 'professional'];

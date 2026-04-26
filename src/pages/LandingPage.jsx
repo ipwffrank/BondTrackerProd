@@ -7,6 +7,7 @@ import MarketingFooter from '../components/marketing/MarketingFooter';
 import AITranscriptAnimation from '../components/AITranscriptAnimation';
 import { LoginView, ForgotPasswordView, ContactView, LOGIN_STYLES } from './Login';
 import { AxleLogo } from '@bridgelogic/ui';
+import { TIERS, TIER_ORDER, ANNUAL_DISCOUNT, annualPrice, annualMonthlyEquivalent, formatSeatCap, formatPriceUSD } from '../config/pricing';
 
 // ─── Styles ─────────────────────────────────────────────────────────────────────
 const STYLES = `
@@ -689,6 +690,7 @@ const PREVIEW_TABS = ['crm', 'pipeline', 'analytics', 'ai'];
 
 export default function LandingPage({ showLogin = false }) {
   const [activePreview, setActivePreview] = useState('crm');
+  const [billingPeriod, setBillingPeriod] = useState('annual');
   const previewTimerRef = useRef(null);
   const location = useLocation();
 
@@ -1101,86 +1103,108 @@ export default function LandingPage({ showLogin = false }) {
       {/* ── 5b. PRICING ─────────────────────────────────────────────────────────── */}
       <section id="pricing" style={{ background: '#0F2137', padding: '100px 24px' }}>
         <div style={{ maxWidth: '1060px', margin: '0 auto' }}>
-          <AnimatedSection style={{ textAlign: 'center', marginBottom: '56px' }}>
+          <AnimatedSection style={{ textAlign: 'center', marginBottom: '40px' }}>
             <SectionLabel>Pricing</SectionLabel>
             <h2 style={{ fontFamily: "'Manrope', sans-serif", fontSize: 'clamp(28px, 4vw, 42px)', fontWeight: 600, color: '#F0EDE8', margin: '0 auto 16px', lineHeight: '1.2' }}>
-              Transparent pricing for fixed income desks.
+              Flat-fee pricing per desk. No per-seat math.
             </h2>
-            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '520px', margin: '0 auto', lineHeight: '1.7' }}>
-              No hidden fees. Start with a 30-day paid pilot.
+            <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '17px', fontWeight: 300, color: 'rgba(240,237,232,0.55)', maxWidth: '560px', margin: '0 auto', lineHeight: '1.7' }}>
+              One price covers your whole desk up to the seat cap. Annual contracts save {Math.round(ANNUAL_DISCOUNT * 100)}%. Start with a 30-day paid pilot.
             </p>
           </AnimatedSection>
 
+          {/* Monthly / Annual toggle */}
+          <AnimatedSection style={{ display: 'flex', justifyContent: 'center', marginBottom: '40px' }}>
+            <div style={{ display: 'inline-flex', background: 'rgba(255,255,255,0.06)', borderRadius: '999px', padding: '4px', border: '1px solid rgba(255,255,255,0.1)' }}>
+              {[{ id: 'monthly', label: 'Monthly' }, { id: 'annual', label: 'Annual' }].map(opt => (
+                <button
+                  key={opt.id}
+                  onClick={() => setBillingPeriod(opt.id)}
+                  style={{
+                    fontFamily: "'Manrope', sans-serif",
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    padding: '10px 24px',
+                    borderRadius: '999px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: billingPeriod === opt.id ? '#C8A258' : 'transparent',
+                    color: billingPeriod === opt.id ? '#0F2137' : 'rgba(240,237,232,0.7)',
+                    transition: 'all 0.2s',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                  }}
+                >
+                  {opt.label}
+                  {opt.id === 'annual' && (
+                    <span style={{ fontSize: '11px', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: billingPeriod === 'annual' ? 'rgba(15,33,55,0.15)' : 'rgba(200,162,88,0.2)', color: billingPeriod === 'annual' ? '#0F2137' : '#C8A258' }}>
+                      Save {Math.round(ANNUAL_DISCOUNT * 100)}%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </AnimatedSection>
+
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px', alignItems: 'start' }}>
-            {/* Essential */}
-            <AnimatedSection delay={0}>
-              <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Essential</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$250</span>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
-                  </div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 5 seats. Activities, Clients, Contacts, CSV export. Get your desk off spreadsheets.</p>
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Activity logging', 'Client & contact CRM', 'Team management', 'CSV export', '12-month data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a href="mailto:info@axle-finance.com?subject=Axle%20Essential%20Pilot%20Request" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Request a Pilot</a>
-              </div>
-            </AnimatedSection>
+            {TIER_ORDER.map((tierId, idx) => {
+              const tier = TIERS[tierId];
+              const featured = tier.featured;
+              const monthlyDisplay = billingPeriod === 'annual' ? annualMonthlyEquivalent(tier.monthly) : tier.monthly;
+              const annualTotal = annualPrice(tier.monthly);
+              const ctaSubject = encodeURIComponent(`Axle ${tier.label} ${tier.cta === 'Talk to Sales' ? 'Enquiry' : 'Pilot Request'}`);
+              const ctaClass = featured ? 'lp2-btn-gold' : 'lp2-btn-ghost';
 
-            {/* Growth — highlighted */}
-            <AnimatedSection delay={100}>
-              <div className="lp2-price-card featured" style={{ background: 'rgba(200,162,88,0.07)', border: '2px solid rgba(200,162,88,0.5)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px', position: 'relative' }}>
-                <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#C8A258', color: '#0F2137', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Most Popular</div>
-                <div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: '#C8A258', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Growth</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$400</span>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
+              return (
+                <AnimatedSection key={tierId} delay={idx * 100}>
+                  <div
+                    className={featured ? 'lp2-price-card featured' : 'lp2-price-card'}
+                    style={{
+                      background: featured ? 'rgba(200,162,88,0.07)' : 'rgba(255,255,255,0.04)',
+                      border: featured ? '2px solid rgba(200,162,88,0.5)' : '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: '16px',
+                      padding: '36px 28px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px',
+                      position: 'relative',
+                    }}
+                  >
+                    {featured && (
+                      <div style={{ position: 'absolute', top: '-14px', left: '50%', transform: 'translateX(-50%)', background: '#C8A258', color: '#0F2137', fontSize: '11px', fontWeight: 700, padding: '4px 14px', borderRadius: '20px', letterSpacing: '0.06em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                        Most Popular
+                      </div>
+                    )}
+                    <div>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: featured ? '#C8A258' : 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>{tier.label}</p>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>{formatPriceUSD(monthlyDisplay)}</span>
+                        <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/month</span>
+                      </div>
+                      {billingPeriod === 'annual' && (
+                        <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '12px', color: 'rgba(200,162,88,0.85)', margin: '6px 0 0' }}>
+                          {formatPriceUSD(annualTotal)} billed annually
+                        </p>
+                      )}
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.7)', margin: '12px 0 0', fontWeight: 600 }}>
+                        {formatSeatCap(tier.seatCap)}
+                      </p>
+                      <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>{tier.description}</p>
+                    </div>
+                    <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {tier.features.map(f => (
+                        <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                          {f}
+                        </li>
+                      ))}
+                    </ul>
+                    <a href={`mailto:info@axle-finance.com?subject=${ctaSubject}`} className={ctaClass} style={{ textAlign: 'center', marginTop: '8px' }}>{tier.cta}</a>
                   </div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 8 seats. Full platform: Pipeline, Analytics, AI Assistant, Excel/PDF export.</p>
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Everything in Essential', 'Pipeline & DCM deal tracking', 'Analytics dashboard', 'AI transcript analysis (Bloomberg, Symphony, Email)', 'Excel & PDF export', '36-month data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a href="mailto:info@axle-finance.com?subject=Axle%20Growth%20Pilot%20Request" className="lp2-btn-gold" style={{ textAlign: 'center', marginTop: '8px' }}>Request a Pilot</a>
-              </div>
-            </AnimatedSection>
-
-            {/* Professional */}
-            <AnimatedSection delay={200}>
-              <div className="lp2-price-card" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '16px', padding: '36px 28px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '13px', fontWeight: 600, color: 'rgba(240,237,232,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>Professional</p>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '40px', fontWeight: 700, color: '#F0EDE8' }}>$450</span>
-                    <span style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.45)' }}>/user/month</span>
-                  </div>
-                  <p style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.5)', margin: '8px 0 0', lineHeight: '1.6' }}>Includes 15 seats. SSO, API access, dedicated CSM, white-glove onboarding, unlimited retention.</p>
-                </div>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {['Everything in Growth', 'SSO / SAML', 'API access', 'Custom branding', 'Dedicated CSM (4hr SLA)', 'Unlimited data retention'].map(f => (
-                    <li key={f} style={{ fontFamily: "'Manrope', sans-serif", fontSize: '14px', color: 'rgba(240,237,232,0.65)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C8A258" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                      {f}
-                    </li>
-                  ))}
-                </ul>
-                <a href="mailto:info@axle-finance.com?subject=Professional%20Plan%20Enquiry" className="lp2-btn-ghost" style={{ textAlign: 'center', marginTop: '8px' }}>Talk to Sales</a>
-              </div>
-            </AnimatedSection>
+                </AnimatedSection>
+              );
+            })}
           </div>
         </div>
       </section>
