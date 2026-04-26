@@ -1,26 +1,33 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AxleLogo from './components/marketing/AxleLogo';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
-import AcceptInvite from './pages/AcceptInvite';
-import Activities from './pages/Activities';
-import AIAssistant from './pages/AIAssistant';
-import Clients from './pages/Clients';
-import Dashboard from './pages/Dashboard';
-import Contacts from './pages/Contacts';
-import SecurityPage from './pages/SecurityPage';
-import Analytics from './pages/Analytics';
-import Pipeline from './pages/Pipeline';
-import Team from './pages/Team';
-import LandingPage from './pages/LandingPage';
-import AuthAction from './pages/AuthAction';
-import HostAdmin from './pages/HostAdmin';
-import LegalPage from './pages/LegalPage';
 import MaintenanceBanner from './components/MaintenanceBanner';
 import PilotBanner from './components/PilotBanner';
+
+// Eager: anything on the auth-flow critical path (faster first paint).
+import LandingPage from './pages/LandingPage';
+import Login from './pages/Login';
+
+// Lazy: every other route. Each becomes its own JS chunk loaded on
+// navigation. The previous single 1.93 MB bundle becomes a small entry
+// chunk + per-route chunks + vendor chunks (firebase / jspdf / xlsx /
+// router / react). Subsequent navigations are instant once cached.
+const Signup = lazy(() => import('./pages/Signup'));
+const AcceptInvite = lazy(() => import('./pages/AcceptInvite'));
+const Activities = lazy(() => import('./pages/Activities'));
+const AIAssistant = lazy(() => import('./pages/AIAssistant'));
+const Clients = lazy(() => import('./pages/Clients'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Contacts = lazy(() => import('./pages/Contacts'));
+const SecurityPage = lazy(() => import('./pages/SecurityPage'));
+const Analytics = lazy(() => import('./pages/Analytics'));
+const Pipeline = lazy(() => import('./pages/Pipeline'));
+const Team = lazy(() => import('./pages/Team'));
+const AuthAction = lazy(() => import('./pages/AuthAction'));
+const HostAdmin = lazy(() => import('./pages/HostAdmin'));
+const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 function LoadingScreen() {
   return (
@@ -44,6 +51,7 @@ function AppRoutes() {
 
   return (
     <Router>
+      <Suspense fallback={<LoadingScreen />}>
       <Routes>
         <Route path="/login" element={<LandingPage showLogin />} />
         <Route path="/signup" element={<Signup />} />
@@ -78,6 +86,7 @@ function AppRoutes() {
           element={currentUser ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
         />
       </Routes>
+      </Suspense>
     </Router>
   );
 }
