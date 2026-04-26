@@ -8,7 +8,9 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --only firestore --project axle-rules-test 'vitest run tests/firestore.rules.test.js'"
+    "test:rules": "firebase emulators:exec --only firestore --project axle-rules-test 'vitest run tests/firestore.rules.test.js'",
+    "deploy:rules:staging": "npm run test:rules && firebase deploy --only firestore:rules,firestore:indexes -P staging",
+    "deploy:rules:prod":    "npm run test:rules && firebase deploy --only firestore:rules,firestore:indexes -P prod"
   },
   "dependencies": {
     "@bridgelogic/ui": "file:./bridgelogic-ui",
