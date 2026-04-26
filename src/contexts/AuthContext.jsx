@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc, getDoc, onSnapshot, serverTimestamp, collection, query, where, getDocs, clearIndexedDbPersistence } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
+import { setSentryUser } from '../sentry';
 
 const TIER_DEFAULTS = {
   essential: 5,
@@ -35,6 +36,13 @@ export function AuthProvider({ children }) {
   const [pilot, setPilot] = useState(null); // { endAt: Date, startedAt: Date, durationDays: number } | null
   const [loading, setLoading] = useState(true);
   const [needsReConsent, setNeedsReConsent] = useState(false);
+
+  // Tag every Sentry event with the current user identity + org so
+  // errors can be filtered by who/where. Safe no-op if Sentry isn't
+  // configured.
+  useEffect(() => {
+    setSentryUser(userData);
+  }, [userData]);
 
   // Signup function
   async function signup(email, password, name) {

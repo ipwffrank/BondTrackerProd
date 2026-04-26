@@ -2,6 +2,11 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/globals.css'
 import App from './App.jsx'
+import { initSentry } from './sentry.js'
+
+// Boot Sentry as early as possible so module-load errors before React
+// mounts still get captured. No-op if VITE_SENTRY_DSN isn't set.
+initSentry();
 
 // Apply the theme attribute BEFORE React renders, so a light-mode user
 // never sees a dark flash (and vice versa). Default is light; users can

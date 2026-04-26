@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import MaintenanceBanner from './components/MaintenanceBanner';
 import PilotBanner from './components/PilotBanner';
+import { Sentry } from './sentry';
 
 // Eager: anything on the auth-flow critical path (faster first paint).
 import LandingPage from './pages/LandingPage';
@@ -91,11 +92,40 @@ function AppRoutes() {
   );
 }
 
+// Friendly fallback for Sentry.ErrorBoundary — keeps the brand
+// visible and offers a recovery action instead of a white screen.
+function AppErrorFallback({ resetError }) {
+  return (
+    <div style={{
+      minHeight: '100vh', background: '#0F2137', color: '#F0EDE8',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: "'Manrope', -apple-system, sans-serif", padding: '24px',
+    }}>
+      <div style={{ textAlign: 'center', maxWidth: '420px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'center' }}>
+          <AxleLogo variant="dark" size="lg" />
+        </div>
+        <h1 style={{ fontSize: '20px', fontWeight: 700, marginBottom: '10px' }}>Something went wrong</h1>
+        <p style={{ color: 'rgba(240,237,232,0.6)', fontSize: '14px', marginBottom: '24px', lineHeight: 1.6 }}>
+          We've logged the error. Try reloading; if the issue persists, contact us at info@axle-finance.com.
+        </p>
+        <button onClick={resetError} style={{
+          background: '#C8A258', color: '#0F2137', border: 'none', borderRadius: '8px',
+          padding: '10px 24px', fontSize: '14px', fontWeight: 700, cursor: 'pointer',
+          fontFamily: 'inherit',
+        }}>Reload</button>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   return (
-    <AuthProvider>
-      <AuthLoadingWrapper />
-    </AuthProvider>
+    <Sentry.ErrorBoundary fallback={AppErrorFallback} showDialog={false}>
+      <AuthProvider>
+        <AuthLoadingWrapper />
+      </AuthProvider>
+    </Sentry.ErrorBoundary>
   );
 }
 
