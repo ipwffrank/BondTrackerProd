@@ -20,6 +20,7 @@ import AuthAction from './pages/AuthAction';
 import HostAdmin from './pages/HostAdmin';
 import LegalPage from './pages/LegalPage';
 import MaintenanceBanner from './components/MaintenanceBanner';
+import PilotBanner from './components/PilotBanner';
 
 function LoadingScreen() {
   return (
@@ -106,6 +107,7 @@ function AuthLoadingWrapper() {
   return (
     <>
       {currentUser && <MaintenanceBanner />}
+      {currentUser && <PilotBanner />}
       <AppRoutes />
     </>
   );

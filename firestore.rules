@@ -72,8 +72,16 @@ service cloud.firestore {
       // Any authenticated user can create an organization (for first-time signup)
       allow create: if isAuthenticated();
 
-      // Only admins or host admins can update organization settings
-      allow update: if isAdminInOrg(orgId) || isHostAdmin();
+      // Host admins can update anything on the org doc.
+      allow update: if isHostAdmin();
+
+      // Org admins can update most settings BUT cannot touch the pilot
+      // fields — those control how long they get free access and must
+      // only be changeable by a host admin (otherwise the trial is
+      // self-extendable).
+      allow update: if isAdminInOrg(orgId)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['pilotStartedAt', 'pilotEndAt', 'pilotDurationDays', 'pilotStatus']);
 
       // Prevent deletion of organizations
       allow delete: if false;

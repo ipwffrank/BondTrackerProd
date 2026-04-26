@@ -32,6 +32,7 @@ export function AuthProvider({ children }) {
   const [userData, setUserData] = useState(null);
   const [orgPlan, setOrgPlan] = useState('essential'); // subscription tier
   const [orgMaxUsers, setOrgMaxUsers] = useState(null);
+  const [pilot, setPilot] = useState(null); // { endAt: Date, startedAt: Date, durationDays: number } | null
   const [loading, setLoading] = useState(true);
   const [needsReConsent, setNeedsReConsent] = useState(false);
 
@@ -397,6 +398,20 @@ export function AuthProvider({ children }) {
               const data = orgSnap.data();
               setOrgPlan(data.plan || 'essential');
               setOrgMaxUsers(data.maxUsers || TIER_DEFAULTS[data.plan] || TIER_DEFAULTS.essential);
+              // Pilot programme: org is in pilot if pilotEndAt is set.
+              // Whether it's still active or expired is determined client-side
+              // by comparing the timestamp to "now".
+              const endAt = data.pilotEndAt?.toDate ? data.pilotEndAt.toDate() : (data.pilotEndAt ? new Date(data.pilotEndAt) : null);
+              if (endAt) {
+                const startedAt = data.pilotStartedAt?.toDate ? data.pilotStartedAt.toDate() : (data.pilotStartedAt ? new Date(data.pilotStartedAt) : null);
+                setPilot({
+                  endAt,
+                  startedAt,
+                  durationDays: typeof data.pilotDurationDays === 'number' ? data.pilotDurationDays : 30,
+                });
+              } else {
+                setPilot(null);
+              }
             }
           }, (err) => console.warn('Org doc listener error:', err));
 
@@ -557,6 +572,7 @@ export function AuthProvider({ children }) {
     isAdmin: userData?.isAdmin || false,
     orgPlan,
     orgMaxUsers,
+    pilot,
     needsReConsent,
     signup,
     signupWithInvitation,
