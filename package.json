@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:rules": "firebase emulators:exec --only firestore --project axle-rules-test 'vitest run tests/firestore.rules.test.js'",
+    "test:rules": "firebase emulators:exec --only firestore --project axle-rules-test 'bash scripts/run-rule-tests.sh run tests/firestore.rules.test.js'",
     "deploy:rules:staging": "npm run test:rules && firebase deploy --only firestore:rules,firestore:indexes -P staging",
     "deploy:rules:prod":    "npm run test:rules && firebase deploy --only firestore:rules,firestore:indexes -P prod"
   },
@@ -38,6 +38,6 @@
     "eslint-plugin-react-refresh": "^0.4.14",
     "globals": "^15.11.0",
     "vite": "^5.4.10",
-    "vitest": "^4.1.5"
+    "vitest": "^2.1.9"
   }
 }
