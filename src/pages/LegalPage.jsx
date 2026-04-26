@@ -85,19 +85,13 @@ const PrivacyPolicy = () => (
     </ul>
 
     <h2>8. Data Retention</h2>
-    <p>We retain your personal data only for as long as necessary to fulfil the purposes for which it was collected, or as required by applicable law. Our retention periods are as follows:</p>
-    <table>
-      <thead>
-        <tr><th>Data Category</th><th>Retention Period</th></tr>
-      </thead>
-      <tbody>
-        <tr><td>Account data</td><td>Duration of active account + 12 months after account deletion</td></tr>
-        <tr><td>Transaction and activity records</td><td>7 years (financial record-keeping requirements)</td></tr>
-        <tr><td>AI-processed transcript data</td><td>As specified by your organisation's data retention policy</td></tr>
-        <tr><td>Usage logs and analytics</td><td>Up to 24 months for platform improvement purposes</td></tr>
-      </tbody>
-    </table>
-    <p>Upon expiry of the applicable retention period, personal data will be securely deleted or irreversibly anonymised.</p>
+    <p>We retain your personal data only for as long as necessary to fulfil the purposes for which it was collected, or as required by applicable law:</p>
+    <ul>
+      <li><strong>Account and activity data</strong> is retained for the duration of your active subscription. Following account termination, data is retained for a reasonable wind-down period — typically up to 12 months — before deletion or anonymisation, except where longer retention is required by applicable financial record-keeping or anti-money-laundering laws.</li>
+      <li><strong>AI-processed transcript data</strong> is governed by your organisation's data retention preferences and consent settings.</li>
+      <li><strong>Anonymised usage logs and analytics</strong> may be retained for platform improvement and security monitoring purposes.</li>
+    </ul>
+    <p>You may request earlier deletion of your personal data at any time by contacting us, subject to our legal and contractual obligations. Upon expiry of the applicable retention period, personal data will be securely deleted or irreversibly anonymised.</p>
 
     <h2>9. Data Security</h2>
     <p>We implement appropriate technical and organisational measures to protect your personal data against unauthorised access, alteration, disclosure, or destruction. These measures include:</p>
