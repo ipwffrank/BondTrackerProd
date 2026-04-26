@@ -13,11 +13,15 @@ const DEFAULT_ORIGINS = [
   'http://localhost:8888',
 ];
 
+// Defaults are ALWAYS allowed. ALLOWED_ORIGINS adds extra origins on top
+// (e.g. staging domains) — it does not replace the defaults. Earlier
+// behaviour replaced them, which silently broke CORS the moment someone
+// added a single staging URL to the env var.
 function getAllowedOrigins() {
-  if (process.env.ALLOWED_ORIGINS) {
-    return process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim());
-  }
-  return DEFAULT_ORIGINS;
+  const fromEnv = process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim()).filter(Boolean)
+    : [];
+  return [...new Set([...DEFAULT_ORIGINS, ...fromEnv])];
 }
 
 /**
