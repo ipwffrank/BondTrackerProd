@@ -395,6 +395,20 @@ select {
   min-height: 100vh;
 }
 
+/* === MOBILE OVERRIDES (≤ 760px) ===
+   Sidebar becomes an overlay drawer toggled by the hamburger; content
+   stops paying for sidebar width. Form rows collapse to one column.
+   Page padding tightens so 12-column tables don't get squeezed. */
+@media (max-width: 760px) {
+  .app-container { padding-left: 0; }
+  .field-row { grid-template-columns: 1fr !important; }
+  .main-content { padding: 16px 14px !important; max-width: 100% !important; }
+  .page-title { font-size: 22px !important; }
+  .page-description { font-size: 13px !important; }
+  /* Tables that aren't already in a .table-container: let them scroll */
+  .table { font-size: 12px; }
+}
+
 /* === APP TYPOGRAPHY — Manrope for display and body === */
 .page-title {
   font-family: 'Manrope', sans-serif;

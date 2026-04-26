@@ -84,6 +84,22 @@ export default function Navigation() {
     () => localStorage.getItem('sidebarCollapsed') === 'true'
   );
 
+  // Track viewport so the sidebar behaves as a fixed pane on desktop
+  // and an off-canvas drawer (with hamburger) on mobile.
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== 'undefined' && window.innerWidth <= 760
+  );
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth <= 760);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
+
+  // Auto-close the drawer on route change (mobile UX expectation)
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
   useEffect(() => {
     const savedTheme = localStorage.getItem('axle-theme') || 'light';
     setTheme(savedTheme);
@@ -91,9 +107,15 @@ export default function Navigation() {
   }, []);
 
   useEffect(() => {
-    document.documentElement.style.setProperty('--sidebar-width', collapsed ? '48px' : '220px');
+    // On mobile we always set sidebar-width to 0 so the content fills
+    // the screen; the drawer overlays content when open.
+    if (isMobile) {
+      document.documentElement.style.setProperty('--sidebar-width', '0px');
+    } else {
+      document.documentElement.style.setProperty('--sidebar-width', collapsed ? '48px' : '220px');
+    }
     localStorage.setItem('sidebarCollapsed', String(collapsed));
-  }, [collapsed]);
+  }, [collapsed, isMobile]);
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -117,6 +139,116 @@ export default function Navigation() {
   const isActive = (path) => location.pathname === path;
 
   const links = userData?.isAdmin ? [...NAV_LINKS, TEAM_LINK] : NAV_LINKS;
+
+  // Mobile: hamburger button + off-canvas drawer + tap-out backdrop.
+  // The sidebar still uses the same CSS / link list as desktop; only
+  // its position changes (slides in from -100% when mobileOpen).
+  if (isMobile) {
+    return (
+      <>
+        {!mobileOpen && (
+          <button
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open menu"
+            style={{
+              position: 'fixed', top: 12, left: 12, zIndex: 1100,
+              width: 40, height: 40, borderRadius: 8,
+              background: 'var(--card-bg)', border: '1px solid var(--border)',
+              color: 'var(--text-primary)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        )}
+        {mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, zIndex: 1099,
+              background: 'rgba(0,0,0,0.45)',
+              animation: 'fade-in 0.15s ease',
+            }}
+          />
+        )}
+        <nav className="sidebar" style={{
+          transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          transition: 'transform 0.25s ease',
+          width: 260, zIndex: 1100,
+        }}>
+          <div className="sidebar-header">
+            <Link to="/" className="brand-link">
+              <AxleLogo size="sm" variant="dark" />
+            </Link>
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="collapse-btn"
+              aria-label="Close menu"
+            >
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+          <div className="nav-links">
+            {links.map(link => {
+              const locked = !canAccessModule(link.to, orgPlan);
+              const gate = getModuleGate(link.to);
+              if (locked) {
+                return (
+                  <Link key={link.to} to={link.to} className="nav-link locked"
+                    title={`Upgrade to ${gate?.tier} to unlock ${link.label}`}>
+                    <span className="nav-icon" style={{ opacity: 0.4 }}>{link.icon}</span>
+                    <span className="nav-label" style={{ opacity: 0.4 }}>{link.label}</span>
+                    <svg className="lock-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                    </svg>
+                  </Link>
+                );
+              }
+              return (
+                <Link key={link.to} to={link.to}
+                  className={`nav-link ${isActive(link.to) ? 'active' : ''}`}>
+                  <span className="nav-icon">{link.icon}</span>
+                  <span className="nav-label">{link.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+          <div className="sidebar-footer">
+            <button onClick={toggleTheme} className="theme-toggle">
+              {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
+            </button>
+            <div className="user-info">
+              <span className="user-name">{userData?.name || userData?.email}</span>
+              {userData?.isAdmin && <span className="badge badge-primary">Admin</span>}
+            </div>
+            <button onClick={handleLogout} className="btn-logout">Logout</button>
+          </div>
+          <style jsx>{`
+            @keyframes fade-in { from { opacity: 0 } to { opacity: 1 } }
+            .sidebar { position: fixed; left: 0; top: 0; bottom: 0; background: var(--nav-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+            .sidebar-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 14px 12px; flex-shrink: 0; }
+            .brand-link { display: flex; align-items: center; text-decoration: none; }
+            .collapse-btn { display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: none; color: var(--text-muted); cursor: pointer; }
+            .nav-links { flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 8px; overflow-y: auto; }
+            .nav-link { display: flex; align-items: center; gap: 10px; padding: 12px; border-radius: 8px; text-decoration: none; color: var(--text-secondary); font-weight: 600; font-size: 14px; }
+            .nav-link.active { background: rgba(200,162,88,0.12); color: #C8A258; }
+            .sidebar-footer { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; border-top: 1px solid var(--border); }
+            .theme-toggle, .btn-logout { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); background: none; color: var(--text-secondary); font-weight: 600; font-size: 13px; cursor: pointer; font-family: inherit; }
+            .btn-logout { border-color: #ef4444; color: #ef4444; }
+            .user-info { padding: 6px 12px; }
+            .user-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+            .badge { padding: 2px 8px; border-radius: 12px; font-size: 10px; font-weight: 600; display: inline-block; margin-left: 6px; }
+            .badge-primary { background: var(--badge-primary-bg); color: var(--badge-primary-text); }
+          `}</style>
+        </nav>
+      </>
+    );
+  }
 
   if (collapsed) {
     return (
