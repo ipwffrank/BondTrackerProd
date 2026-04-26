@@ -7,7 +7,9 @@
 const DEFAULT_ORIGINS = [
   'https://axle-finance.com',
   'https://www.axle-finance.com',
+  'https://admin.axle-finance.com',
   'http://localhost:5173',
+  'http://localhost:5174',
   'http://localhost:8888',
 ];
 

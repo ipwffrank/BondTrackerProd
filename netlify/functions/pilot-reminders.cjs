@@ -20,6 +20,7 @@
 
 const admin = require('firebase-admin');
 const { Resend } = require('resend');
+const { getCorsHeaders, handlePreflight } = require('./utils/cors');
 
 if (!admin.apps.length) {
   if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
@@ -202,27 +203,35 @@ async function runReminders() {
 
 exports.handler = async (event) => {
   // Manual trigger via HTTP also works, gated to host admins. Useful for
-  // smoke-testing without waiting 24h. Scheduled invocations have no
-  // headers/body, so the auth check is bypassed there.
-  if (event && event.httpMethod) {
+  // smoke-testing without waiting 24h, and for the "Run reminders now"
+  // button on the admin portal Organizations page. Scheduled invocations
+  // have no event.httpMethod, so the auth + CORS path is bypassed there.
+  const isHttp = !!(event && event.httpMethod);
+  const origin = event?.headers?.origin || '';
+  const corsHeaders = isHttp ? getCorsHeaders(origin) : {};
+
+  if (isHttp) {
+    const preflight = handlePreflight(event, corsHeaders);
+    if (preflight) return preflight;
+
     const authHeader = event.headers?.authorization || '';
     if (!authHeader.startsWith('Bearer ')) {
-      return { statusCode: 401, body: JSON.stringify({ error: 'Missing auth token' }) };
+      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: 'Missing auth token' }) };
     }
     try {
       const decoded = await admin.auth().verifyIdToken(authHeader.split('Bearer ')[1]);
       const hostDoc = await admin.firestore().collection('hostAdmins').doc(decoded.uid).get();
       if (!hostDoc.exists) {
-        return { statusCode: 403, body: JSON.stringify({ error: 'Host admin only' }) };
+        return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Host admin only' }) };
       }
     } catch (err) {
-      return { statusCode: 401, body: JSON.stringify({ error: err.message }) };
+      return { statusCode: 401, headers: corsHeaders, body: JSON.stringify({ error: err.message }) };
     }
   }
 
   const result = await runReminders();
   console.log('[pilot-reminders]', JSON.stringify(result));
-  return { statusCode: 200, body: JSON.stringify(result) };
+  return { statusCode: 200, headers: corsHeaders, body: JSON.stringify(result) };
 };
 
 // Netlify daily cron at 01:00 UTC (~09:00 SGT). Adjust if needed.
