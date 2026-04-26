@@ -477,16 +477,16 @@ export default function AIAssistant() {
               </div>
             </div>
             <div style={{marginBottom: '24px'}}>
-              <label className="form-label">Select Transcript File (.txt, .csv, .md) or Chat Screenshot (.png, .jpg)</label>
+              <label className="form-label">Select Transcript File (.txt, .csv, .md)</label>
               <input
                 type="file"
-                accept=".txt,.csv,.md,.png,.jpg,.jpeg,image/png,image/jpeg"
+                accept=".txt,.csv,.md"
                 className="form-input"
                 onChange={(e) => setAiFile(e.target.files[0])}
               />
               {aiFile && (
                 <p style={{fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px'}}>
-                  Selected: {aiFile.name}{isImageFile(aiFile) ? ' (image — will use AI vision)' : ''}
+                  Selected: {aiFile.name}
                 </p>
               )}
             </div>
@@ -508,10 +508,9 @@ export default function AIAssistant() {
             <div style={{marginTop: '24px', padding: '16px', background: 'var(--badge-primary-bg)', borderRadius: '8px', border: '1px solid var(--badge-primary-text)'}}>
               <h4 style={{fontSize: '14px', fontWeight: 600, marginBottom: '8px', color: 'var(--badge-primary-text)'}}>How AI Analysis Works</h4>
               <ul style={{fontSize: '13px', color: 'var(--text-primary)', lineHeight: 1.6, paddingLeft: '20px', margin: 0}}>
-                <li>Paste a Bloomberg IB, Symphony, or email transcript — or upload a file or screenshot</li>
-                <li>Supported formats: text files (.txt, .csv, .md) and images (.png, .jpg)</li>
+                <li>Paste a Bloomberg IB, Symphony, or email transcript — or upload a file</li>
+                <li>Supported formats: text files (.txt, .csv, .md)</li>
                 <li>AI automatically detects client names, ISINs, tickers, sizes, and directions</li>
-                <li>For screenshots, AI vision reads the chat dialogue and extracts the same structured data</li>
                 <li>Review the extracted activities before importing</li>
                 <li>Import all activities to your Activity Log with one click</li>
               </ul>
